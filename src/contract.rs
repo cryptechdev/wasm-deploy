@@ -9,24 +9,24 @@ pub trait Contract: Send + Sync + Debug + From<String> + Clone + 'static {
     fn base_config_msg(&self)          -> Result<String, Box<dyn Error>>;
     fn execute_msg(&self)              -> Result<String, Box<dyn Error>>;
     fn query_msg(&self)                -> Result<String, Box<dyn Error>>;
-    fn setup_msgs(&self)               -> Result<Vec<String>, Box<dyn Error>>;
+    fn set_up_msgs(&self)               -> Result<Vec<String>, Box<dyn Error>>;
 }
 
-pub fn instantiate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
+pub fn execute_instantiate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     wasm_cli_instantiate(&contract.admin(), &contract.name(), &contract.instantiate_msg()?)
 }
-pub fn migrate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
+pub fn execute_migrate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     wasm_cli_migrate(&contract.name(), &contract.instantiate_msg()?)
 }
-pub fn set_config(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
+pub fn execute_set_config(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     wasm_cli_execute(&contract.name(), &contract.base_config_msg()?)
 }
 pub fn execute_payload(contract: &impl Contract, payload: &String) -> Result<(), Box<dyn Error>> {
     wasm_cli_execute(&contract.name(), payload)
 }
-pub fn execute_set_up(contract: &impl Contract, msgs: &Vec<String>) -> Result<(), Box<dyn Error>> {
-    for msg in msgs {
-        wasm_cli_execute(&contract.name(), msg)?;
+pub fn execute_set_up(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
+    for msg in contract.set_up_msgs()? {
+        wasm_cli_execute(&contract.name(), &msg)?;
     }
     Ok(())   
 }

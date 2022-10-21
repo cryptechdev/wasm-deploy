@@ -19,7 +19,7 @@ where C: Contract,
       E: Subcommand + Execute,
       Q: Subcommand + Query   
 {
-    /// Rebuilds deploy
+    /// Rebuilds wasm-deploy
     Update { },
 
     /// Builds the contracts
@@ -35,6 +35,7 @@ where C: Contract,
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
         contracts: Vec<C>,
 
+        /// Deploys but does not recompile first
         #[arg(short, long, required=false)]
         no_build: bool,
     },
@@ -88,10 +89,13 @@ where C: Contract,
         contract: Q,
     },
 
-    /// Enables interactive mode
-    #[command(alias="q")]
-    Interactive { },
-
     /// Sets up the smart contract env with executes
-    SetUp { },
+    SetUp {
+        /// Name of the contract
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        contracts: Vec<C>,
+    },
+
+    /// Enables interactive mode
+    Interactive { },
 }

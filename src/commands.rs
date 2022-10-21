@@ -6,7 +6,7 @@ use clap_complete::generate_to;
 use clap_complete::shells::{Bash, Zsh};
 use clap_interactive::InteractiveParse;
 use crate::cli::{Cli, Commands};
-use crate::contract::{ Contract, Execute, Query};
+use crate::contract::{ Contract, Execute, Query, execute_set_up};
 use crate::file::{BUILD_DIR, get_shell_completion_dir};
 use crate::wasm_cli::{wasm_cli_store_code, wasm_cli_import_schemas};
 
@@ -32,8 +32,8 @@ where C: Contract,
         Commands::Execute { execute_command } => execute(execute_command),
         Commands::SetConfig { contracts } => set_config(contracts),
         Commands::Query { contract } => query(contract),
+        Commands::SetUp { contracts } => set_up(contracts),
         Commands::Interactive {  } => interactive::<C, E, Q>(),
-        Commands::SetUp {  } => set_up(),
     }
 }
 
@@ -93,7 +93,7 @@ where C: Contract,
             let generated_file = generate_to(
                 Zsh,
                 &mut cmd,  // We need to specify what generator to use
-                "deploy",  // We need to specify the bin name manually
+                "wasm-deploy",  // We need to specify the bin name manually
                 BUILD_DIR.as_path(),    // We need to specify where to write to
             )?;
 
@@ -115,7 +115,7 @@ where C: Contract,
             let generated_file = generate_to(
                 Bash,
                 &mut cmd,  // We need to specify what generator to use
-                "deploy",  // We need to specify the bin name manually
+                "wasm-deploy",  // We need to specify the bin name manually
                 BUILD_DIR.as_path(),    // We need to specify where to write to
             )?;
 
@@ -223,7 +223,7 @@ pub fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Erro
 
 pub fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
     for contract in contracts {
-        crate::contract::instantiate(contract)?;
+        crate::contract::execute_instantiate(contract)?;
         // TODO: figure out how to make this happen
         // if contract.name() == "market".to_string() {
         //     for (_, _, instantiate_msg) in INSTANTIATE_RECEIPTS.as_ref() {
@@ -240,15 +240,20 @@ pub fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>>
     build(contracts)?;
     store_code(contracts)?;
     for contract in contracts {
-        crate::contract::migrate(contract)?;
+        crate::contract::execute_migrate(contract)?;
     }
     Ok(Status::Quit)
 }
 
 pub fn set_config(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
     for contract in contracts {
-        crate::contract::set_config(contract)?;
+        crate::contract::execute_set_config(contract)?;
     }
+    Ok(Status::Quit)
+}
+
+pub fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+    contracts.iter().try_for_each(|x| execute_set_up(x))?;
     Ok(Status::Quit)
 }
 
@@ -257,37 +262,8 @@ pub fn execute<E: Execute>(contract: &E) -> Result<Status, Box<dyn Error>> {
     Ok(Status::Quit)
 }
 
-pub fn set_up() -> Result<Status, Box<dyn Error>> {
-
-    // for asset in PRICE_ORACLE_ASSETS.as_ref() {
-    //     PriceOracle{}.add_asset(asset)?;
-    // }
-
-    // for asset in ADD_INTEREST_MODEL_ASSETS.as_ref() {
-    //     wasm_cli_execute(&"interest_model".to_string(), &serde_json::to_string(asset)?)?;
-    // }
-
-    // for asset in MARKET_ASSETS.as_ref() {
-    //     wasm_cli_execute(&"market".to_string(), &serde_json::to_string(asset)?)?;
-    // }
-
-    // for asset in COLLATERAL_ASSETS.as_ref() {
-    //     wasm_cli_execute(&"market".to_string(), &serde_json::to_string(asset)?)?;
-    // }
-
-    // for pool in ADD_LIQUIDITY_POOLS.as_ref() {
-    //     wasm_cli_execute(&"market".to_string(), &serde_json::to_string(pool)?)?;
-    // }
-
-    Ok(Status::Quit)
-}
-
 pub fn query<Q: Query>(contract: &Q) -> Result<Status, Box<dyn Error>> {
     crate::contract::query(contract)?;
-    Ok(Status::Quit)
-}
-
-pub fn quit() -> Result<Status, Box<dyn Error>> {
     Ok(Status::Quit)
 }
 
@@ -298,8 +274,4 @@ where C: Contract,
 {
     let cli = Cli::<C, E, Q>::interactive_parse()?;
     Ok(execute_args(&cli)?)
-}
-
-pub fn test() -> Result<Status, Box<dyn Error>> {
-    todo!()
 }
