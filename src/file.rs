@@ -7,7 +7,7 @@ use std::io::prelude::*;
 use lazy_static::lazy_static;
 
 lazy_static!{
-    pub static ref CONFIG_PATH: PathBuf = PathBuf::from("deployment/.deployment/config.json");
+    pub static ref CONFIG_PATH: PathBuf = PathBuf::from("deployment/.wasm-deploy/config.json");
     pub static ref BUILD_DIR: PathBuf = PathBuf::from("target/release/");
 }
 

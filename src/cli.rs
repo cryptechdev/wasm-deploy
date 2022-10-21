@@ -19,7 +19,7 @@ where C: Contract,
       E: Execute,
       Q: Query   
 {
-    /// Rebuilds wasm-deploy
+    /// Rebuilds deploy
     Update { },
 
     /// Builds the contracts

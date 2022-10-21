@@ -93,7 +93,7 @@ where C: Contract,
             let generated_file = generate_to(
                 Zsh,
                 &mut cmd,  // We need to specify what generator to use
-                "wasm-deploy",  // We need to specify the bin name manually
+                "deploy",  // We need to specify the bin name manually
                 BUILD_DIR.as_path(),    // We need to specify where to write to
             )?;
 
@@ -115,7 +115,7 @@ where C: Contract,
             let generated_file = generate_to(
                 Bash,
                 &mut cmd,  // We need to specify what generator to use
-                "wasm-deploy",  // We need to specify the bin name manually
+                "deploy",  // We need to specify the bin name manually
                 BUILD_DIR.as_path(),    // We need to specify where to write to
             )?;
 
