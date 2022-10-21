@@ -2,7 +2,7 @@
 name = "wasm-deploy"
 version = "0.1.0"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
-edition = "2018"
+edition = "2021"
 homepage = "https://nept.finance"
 
 [dependencies]
