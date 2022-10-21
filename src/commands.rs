@@ -1,7 +1,7 @@
 use std::env;
 use std::{error::Error};
 use std::process::{Command};
-use clap::{Subcommand, CommandFactory};
+use clap::{CommandFactory};
 use clap_complete::generate_to;
 use clap_complete::shells::{Bash, Zsh};
 use clap_interactive::InteractiveParse;
@@ -18,8 +18,8 @@ pub enum Status {
 
 pub fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, Box<dyn Error>> 
 where C: Contract,
-      E: Execute + Subcommand,
-      Q: Query + Subcommand
+      E: Execute,
+      Q: Query
 {
     match &cli.command {
         Commands::Update {  } => update::<C, E, Q>(),
@@ -47,8 +47,8 @@ pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status,
 
 pub fn update<C, E, Q>() -> Result<Status, Box<dyn Error>> 
 where C: Contract,
-      E: Subcommand + Execute,
-      Q: Subcommand + Query   
+      E: Execute,
+      Q: Query   
 {
 
     Command::new("mv")
@@ -72,8 +72,8 @@ where C: Contract,
 
 fn generate_completions<C, E, Q>() -> Result<(), Box<dyn Error>> 
 where C: Contract,
-      E: Subcommand + Execute,
-      Q: Subcommand + Query   
+      E: Execute,
+      Q: Query   
 {
 
     let shell_completion_dir = match get_shell_completion_dir()? {
@@ -257,20 +257,36 @@ pub fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> 
     Ok(Status::Quit)
 }
 
-pub fn execute<E: Execute>(contract: &E) -> Result<Status, Box<dyn Error>> {
-    crate::contract::execute(contract)?;
+pub fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, Box<dyn Error>> {
+    match execute {
+        Some(e) => {
+            crate::contract::execute(e)?;
+        },
+        None => {
+            let e = &E::interactive_parse()?;
+            crate::contract::execute(e)?;
+        },
+    }
     Ok(Status::Quit)
 }
 
-pub fn query<Q: Query>(contract: &Q) -> Result<Status, Box<dyn Error>> {
-    crate::contract::query(contract)?;
+pub fn query<Q: Query>(query: &Option<Q>) -> Result<Status, Box<dyn Error>> {
+    match query {
+        Some(q) => {
+            crate::contract::query(q)?;
+        },
+        None => {
+            let q = &Q::interactive_parse()?;
+            crate::contract::query(q)?;
+        },
+    }
     Ok(Status::Quit)
 }
 
 pub fn interactive<C, E, Q>() -> Result<Status, Box<dyn Error>> 
 where C: Contract,
-      E: Subcommand + Execute,
-      Q: Subcommand + Query   
+      E: Execute,
+      Q: Query   
 {
     let cli = Cli::<C, E, Q>::interactive_parse()?;
     Ok(execute_args(&cli)?)

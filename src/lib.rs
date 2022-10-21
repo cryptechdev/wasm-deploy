@@ -4,3 +4,4 @@ pub mod contract;
 pub mod wasm_cli;
 pub mod file;
 pub mod commands;
+pub mod tendermint_rpc;

@@ -1,15 +1,17 @@
 
 use std::{error::Error, fmt::{Debug, Display}};
+use clap::{Parser, Subcommand};
+
 use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query};
 
 pub trait Contract: Send + Sync + Debug + From<String> + Clone + 'static {
     fn name(&self)                     -> String;
     fn admin(&self)                    -> String;
-    fn instantiate_msg(&self)          -> Result<String, Box<dyn Error>>;
+    fn instantiate_msg(&self)         -> Result<String, Box<dyn Error>>;
     fn base_config_msg(&self)          -> Result<String, Box<dyn Error>>;
     fn execute_msg(&self)              -> Result<String, Box<dyn Error>>;
     fn query_msg(&self)                -> Result<String, Box<dyn Error>>;
-    fn set_up_msgs(&self)               -> Result<Vec<String>, Box<dyn Error>>;
+    fn set_up_msgs(&self)              -> Result<Vec<String>, Box<dyn Error>>;
 }
 
 pub fn execute_instantiate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
@@ -31,7 +33,7 @@ pub fn execute_set_up(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     Ok(())   
 }
 
-pub trait Execute: Display {
+pub trait Execute: Parser + Subcommand + Display {
     fn execute_msg(&self) -> Result<String, Box<dyn Error>>;
 }
 
@@ -39,7 +41,7 @@ pub fn execute(contract: &impl Execute) -> Result<(), Box<dyn Error>> {
     wasm_cli_execute(&contract.to_string(), &contract.execute_msg()?)
 }
 
-pub trait Query: Display {
+pub trait Query: Parser + Subcommand + Display {
     fn query_msg(&self) -> Result<String, Box<dyn Error>>;
 }
 

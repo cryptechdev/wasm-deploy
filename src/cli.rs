@@ -1,12 +1,12 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser};
 use crate::contract::{Contract, Execute, Query};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli<C, E, Q> 
 where C: Contract,
-      E: Execute + Subcommand,
-      Q: Query + Subcommand
+      E: Execute,
+      Q: Query
 {
     #[command(subcommand)]
     pub command: Commands<C, E, Q>,
@@ -16,8 +16,8 @@ where C: Contract,
 #[clap(rename_all = "snake_case", infer_subcommands=true)]
 pub enum Commands<C, E, Q> 
 where C: Contract,
-      E: Subcommand + Execute,
-      Q: Subcommand + Query   
+      E: Execute,
+      Q: Query   
 {
     /// Rebuilds wasm-deploy
     Update { },
@@ -79,14 +79,14 @@ where C: Contract,
     #[command(visible_alias="x")]
     Execute { 
         #[command(subcommand)]
-        execute_command: E,
+        execute_command: Option<E>,
     },
 
     /// Sends a query to a contract
     #[command(alias="q")]
     Query { 
         #[command(subcommand)]
-        contract: Q,
+        contract: Option<Q>,
     },
 
     /// Sets up the smart contract env with executes
