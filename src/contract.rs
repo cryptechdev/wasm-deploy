@@ -2,20 +2,25 @@ use std::{error::Error, fmt::{Debug, Display}};
 use clap::{Parser, Subcommand};
 use strum::IntoEnumIterator;
 
-use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query};
+use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query, wasm_cli_instantiate_with_code_id};
 
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Clone + 'static {
-    fn name(&self)                     -> String;
-    fn admin(&self)                    -> String;
-    fn instantiate_msg(&self)          -> Result<String, Box<dyn Error>>;
-    fn base_config_msg(&self)          -> Result<String, Box<dyn Error>>;
-    fn execute_msg(&self)              -> Result<String, Box<dyn Error>>;
-    fn query_msg(&self)                -> Result<String, Box<dyn Error>>;
-    fn set_up_msgs(&self)              -> Result<Vec<String>, Box<dyn Error>>;
+    fn name(&self)                      -> String;
+    fn admin(&self)                     -> String;
+    fn instantiate_msg(&self)           -> Result<String, Box<dyn Error>>;
+    fn external_instantiate_msgs(&self) -> Result<Vec<ExternalInstantiate>, Box<dyn Error>>;
+    fn base_config_msg(&self)           -> Result<String, Box<dyn Error>>;
+    fn execute_msg(&self)               -> Result<String, Box<dyn Error>>;
+    fn query_msg(&self)                 -> Result<String, Box<dyn Error>>;
+    fn set_up_msgs(&self)               -> Result<Vec<String>, Box<dyn Error>>;
 }
 
 pub fn execute_instantiate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
-    wasm_cli_instantiate(&contract.admin(), &contract.name(), &contract.instantiate_msg()?)
+    wasm_cli_instantiate(&contract.admin(), &contract.name(), &contract.instantiate_msg()?)?;
+    for external in contract.external_instantiate_msgs()? {
+        wasm_cli_instantiate_with_code_id(&contract.admin(), &external.name, external.code_id, &external.msg)?;
+    }
+    Ok(())
 }
 pub fn execute_migrate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     wasm_cli_migrate(&contract.name(), &contract.instantiate_msg()?)
@@ -47,6 +52,13 @@ pub trait Query: Parser + Subcommand + Display {
 
 pub fn query(contract: &impl Query) -> Result<(), Box<dyn Error>> {
     wasm_cli_query(&contract.to_string(), &contract.query_msg()?)
+}
+
+#[derive(Clone)]
+pub struct ExternalInstantiate {
+    pub msg: String,
+    pub code_id: u64,
+    pub name: String
 }
 
 

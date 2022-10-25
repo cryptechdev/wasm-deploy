@@ -4,7 +4,6 @@ pub fn wasm_cli_execute(contract_name: &String, payload: &String) -> Result<(), 
     println!("executing {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("tx")
-        .arg("-s")
         .arg("-a")
         .arg(format!("&{}", contract_name))
         .arg("-p")
