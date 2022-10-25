@@ -41,7 +41,8 @@ pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status,
     if !no_build { build(contracts)?; }
     store_code(contracts)?;
     instantiate(contracts)?;
-    //set_config(contracts)?;
+    set_config(contracts)?;
+    set_up(contracts)?;
     Ok(Status::Continue)
 }
 
@@ -225,14 +226,6 @@ pub fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Erro
 pub fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
     for contract in contracts {
         crate::contract::execute_instantiate(contract)?;
-        // TODO: figure out how to make this happen
-        // if contract.name() == "market".to_string() {
-        //     for (_, _, instantiate_msg) in INSTANTIATE_RECEIPTS.as_ref() {
-        //         let payload = serde_json::to_string(instantiate_msg)?;
-        //         wasm_cli_instantiate_with_code_id(&instantiate_msg.name, RECEIPT_CODE_ID, &payload)?;
-        //     }
-        // }
-
     }
     Ok(Status::Quit)
 }

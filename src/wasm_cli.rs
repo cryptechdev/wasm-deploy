@@ -13,6 +13,20 @@ pub fn wasm_cli_execute(contract_name: &String, payload: &String) -> Result<(), 
         Ok(())
 }
 
+pub fn wasm_cli_execute_silent(contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
+    println!("executing {} contract", contract_name);
+    Command::new("wasm-cli")
+        .arg("tx")
+        .arg("-s")
+        .arg("-a")
+        .arg(format!("&{}", contract_name))
+        .arg("-p")
+        .arg(payload.as_str())
+        .spawn()?
+        .wait()?;
+        Ok(())
+}
+
 pub fn wasm_cli_migrate(contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
     Command::new("wasm-cli")
         .arg("migrate")

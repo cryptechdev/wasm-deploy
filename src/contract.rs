@@ -2,7 +2,7 @@ use std::{error::Error, fmt::{Debug, Display}};
 use clap::{Parser, Subcommand};
 use strum::IntoEnumIterator;
 
-use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query, wasm_cli_instantiate_with_code_id};
+use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query, wasm_cli_instantiate_with_code_id, wasm_cli_execute_silent};
 
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Clone + 'static {
     fn name(&self)                      -> String;
@@ -26,14 +26,14 @@ pub fn execute_migrate(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     wasm_cli_migrate(&contract.name(), &contract.instantiate_msg()?)
 }
 pub fn execute_set_config(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
-    wasm_cli_execute(&contract.name(), &contract.base_config_msg()?)
+    wasm_cli_execute_silent(&contract.name(), &contract.base_config_msg()?)
 }
-pub fn execute_payload(contract: &impl Contract, payload: &String) -> Result<(), Box<dyn Error>> {
-    wasm_cli_execute(&contract.name(), payload)
-}
+// pub fn execute_payload(contract: &impl Contract, payload: &String) -> Result<(), Box<dyn Error>> {
+//     wasm_cli_execute(&contract.name(), payload)
+// }
 pub fn execute_set_up(contract: &impl Contract) -> Result<(), Box<dyn Error>> {
     for msg in contract.set_up_msgs()? {
-        wasm_cli_execute(&contract.name(), &msg)?;
+        wasm_cli_execute_silent(&contract.name(), &msg)?;
     }
     Ok(())   
 }
@@ -60,7 +60,6 @@ pub struct ExternalInstantiate {
     pub code_id: u64,
     pub name: String
 }
-
 
 // #[derive(Parser, Debug, Display, Clone)]
 // pub enum Msgs<E, Q> 
