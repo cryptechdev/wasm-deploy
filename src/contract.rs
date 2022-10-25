@@ -1,10 +1,10 @@
-
 use std::{error::Error, fmt::{Debug, Display}};
 use clap::{Parser, Subcommand};
+use strum::IntoEnumIterator;
 
 use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query};
 
-pub trait Contract: Send + Sync + Debug + From<String> + Clone + 'static {
+pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Clone + 'static {
     fn name(&self)                     -> String;
     fn admin(&self)                    -> String;
     fn instantiate_msg(&self)         -> Result<String, Box<dyn Error>>;
@@ -48,6 +48,7 @@ pub trait Query: Parser + Subcommand + Display {
 pub fn query(contract: &impl Query) -> Result<(), Box<dyn Error>> {
     wasm_cli_query(&contract.to_string(), &contract.query_msg()?)
 }
+
 
 // #[derive(Parser, Debug, Display, Clone)]
 // pub enum Msgs<E, Q> 

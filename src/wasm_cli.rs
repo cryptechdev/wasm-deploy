@@ -30,6 +30,7 @@ pub fn wasm_cli_instantiate(admin: &String, contract_name: &String, payload: &St
     println!("Instantiating {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("instantiate")
+        .arg("-s")
         .arg("-a")
         .arg(admin)
         .arg("-n")
@@ -45,6 +46,7 @@ pub fn wasm_cli_instantiate_with_code_id(admin: &String, contract_name: &String,
     println!("Instantiating {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("instantiate")
+        .arg("-s")
         .arg("-a")
         .arg(admin)
         .arg("-n")
@@ -62,6 +64,7 @@ pub fn wasm_cli_store_code(name: &String) -> Result<(), Box<dyn Error>>{
     println!("Storing code for {} contract", name);
     Command::new("wasm-cli")
         .arg("store")
+        .arg("-s")
         .arg("--name")
         .arg(format!("{}", name))
         .arg(format!("artifacts/{}.wasm", name))

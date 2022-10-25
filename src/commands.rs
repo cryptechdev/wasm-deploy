@@ -41,7 +41,7 @@ pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status,
     if !no_build { build(contracts)?; }
     store_code(contracts)?;
     instantiate(contracts)?;
-    set_config(contracts)?;
+    //set_config(contracts)?;
     Ok(Status::Continue)
 }
 

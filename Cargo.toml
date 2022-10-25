@@ -13,6 +13,7 @@ lazy_static = "1.4.0"
 clap_complete = "4.0.3"
 inquire = "0.4.0"
 clap-interactive = "0.1.1"
+strum = "0.24.1"
 
 tokio = "1.21.2"
 tendermint-rpc = { version = "0.25.0", features = ["http-client"] }
