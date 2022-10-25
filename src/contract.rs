@@ -7,7 +7,7 @@ use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, 
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Clone + 'static {
     fn name(&self)                     -> String;
     fn admin(&self)                    -> String;
-    fn instantiate_msg(&self)         -> Result<String, Box<dyn Error>>;
+    fn instantiate_msg(&self)          -> Result<String, Box<dyn Error>>;
     fn base_config_msg(&self)          -> Result<String, Box<dyn Error>>;
     fn execute_msg(&self)              -> Result<String, Box<dyn Error>>;
     fn query_msg(&self)                -> Result<String, Box<dyn Error>>;

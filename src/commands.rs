@@ -146,6 +146,7 @@ pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
             .env("RUSTFLAGS", "-C link-arg=-s")
             .arg("build")
             .arg("--release")
+            .arg("--lib")
             .arg("--target=wasm32-unknown-unknown")
             .current_dir(format!("./contracts/{}", contract.name()))
             .spawn()?
