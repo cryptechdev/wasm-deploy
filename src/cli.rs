@@ -29,7 +29,8 @@ where C: Contract,
         contracts: Vec<C>,
     },
 
-    /// Deploys the contracts
+    /// Builds, optimizes, stores, instantiates and sets configs.
+    /// Does not run set_up
     Deploy { 
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
