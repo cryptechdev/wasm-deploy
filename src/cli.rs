@@ -20,7 +20,7 @@ where C: Contract,
       Q: Query   
 {
     /// Rebuilds deploy
-    Update { },
+    Update,
 
     /// Builds the contracts
     Build { 
@@ -97,7 +97,7 @@ where C: Contract,
     },
 
     /// Enables interactive mode
-    Interactive { },
+    Interactive,
 }
 
 fn get_all<C: Contract>() -> Vec<String> {

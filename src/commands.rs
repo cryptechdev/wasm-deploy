@@ -53,14 +53,13 @@ where C: Contract,
 {
 
     Command::new("mv")
-        .arg("./target/release/deploy")
-        .arg("./target/release/deploy.old")
+        .arg("./target/debug/deploy")
+        .arg("./target/debug/deploy.old")
         .spawn()?
         .wait()?;
 
     Command::new("cargo")
         .arg("build")
-        .arg("--release")
         .current_dir("./deployment")
         .spawn()?
         .wait()?
