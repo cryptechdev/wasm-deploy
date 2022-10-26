@@ -25,14 +25,14 @@ where C: Contract,
     /// Builds the contracts
     Build { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
     /// Deploys the contracts
     Deploy { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
 
         /// Deploys but does not recompile first
@@ -43,35 +43,35 @@ where C: Contract,
     /// Generates and imports schemas
     Schema { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
     /// Stores code for the contracs
     StoreCode { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
     /// Instantiates a contract
     Instantiate { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
     /// Migrates contracts
     Migrate { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
     /// Sets the config of a contract
     SetConfig { 
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
@@ -92,10 +92,14 @@ where C: Contract,
     /// Sets up the smart contract env with executes
     SetUp {
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
 
     /// Enables interactive mode
     Interactive { },
+}
+
+fn get_all<C: Contract>() -> Vec<String> {
+    C::iter().map(|x| x.to_string()).collect()
 }

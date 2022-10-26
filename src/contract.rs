@@ -4,7 +4,7 @@ use strum::IntoEnumIterator;
 
 use crate::wasm_cli::{wasm_cli_instantiate, wasm_cli_execute, wasm_cli_migrate, wasm_cli_query, wasm_cli_instantiate_with_code_id, wasm_cli_execute_silent};
 
-pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Clone + 'static {
+pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Display + Clone + 'static {
     fn name(&self)                      -> String;
     fn admin(&self)                     -> String;
     fn instantiate_msg(&self)           -> Result<String, Box<dyn Error>>;
