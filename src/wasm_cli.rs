@@ -1,6 +1,8 @@
-use std::{error::Error, process::Command};
+use std::{process::Command};
 
-pub fn wasm_cli_execute(contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
+use crate::error::DeployError;
+
+pub fn wasm_cli_execute(contract_name: &String, payload: &String) -> Result<(), DeployError>{
     println!("executing {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("tx")
@@ -13,7 +15,7 @@ pub fn wasm_cli_execute(contract_name: &String, payload: &String) -> Result<(), 
         Ok(())
 }
 
-pub fn wasm_cli_execute_silent(contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
+pub fn wasm_cli_execute_silent(contract_name: &String, payload: &String) -> Result<(), DeployError>{
     println!("executing {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("tx")
@@ -27,7 +29,7 @@ pub fn wasm_cli_execute_silent(contract_name: &String, payload: &String) -> Resu
         Ok(())
 }
 
-pub fn wasm_cli_migrate(contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
+pub fn wasm_cli_migrate(contract_name: &String, payload: &String) -> Result<(), DeployError>{
     Command::new("wasm-cli")
         .arg("migrate")
         .arg("-s")
@@ -39,7 +41,7 @@ pub fn wasm_cli_migrate(contract_name: &String, payload: &String) -> Result<(), 
         Ok(())
 }
 
-pub fn wasm_cli_instantiate(admin: &String, contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
+pub fn wasm_cli_instantiate(admin: &String, contract_name: &String, payload: &String) -> Result<(), DeployError>{
     println!("Instantiating {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("instantiate")
@@ -55,7 +57,7 @@ pub fn wasm_cli_instantiate(admin: &String, contract_name: &String, payload: &St
         Ok(())
 }
 
-pub fn wasm_cli_instantiate_with_code_id(admin: &String, contract_name: &String, code_id: u64, payload: &String) -> Result<(), Box<dyn Error>>{
+pub fn wasm_cli_instantiate_with_code_id(admin: &String, contract_name: &String, code_id: u64, payload: &String) -> Result<(), DeployError>{
     println!("Instantiating {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("instantiate")
@@ -73,7 +75,7 @@ pub fn wasm_cli_instantiate_with_code_id(admin: &String, contract_name: &String,
         Ok(())
 }
 
-pub fn wasm_cli_store_code(name: &String) -> Result<(), Box<dyn Error>>{
+pub fn wasm_cli_store_code(name: &String) -> Result<(), DeployError>{
     println!("Storing code for {} contract", name);
     Command::new("wasm-cli")
         .arg("store")
@@ -86,7 +88,7 @@ pub fn wasm_cli_store_code(name: &String) -> Result<(), Box<dyn Error>>{
     Ok(())
 }
 
-pub fn wasm_cli_query(contract_name: &String, payload: &String) -> Result<(), Box<dyn Error>>{
+pub fn wasm_cli_query(contract_name: &String, payload: &String) -> Result<(), DeployError>{
     println!("Querying {} contract", contract_name);
     Command::new("wasm-cli")
         .arg("query")
@@ -100,7 +102,7 @@ pub fn wasm_cli_query(contract_name: &String, payload: &String) -> Result<(), Bo
         Ok(())
 }
 
-pub fn wasm_cli_import_schemas(name: &String) -> Result<(), Box<dyn Error>> {
+pub fn wasm_cli_import_schemas(name: &String) -> Result<(), DeployError> {
     println!("Importing schemas for {} contract", name);
     Command::new("wasm-cli")
     .arg("import")
@@ -114,7 +116,7 @@ pub fn wasm_cli_import_schemas(name: &String) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn wasm_cli_import_receipt_schemas(name: &String) -> Result<(), Box<dyn Error>> {
+pub fn wasm_cli_import_receipt_schemas(name: &String) -> Result<(), DeployError> {
     println!("Importing schemas for {} contract", name);
     Command::new("wasm-cli")
         .arg("import")

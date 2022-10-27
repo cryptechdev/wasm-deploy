@@ -1,5 +1,4 @@
 use std::env;
-use std::{error::Error};
 use std::process::{Command};
 use clap::{CommandFactory};
 use clap_complete::generate_to;
@@ -7,6 +6,7 @@ use clap_complete::shells::{Bash, Zsh};
 use clap_interactive::InteractiveParse;
 use crate::cli::{Cli, Commands};
 use crate::contract::{ Contract, Execute, Query, execute_set_up};
+use crate::error::DeployError;
 use crate::file::{BUILD_DIR, get_shell_completion_dir};
 use crate::wasm_cli::{wasm_cli_store_code, wasm_cli_import_schemas};
 
@@ -16,7 +16,7 @@ pub enum Status {
     Quit
 }
 
-pub fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, Box<dyn Error>> 
+pub fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, DeployError> 
 where C: Contract,
       E: Execute,
       Q: Query
@@ -37,7 +37,7 @@ where C: Contract,
     }
 }
 
-pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, Box<dyn Error>> {
+pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, DeployError> {
     if !no_build { build(contracts)?; }
     store_code(contracts)?;
     instantiate(contracts)?;
@@ -46,7 +46,7 @@ pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status,
     Ok(Status::Continue)
 }
 
-pub fn update<C, E, Q>() -> Result<Status, Box<dyn Error>> 
+pub fn update<C, E, Q>() -> Result<Status, DeployError> 
 where C: Contract,
       E: Execute,
       Q: Query   
@@ -70,7 +70,7 @@ where C: Contract,
     Ok(Status::Quit)
 }
 
-fn generate_completions<C, E, Q>() -> Result<(), Box<dyn Error>> 
+fn generate_completions<C, E, Q>() -> Result<(), DeployError> 
 where C: Contract,
       E: Execute,
       Q: Query   
@@ -132,14 +132,14 @@ where C: Contract,
             }
         },
         _ => {
-            return Err("Unsupported shell".into());
+            return Err(DeployError::UnsupportedShell{});
         }
     }    
 
     Ok(())
 }
 
-pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
@@ -166,7 +166,7 @@ pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
     Ok(Status::Quit)
 }
 
-pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     // Generate schemas
     for contract in contracts {
         Command::new("cargo")
@@ -185,7 +185,7 @@ pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>>
     Ok(Status::Quit)
 }
 
-pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
         // Optimize contracts
         let mut handles = vec![];
         for contract in contracts {
@@ -203,7 +203,7 @@ pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>
         Ok(Status::Quit)
 }
 
-pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     // change mod
     for contract in contracts {
         let name = contract.name();
@@ -214,7 +214,7 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
     Ok(Status::Quit)
 }
 
-pub fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     for contract in contracts {
         let name = contract.name();
         wasm_cli_store_code(&name)?
@@ -222,14 +222,14 @@ pub fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Erro
     Ok(Status::Quit)
 }
 
-pub fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     for contract in contracts {
         crate::contract::execute_instantiate(contract)?;
     }
     Ok(Status::Quit)
 }
 
-pub fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     build(contracts)?;
     store_code(contracts)?;
     for contract in contracts {
@@ -238,19 +238,19 @@ pub fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>>
     Ok(Status::Quit)
 }
 
-pub fn set_config(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn set_config(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     for contract in contracts {
         crate::contract::execute_set_config(contract)?;
     }
     Ok(Status::Quit)
 }
 
-pub fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, Box<dyn Error>> {
+pub fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     contracts.iter().try_for_each(|x| execute_set_up(x))?;
     Ok(Status::Quit)
 }
 
-pub fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, Box<dyn Error>> {
+pub fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, DeployError> {
     match execute {
         Some(e) => {
             crate::contract::execute(e)?;
@@ -263,7 +263,7 @@ pub fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, Box<dyn Error>
     Ok(Status::Quit)
 }
 
-pub fn query<Q: Query>(query: &Option<Q>) -> Result<Status, Box<dyn Error>> {
+pub fn query<Q: Query>(query: &Option<Q>) -> Result<Status, DeployError> {
     match query {
         Some(q) => {
             crate::contract::query(q)?;
@@ -276,7 +276,7 @@ pub fn query<Q: Query>(query: &Option<Q>) -> Result<Status, Box<dyn Error>> {
     Ok(Status::Quit)
 }
 
-pub fn interactive<C, E, Q>() -> Result<Status, Box<dyn Error>> 
+pub fn interactive<C, E, Q>() -> Result<Status, DeployError> 
 where C: Contract,
       E: Execute,
       Q: Query   
