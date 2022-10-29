@@ -22,11 +22,47 @@ where C: Contract,
     /// Rebuilds deploy
     Update,
 
+    /// Initializes deploy, adding keys, chains, and envs
+    Init,
+
     /// Builds the contracts
     Build { 
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+    },
+
+    /// Modify chains
+    Chain { 
+        /// Triggers dialogue to add a chain
+        #[arg(short, long, exclusive=true)]
+        add: bool,
+
+        /// Triggers dialogue to delete a chain
+        #[arg(short, long, exclusive=true)]
+        delete: bool,
+    },
+
+    /// Modify keys
+    Key { 
+        /// Triggers dialogue to add a key
+        #[arg(short, long, exclusive=true)]
+        add: bool,
+
+        /// Triggers dialogue to delete a key
+        #[arg(short, long, exclusive=true)]
+        delete: bool,
+    },
+
+    /// Modify chains
+    Contract { 
+        /// Triggers dialogue to add a contract
+        #[arg(short, long, exclusive=true)]
+        add: bool,
+
+        /// Triggers dialogue to delete a contract
+        #[arg(short, long, exclusive=true)]
+        delete: bool,
     },
 
     /// Builds, optimizes, stores, instantiates and sets configs.
@@ -39,6 +75,17 @@ where C: Contract,
         /// Deploys but does not recompile first
         #[arg(short, long, required=false)]
         no_build: bool,
+    },
+
+    /// Modify deployment environments
+    Env { 
+        /// Triggers dialogue to add a deployment environment
+        #[arg(short, long, exclusive=true)]
+        add: bool,
+
+        /// Triggers dialogue to delete deployment environment
+        #[arg(short, long, exclusive=true)]
+        delete: bool,
     },
 
     /// Generates and imports schemas

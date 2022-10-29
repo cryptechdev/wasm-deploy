@@ -16,12 +16,18 @@ clap-interactive = "0.1.3"
 strum = "0.24.1"
 thiserror = "1.0.37"
 
-bip32 = { version = "0.4.0", features = ["secp256k1"] }
-cosmrs = { version = "0.9.0", features = ["bip32", "dev", "cosmwasm"] }
+tendermint-rpc = { version = "0.25.0", features = ["http-client"] }
+cosmrs = { version = "0.9.0", features = ["dev", "cosmwasm"] }
 tokio = "1.21.2"
+async-recursion = "1.0.0"
+cosmos-sdk-proto = "0.14.0"
+keyring = "1.2.0"
+cosm-orc = "2.7.0"
+colored = "2.0.0"
+colored_json = "3.0.1"
 
 [dev-dependencies]
-tendermint-rpc = { version = "0.25.0", features = ["http-client"] }
+faux = "0.1.7"
 
 # TODO: leaving this here so I remember it later
 # tmkms = { version = "0.12.2", features = ["ledgertm"] }

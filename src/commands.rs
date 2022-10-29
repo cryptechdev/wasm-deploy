@@ -1,14 +1,15 @@
 use std::env;
 use std::process::{Command};
+use async_recursion::async_recursion;
 use clap::{CommandFactory};
 use clap_complete::generate_to;
 use clap_complete::shells::{Bash, Zsh};
 use clap_interactive::InteractiveParse;
 use crate::cli::{Cli, Commands};
-use crate::contract::{ Contract, Execute, Query, execute_set_up};
-use crate::error::DeployError;
-use crate::file::{BUILD_DIR, get_shell_completion_dir};
-use crate::wasm_cli::{wasm_cli_store_code, wasm_cli_import_schemas};
+use crate::contract::{ Contract, Execute, Query, execute_set_up, execute_store};
+use crate::error::{DeployError, DeployResult};
+use crate::file::{BUILD_DIR, get_shell_completion_dir, Config};
+use crate::wasm_cli::{wasm_cli_import_schemas};
 
 #[derive(PartialEq)]
 pub enum Status {
@@ -16,34 +17,93 @@ pub enum Status {
     Quit
 }
 
-pub fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, DeployError> 
+#[async_recursion(?Send)]
+pub async fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, DeployError> 
 where C: Contract,
       E: Execute,
       Q: Query
 {
     match &cli.command {
         Commands::Update {  } => update::<C, E, Q>(),
+        Commands::Init {  } => init(),
         Commands::Build { contracts } => build(contracts),
-        Commands::Deploy { contracts, no_build } => deploy(contracts, no_build),
+        Commands::Chain { add, delete } => chain(add, delete),
+        Commands::Key { add, delete } => key(add, delete),
+        Commands::Contract { add, delete } => contract(add, delete),
+        Commands::Deploy { contracts, no_build } => deploy(contracts, no_build).await,
+        Commands::Env { add, delete } => execute_env(add, delete),
         Commands::Schema { contracts } => schemas(contracts),
-        Commands::StoreCode { contracts } => store_code(contracts),
-        Commands::Instantiate { contracts } => instantiate(contracts),
-        Commands::Migrate { contracts } => migrate(contracts),
-        Commands::Execute { execute_command } => execute(execute_command),
-        Commands::SetConfig { contracts } => set_config(contracts),
-        Commands::Query { contract } => query(contract),
-        Commands::SetUp { contracts } => set_up(contracts),
-        Commands::Interactive {  } => interactive::<C, E, Q>(),
+        Commands::StoreCode { contracts } => store_code(contracts).await,
+        Commands::Instantiate { contracts } => instantiate(contracts).await,
+        Commands::Migrate { contracts } => migrate(contracts).await,
+        Commands::Execute { execute_command } => execute(execute_command).await,
+        Commands::SetConfig { contracts } => set_config(contracts).await,
+        Commands::Query { contract } => query(contract).await,
+        Commands::SetUp { contracts } => set_up(contracts).await,
+        Commands::Interactive {  } => interactive::<C, E, Q>().await,
     }
 }
 
-pub fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, DeployError> {
+pub fn init() -> DeployResult<Status> {
+    let mut config = Config::init()?;
+    config.add_key()?;
+    config.add_chain()?;
+    config.add_env()?;
+    config.save()?;
+    Ok(Status::Quit)
+}
+
+pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+    let mut config = Config::load()?;
+    if *add {
+        config.add_chain()?;
+    } else if *delete {
+        //config.add_chain()?;
+    }
+    config.save()?;
+    Ok(Status::Quit)
+}
+
+pub fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+    let mut config = Config::load()?;
+    if *add {
+        config.add_key()?;
+    } else if *delete {
+        //config.add_chain()?;
+    }
+    config.save()?;
+    Ok(Status::Quit)
+}
+
+pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+    let mut config = Config::load()?;
+    if *add {
+        config.add_contract()?;
+    } else if *delete {
+        //config.add_chain()?;
+    }
+    config.save()?;
+    Ok(Status::Quit)
+}
+
+pub async fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, DeployError> {
     if !no_build { build(contracts)?; }
-    store_code(contracts)?;
-    instantiate(contracts)?;
-    set_config(contracts)?;
-    set_up(contracts)?;
+    store_code(contracts).await?;
+    instantiate(contracts).await?;
+    set_config(contracts).await?;
+    set_up(contracts).await?;
     Ok(Status::Continue)
+}
+
+pub fn execute_env(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+    let mut config = Config::load()?;
+    if *add {
+        config.add_env()?;
+    } else if *delete {
+        //config.add_chain()?;
+    }
+    config.save()?;
+    Ok(Status::Quit)
 }
 
 pub fn update<C, E, Q>() -> Result<Status, DeployError> 
@@ -214,73 +274,74 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
     Ok(Status::Quit)
 }
 
-pub fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub async fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     for contract in contracts {
-        let name = contract.name();
-        wasm_cli_store_code(&name)?
+        execute_store(contract).await?
     }
     Ok(Status::Quit)
 }
 
-pub fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub async fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     for contract in contracts {
-        crate::contract::execute_instantiate(contract)?;
+        crate::contract::execute_instantiate(contract).await?;
     }
     Ok(Status::Quit)
 }
 
-pub fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub async fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     build(contracts)?;
-    store_code(contracts)?;
+    store_code(contracts).await?;
     for contract in contracts {
-        crate::contract::execute_migrate(contract)?;
+        crate::contract::execute_migrate(contract).await?;
     }
     Ok(Status::Quit)
 }
 
-pub fn set_config(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub async fn set_config(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     for contract in contracts {
-        crate::contract::execute_set_config(contract)?;
+        crate::contract::execute_set_config(contract).await?;
     }
     Ok(Status::Quit)
 }
 
-pub fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-    contracts.iter().try_for_each(|x| execute_set_up(x))?;
+pub async fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+    for contract in contracts {
+        execute_set_up(contract).await?;
+    }
     Ok(Status::Quit)
 }
 
-pub fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, DeployError> {
+pub async fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, DeployError> {
     match execute {
         Some(e) => {
-            crate::contract::execute(e)?;
+            crate::contract::execute(e).await?;
         },
         None => {
             let e = &E::interactive_parse()?;
-            crate::contract::execute(e)?;
+            crate::contract::execute(e).await?;
         },
     }
     Ok(Status::Quit)
 }
 
-pub fn query<Q: Query>(query: &Option<Q>) -> Result<Status, DeployError> {
+pub async fn query<Q: Query>(query: &Option<Q>) -> Result<Status, DeployError> {
     match query {
         Some(q) => {
-            crate::contract::query(q)?;
+            crate::contract::query(q).await?;
         },
         None => {
             let q = &Q::interactive_parse()?;
-            crate::contract::query(q)?;
+            crate::contract::query(q).await?;
         },
     }
     Ok(Status::Quit)
 }
 
-pub fn interactive<C, E, Q>() -> Result<Status, DeployError> 
+pub async fn interactive<C, E, Q>() -> Result<Status, DeployError> 
 where C: Contract,
       E: Execute,
       Q: Query   
 {
     let cli = Cli::<C, E, Q>::interactive_parse()?;
-    Ok(execute_args(&cli)?)
+    Ok(execute_args(&cli).await?)
 }

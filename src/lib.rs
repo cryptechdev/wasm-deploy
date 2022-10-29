@@ -6,3 +6,5 @@ pub mod wasm_cli;
 pub mod file;
 pub mod commands;
 pub mod cosmrs;
+pub mod key;
+pub mod cosmwasm;
