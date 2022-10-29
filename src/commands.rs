@@ -5,6 +5,7 @@ use clap::{CommandFactory};
 use clap_complete::generate_to;
 use clap_complete::shells::{Bash, Zsh};
 use clap_interactive::InteractiveParse;
+use inquire::MultiSelect;
 use crate::cli::{Cli, Commands};
 use crate::contract::{ Contract, Execute, Query, execute_set_up, execute_store};
 use crate::error::{DeployError, DeployResult};
@@ -58,7 +59,11 @@ pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     if *add {
         config.add_chain()?;
     } else if *delete {
-        //config.add_chain()?;
+        let all_chains = &mut config.chains;
+        let chains = MultiSelect::new("Select which chains to delete", all_chains.clone()).prompt()?;
+        for chain in chains {
+            all_chains.retain(|x| x != &chain);
+        }
     }
     config.save()?;
     Ok(Status::Quit)
@@ -69,7 +74,11 @@ pub fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     if *add {
         config.add_key()?;
     } else if *delete {
-        //config.add_chain()?;
+        let all_keys = &mut config.keys;
+        let keys = MultiSelect::new("Select which keys to delete", all_keys.clone()).prompt()?;
+        for key in keys {
+            all_keys.retain(|x| x != &key);
+        }
     }
     config.save()?;
     Ok(Status::Quit)
@@ -80,7 +89,12 @@ pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     if *add {
         config.add_contract()?;
     } else if *delete {
-        //config.add_chain()?;
+        let env = config.get_active_env_mut()?;
+        let all_contracts = &mut env.contracts;
+        let contracts = MultiSelect::new("Select which contracts to delete", all_contracts.clone()).prompt()?;
+        for contract in contracts {
+            all_contracts.retain(|x| x != &contract);
+        }
     }
     config.save()?;
     Ok(Status::Quit)

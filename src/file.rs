@@ -34,7 +34,7 @@ impl Display for Env {
     }
 }
 
-#[derive(Clone, Debug, Parser, Serialize, Deserialize)]
+#[derive(Clone, Debug, Parser, PartialEq, Serialize, Deserialize)]
 pub struct ChainInfo {
     pub denom: String,
     pub chain_id: Id,
@@ -84,6 +84,12 @@ pub struct ContractInfo {
     pub name: String,
     pub addr: Option<String>,
     pub code_id: Option<u64>
+}
+
+impl Display for ContractInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.name.fmt(f)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]

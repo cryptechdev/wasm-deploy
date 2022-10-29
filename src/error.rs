@@ -57,6 +57,11 @@ pub enum DeployError {
     #[error("{0}")]
     RpcError(#[from] tendermint_rpc::Error),
 
+    #[error("{0}")]
+    Clap(#[from] clap::error::Error),
+
+    
+
     #[error("invalid mnemonic")]
     Mnemonic,
 
