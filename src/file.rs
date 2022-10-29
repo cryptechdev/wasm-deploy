@@ -123,7 +123,7 @@ impl Config {
     }
 
     pub fn save(&self) -> Result<(), DeployError> {
-        let mut file = OpenOptions::new().write(true).create(true).open(CONFIG_PATH.as_path())?;
+        let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(CONFIG_PATH.as_path())?;
         let serialized = serde_json::to_vec_pretty(self)?;
         file.write_all(&serialized)?;
         Ok(())
