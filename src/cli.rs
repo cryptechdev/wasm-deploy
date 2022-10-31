@@ -89,6 +89,10 @@ where
         /// Triggers dialogue to delete deployment environment
         #[arg(short, long, exclusive = true)]
         delete: bool,
+
+        /// Triggers dialogue to select an env to activate
+        #[arg(short, long, exclusive = true)]
+        select: bool,
     },
 
     /// Generates and imports schemas

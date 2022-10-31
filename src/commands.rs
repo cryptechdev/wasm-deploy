@@ -7,7 +7,7 @@ use clap_complete::{
     shells::{Bash, Zsh},
 };
 use clap_interactive::InteractiveParse;
-use inquire::MultiSelect;
+use inquire::{MultiSelect, Select};
 
 use crate::{
     cli::{Cli, Commands},
@@ -38,7 +38,7 @@ where
         Commands::Key { add, delete } => key(add, delete),
         Commands::Contract { add, delete } => contract(add, delete),
         Commands::Deploy { contracts, no_build } => deploy(contracts, no_build).await,
-        Commands::Env { add, delete } => execute_env(add, delete),
+        Commands::Env { add, delete, select } => execute_env(add, delete, select),
         Commands::Schema { contracts } => schemas(contracts),
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
@@ -106,6 +106,26 @@ pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     Ok(Status::Quit)
 }
 
+pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<Status, DeployError> {
+    let mut config = Config::load()?;
+    if *add {
+        config.add_env()?;
+    } else if *delete {
+        let envs = MultiSelect::new("Select which envs to delete", config.envs.clone()).prompt()?;
+        for env in envs {
+            config.envs.retain(|x| x != &env);
+        }
+        let env = Select::new("Select which env to activate", config.envs.clone()).prompt()?;
+        config.envs.iter_mut().for_each(|x| x.is_active = x == &env);
+    } else if *select {
+        let env = Select::new("Select which env to activate", config.envs.clone()).prompt()?;
+        config.envs.iter_mut().for_each(|x| x.is_active = x == &env);
+    }
+
+    config.save()?;
+    Ok(Status::Quit)
+}
+
 pub async fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, DeployError> {
     if !no_build {
         build(contracts)?;
@@ -115,17 +135,6 @@ pub async fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<S
     set_config(contracts).await?;
     set_up(contracts).await?;
     Ok(Status::Continue)
-}
-
-pub fn execute_env(add: &bool, delete: &bool) -> Result<Status, DeployError> {
-    let mut config = Config::load()?;
-    if *add {
-        config.add_env()?;
-    } else if *delete {
-        //config.add_chain()?;
-    }
-    config.save()?;
-    Ok(Status::Quit)
 }
 
 pub fn update<C, E, Q>() -> Result<Status, DeployError>
