@@ -1,23 +1,21 @@
-use std::{process::ExitStatusError, error::Error};
-
-use cosmos_sdk_proto::prost::{EncodeError, DecodeError};
-use cosmrs::{ErrorReport};
-use inquire::InquireError;
-use thiserror::Error;
+use std::{error::Error, process::ExitStatusError};
 
 use cosm_orc::client::{chain_res::ChainResponse, error::ClientError};
+use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
+use cosmrs::ErrorReport;
+use inquire::InquireError;
+use thiserror::Error;
 
 pub type DeployResult<T> = core::result::Result<T, DeployError>;
 
 #[derive(Error, Debug)]
 pub enum DeployError {
-    
     #[error("{0}")]
     Error(String),
 
     #[error("{0}")]
     Generic(String),
-    
+
     #[error(transparent)]
     Keyring(#[from] keyring::Error),
 
@@ -35,7 +33,7 @@ pub enum DeployError {
 
     #[error("invalid admin address")]
     AdminAddress,
-    
+
     #[error("{0}")]
     Io(#[from] std::io::Error),
 
@@ -60,8 +58,6 @@ pub enum DeployError {
     #[error("{0}")]
     Clap(#[from] clap::error::Error),
 
-    
-
     #[error("invalid mnemonic")]
     Mnemonic,
 
@@ -75,10 +71,10 @@ pub enum DeployError {
     Crypto { source: ErrorReport },
 
     #[error("Cosmos Sdk Error")]
-    AccountId{ id: String },
+    AccountId { id: String },
 
     #[error("Cosmos Sdk Error")]
-    CosmosSdk{ res: ChainResponse },
+    CosmosSdk { res: ChainResponse },
 
     #[error("proto encoding error")]
     ProtoEncoding { source: ErrorReport },
@@ -132,5 +128,5 @@ pub enum DeployError {
     AddrNotFound,
 
     #[error("{} Config file not found, perhaps you need to run \"deploy init\"?", "Deploy Error")]
-    ConfigNotFound{},
+    ConfigNotFound {},
 }

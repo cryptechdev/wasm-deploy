@@ -1,32 +1,38 @@
-use std::env;
-use std::process::{Command};
+use std::{env, process::Command};
+
 use async_recursion::async_recursion;
-use clap::{CommandFactory};
-use clap_complete::generate_to;
-use clap_complete::shells::{Bash, Zsh};
+use clap::CommandFactory;
+use clap_complete::{
+    generate_to,
+    shells::{Bash, Zsh},
+};
 use clap_interactive::InteractiveParse;
 use inquire::MultiSelect;
-use crate::cli::{Cli, Commands};
-use crate::contract::{ Contract, Execute, Query, execute_set_up, execute_store};
-use crate::error::{DeployError, DeployResult};
-use crate::file::{BUILD_DIR, get_shell_completion_dir, Config};
-use crate::wasm_cli::{wasm_cli_import_schemas};
+
+use crate::{
+    cli::{Cli, Commands},
+    contract::{execute_set_up, execute_store, Contract, Execute, Query},
+    error::{DeployError, DeployResult},
+    file::{get_shell_completion_dir, Config, BUILD_DIR},
+    wasm_cli::wasm_cli_import_schemas,
+};
 
 #[derive(PartialEq)]
 pub enum Status {
     Continue,
-    Quit
+    Quit,
 }
 
 #[async_recursion(?Send)]
-pub async fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, DeployError> 
-where C: Contract,
-      E: Execute,
-      Q: Query
+pub async fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, DeployError>
+where
+    C: Contract,
+    E: Execute,
+    Q: Query,
 {
     match &cli.command {
-        Commands::Update {  } => update::<C, E, Q>(),
-        Commands::Init {  } => init(),
+        Commands::Update {} => update::<C, E, Q>(),
+        Commands::Init {} => init(),
         Commands::Build { contracts } => build(contracts),
         Commands::Chain { add, delete } => chain(add, delete),
         Commands::Key { add, delete } => key(add, delete),
@@ -41,7 +47,7 @@ where C: Contract,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => query(contract).await,
         Commands::SetUp { contracts } => set_up(contracts).await,
-        Commands::Interactive {  } => interactive::<C, E, Q>().await,
+        Commands::Interactive {} => interactive::<C, E, Q>().await,
     }
 }
 
@@ -101,7 +107,9 @@ pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
 }
 
 pub async fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, DeployError> {
-    if !no_build { build(contracts)?; }
+    if !no_build {
+        build(contracts)?;
+    }
     store_code(contracts).await?;
     instantiate(contracts).await?;
     set_config(contracts).await?;
@@ -120,36 +128,27 @@ pub fn execute_env(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     Ok(Status::Quit)
 }
 
-pub fn update<C, E, Q>() -> Result<Status, DeployError> 
-where C: Contract,
-      E: Execute,
-      Q: Query   
+pub fn update<C, E, Q>() -> Result<Status, DeployError>
+where
+    C: Contract,
+    E: Execute,
+    Q: Query,
 {
+    Command::new("mv").arg("./target/debug/deploy").arg("./target/debug/deploy.old").spawn()?.wait()?;
 
-    Command::new("mv")
-        .arg("./target/debug/deploy")
-        .arg("./target/debug/deploy.old")
-        .spawn()?
-        .wait()?;
+    Command::new("cargo").arg("build").current_dir("./deployment").spawn()?.wait()?.exit_ok()?;
 
-    Command::new("cargo")
-        .arg("build")
-        .current_dir("./deployment")
-        .spawn()?
-        .wait()?
-        .exit_ok()?;
-
-    generate_completions::<C, E, Q>()?; 
+    generate_completions::<C, E, Q>()?;
 
     Ok(Status::Quit)
 }
 
-fn generate_completions<C, E, Q>() -> Result<(), DeployError> 
-where C: Contract,
-      E: Execute,
-      Q: Query   
+fn generate_completions<C, E, Q>() -> Result<(), DeployError>
+where
+    C: Contract,
+    E: Execute,
+    Q: Query,
 {
-
     let shell_completion_dir = match get_shell_completion_dir()? {
         Some(shell_completion_dir) => shell_completion_dir,
         None => return Ok(()),
@@ -160,55 +159,43 @@ where C: Contract,
 
     match last_word {
         "zsh" => {
-
             println!("Generating shell completion scripts for zsh");
             println!("Run source ~/.zshrc to update your completion scripts");
 
             let generated_file = generate_to(
                 Zsh,
-                &mut cmd,  // We need to specify what generator to use
-                "deploy",  // We need to specify the bin name manually
-                BUILD_DIR.as_path(),    // We need to specify where to write to
+                &mut cmd,            // We need to specify what generator to use
+                "deploy",            // We need to specify the bin name manually
+                BUILD_DIR.as_path(), // We need to specify where to write to
             )?;
 
             let source_path = BUILD_DIR.join(generated_file.file_name().unwrap());
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
 
-            if Command::new("cp")
-                .arg(source_path)
-                .arg(target_path)
-                .spawn()?
-                .wait()?
-                .exit_ok().is_err() {
-                    println!("could not find {}", shell_completion_dir.to_str().unwrap());
-                }
-
-        },
+            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait()?.exit_ok().is_err() {
+                println!("could not find {}", shell_completion_dir.to_str().unwrap());
+            }
+        }
         "bash" => {
             println!("generating shell completion scripts for bash");
             let generated_file = generate_to(
                 Bash,
-                &mut cmd,  // We need to specify what generator to use
-                "deploy",  // We need to specify the bin name manually
-                BUILD_DIR.as_path(),    // We need to specify where to write to
+                &mut cmd,            // We need to specify what generator to use
+                "deploy",            // We need to specify the bin name manually
+                BUILD_DIR.as_path(), // We need to specify where to write to
             )?;
 
             let source_path = BUILD_DIR.join(generated_file.file_name().unwrap());
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
-            
-            if Command::new("cp")
-            .arg(source_path)
-            .arg(target_path)
-            .spawn()?
-            .wait()?
-            .exit_ok().is_err() {
+
+            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait()?.exit_ok().is_err() {
                 println!("could not find {}", shell_completion_dir.to_str().unwrap());
             }
-        },
-        _ => {
-            return Err(DeployError::UnsupportedShell{});
         }
-    }    
+        _ => {
+            return Err(DeployError::UnsupportedShell {});
+        }
+    }
 
     Ok(())
 }
@@ -227,12 +214,8 @@ pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
             .wait()?
             .exit_ok()?;
     }
-    
-    Command::new("mkdir")
-        .arg("-p")
-        .arg("artifacts")
-        .spawn()?
-        .wait()?;
+
+    Command::new("mkdir").arg("-p").arg("artifacts").spawn()?.wait()?;
 
     optimize(contracts)?;
     set_execute_permissions(contracts)?;
@@ -260,30 +243,31 @@ pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
 }
 
 pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-        // Optimize contracts
-        let mut handles = vec![];
-        for contract in contracts {
-            let name = contract.name();
-            println!("Optimizing {} contract", name);
-            handles.push(Command::new("wasm-opt")
+    // Optimize contracts
+    let mut handles = vec![];
+    for contract in contracts {
+        let name = contract.name();
+        println!("Optimizing {} contract", name);
+        handles.push(
+            Command::new("wasm-opt")
                 .arg("-Os")
                 .arg("-o")
                 .arg(format!("artifacts/{}.wasm", name))
                 .arg(format!("target/wasm32-unknown-unknown/release/{}.wasm", name))
-                .spawn()?
-            );
-        }
-        handles.iter_mut().for_each(|x| {x.wait().unwrap();} );
-        Ok(Status::Quit)
+                .spawn()?,
+        );
+    }
+    handles.iter_mut().for_each(|x| {
+        x.wait().unwrap();
+    });
+    Ok(Status::Quit)
 }
 
 pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     // change mod
     for contract in contracts {
         let name = contract.name();
-        Command::new("chmod")
-            .arg("+x")
-            .arg(format!("artifacts/{}.wasm", name));
+        Command::new("chmod").arg("+x").arg(format!("artifacts/{}.wasm", name));
     }
     Ok(Status::Quit)
 }
@@ -329,11 +313,11 @@ pub async fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, DeployEr
     match execute {
         Some(e) => {
             crate::contract::execute(e).await?;
-        },
+        }
         None => {
             let e = &E::interactive_parse()?;
             crate::contract::execute(e).await?;
-        },
+        }
     }
     Ok(Status::Quit)
 }
@@ -342,19 +326,20 @@ pub async fn query<Q: Query>(query: &Option<Q>) -> Result<Status, DeployError> {
     match query {
         Some(q) => {
             crate::contract::query(q).await?;
-        },
+        }
         None => {
             let q = &Q::interactive_parse()?;
             crate::contract::query(q).await?;
-        },
+        }
     }
     Ok(Status::Quit)
 }
 
-pub async fn interactive<C, E, Q>() -> Result<Status, DeployError> 
-where C: Contract,
-      E: Execute,
-      Q: Query   
+pub async fn interactive<C, E, Q>() -> Result<Status, DeployError>
+where
+    C: Contract,
+    E: Execute,
+    Q: Query,
 {
     let cli = Cli::<C, E, Q>::interactive_parse()?;
     Ok(execute_args(&cli).await?)
