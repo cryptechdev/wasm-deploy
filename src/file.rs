@@ -54,16 +54,16 @@ impl Display for ChainInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.chain_id.fmt(f) }
 }
 
-impl Into<ChainCfg> for ChainInfo {
-    fn into(self) -> ChainCfg {
+impl From<ChainInfo> for ChainCfg {
+    fn from(val: ChainInfo) -> Self {
         ChainCfg {
-            denom:          self.denom,
-            chain_id:       self.chain_id.into(),
-            rpc_endpoint:   self.rpc_endpoint,
-            grpc_endpoint:  self.grpc_endpoint,
-            gas_prices:     self.gas_price,
-            gas_adjustment: self.gas_adjustment,
-            prefix:         self.prefix,
+            denom:          val.denom,
+            chain_id:       val.chain_id.into(),
+            rpc_endpoint:   val.rpc_endpoint,
+            grpc_endpoint:  val.grpc_endpoint,
+            gas_prices:     val.gas_price,
+            gas_adjustment: val.gas_adjustment,
+            prefix:         val.prefix,
         }
     }
 }
@@ -125,7 +125,7 @@ impl Config {
     }
 
     pub(crate) fn get_active_env_mut(&mut self) -> Result<&mut Env, DeployError> {
-        match self.envs.iter().position(|x| x.is_active == true) {
+        match self.envs.iter().position(|x| x.is_active) {
             Some(index) => Ok(self.envs.get_mut(index).unwrap()),
             None => {
                 println!("No env found, creating one");
@@ -135,7 +135,7 @@ impl Config {
     }
 
     pub(crate) fn get_active_env(&self) -> Result<&Env, DeployError> {
-        match self.envs.iter().position(|x| x.is_active == true) {
+        match self.envs.iter().position(|x| x.is_active) {
             Some(index) => Ok(self.envs.get(index).unwrap()),
             None => Err(DeployError::EnvNotFound),
         }
@@ -173,11 +173,11 @@ impl Config {
     }
 
     pub(crate) fn _get_active_chain_id(&mut self) -> Result<Id, DeployError> {
-        Ok(self.get_active_chain_info()?.chain_id.clone())
+        Ok(self.get_active_chain_info()?.chain_id)
     }
 
     pub(crate) fn _get_client(&mut self) -> Result<impl Client, DeployError> {
-        let url = self.get_active_chain_info()?.rpc_endpoint.clone();
+        let url = self.get_active_chain_info()?.rpc_endpoint;
         Ok(HttpClient::new(url.as_str()).unwrap())
     }
 
@@ -249,7 +249,7 @@ impl Config {
             let password = inquire::Text::new("Mnemonic?").prompt()?;
             entry.set_password(password.as_str())?;
         }
-        Ok(self.add_key_from(key)?)
+        self.add_key_from(key)
     }
 
     pub(crate) fn add_env(&mut self) -> Result<&mut Env, DeployError> {
@@ -305,7 +305,7 @@ pub fn get_shell_completion_dir() -> Result<Option<PathBuf>, DeployError> {
                         false => Err(DeployError::InvalidDir),
                     }
                 }
-                false => return Ok(None),
+                false => Ok(None),
             }
         }
     }

@@ -127,7 +127,7 @@ pub async fn execute_migrate(contract: &impl Contract) -> Result<(), DeployError
     Ok(())
 }
 
-/// TODO: remove duplocate code here
+/// TODO: remove duplicate code here
 pub async fn execute_set_config(contract: &impl Contract) -> Result<(), DeployError> {
     println!("Setting config for {}", contract.name());
     let mut config = Config::load()?;
@@ -235,7 +235,7 @@ fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> DeployRe
         Value::Bool(_) => {}
         Value::Number(_) => {}
         Value::String(string) => {
-            if let Some((_, new)) = string.split_once("&") {
+            if let Some((_, new)) = string.split_once('&') {
                 if let Some(contract) = contracts.iter().find(|x| x.name == new) {
                     match &contract.addr {
                         Some(addr) => *string = addr.clone(),

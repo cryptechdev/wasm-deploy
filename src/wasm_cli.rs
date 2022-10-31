@@ -8,7 +8,7 @@ pub fn wasm_cli_import_schemas(name: &String) -> Result<(), DeployError> {
         .arg("import")
         .arg("-s")
         .arg("--name")
-        .arg(&name)
+        .arg(name)
         .arg(format!("contracts/{}/schema", &name))
         .spawn()?
         .wait()?

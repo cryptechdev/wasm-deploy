@@ -342,5 +342,5 @@ where
     Q: Query,
 {
     let cli = Cli::<C, E, Q>::interactive_parse()?;
-    Ok(execute_args(&cli).await?)
+    execute_args(&cli).await
 }
