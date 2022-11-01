@@ -1,13 +1,14 @@
 use std::fmt::{Debug, Display};
 
 use clap::{Parser, Subcommand};
+use clap_interactive::IterInteractiveParse;
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
 use serde_json::Value;
 use strum::IntoEnumIterator;
 
 use crate::{
-    cosmwasm::CosmWasmClient,
+    cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{Config, ContractInfo},
 };
@@ -185,8 +186,9 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     let chain_info = config.get_active_chain_info()?;
     let client = CosmWasmClient::new(chain_info)?;
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let coins = Vec::<Coin>::interactive_parse()?;
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key()?, vec![]).await?;
+    let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins.into()).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",

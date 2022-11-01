@@ -1,5 +1,6 @@
 use std::{error::Error, process::ExitStatusError};
 
+use clap_interactive::error::ClapIntError;
 use cosm_orc::client::{chain_res::ChainResponse, error::ClientError};
 use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
 use cosmrs::ErrorReport;
@@ -38,6 +39,9 @@ pub enum DeployError {
     Io(#[from] std::io::Error),
 
     #[error("{0}")]
+    ClapInteractive(#[from] ClapIntError),
+
+    #[error("{0}")]
     Std(#[from] Box<dyn Error>),
 
     #[error("{0}")]
@@ -62,7 +66,7 @@ pub enum DeployError {
     Mnemonic,
 
     #[error("invalid derivation path")]
-    DerviationPath,
+    DerivationPath,
 
     #[error("invalid instantiate permissions")]
     InstantiatePerms { source: ErrorReport },

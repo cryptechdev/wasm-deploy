@@ -1,5 +1,6 @@
 use std::{str::FromStr, time::Duration};
 
+use clap::Parser;
 use cosm_orc::client::{
     chain_res::{ExecResponse, InstantiateResponse, MigrateResponse, QueryResponse, StoreCodeResponse},
     error::ClientError,
@@ -22,6 +23,23 @@ use crate::{
     file::ChainInfo,
     key::UserKey,
 };
+
+#[derive(Parser, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub struct Coin {
+    pub denom:  String,
+    pub amount: u64,
+}
+
+impl TryFrom<Coin> for cosmrs::Coin {
+    type Error = ClientError;
+
+    fn try_from(value: Coin) -> Result<Self, ClientError> {
+        Ok(Self {
+            denom:  value.denom.parse().map_err(|_| ClientError::Denom { name: value.denom.clone() })?,
+            amount: value.amount.into(),
+        })
+    }
+}
 
 #[cfg_attr(test, faux::create)]
 #[derive(Clone, Debug)]
@@ -80,8 +98,7 @@ impl CosmWasmClient {
     }
 
     pub async fn instantiate(
-        &self, code_id: u64, payload: Vec<u8>, key: &UserKey, admin: Option<String>,
-        funds: Vec<cosm_orc::config::cfg::Coin>,
+        &self, code_id: u64, payload: Vec<u8>, key: &UserKey, admin: Option<String>, funds: Vec<Coin>,
     ) -> Result<InstantiateResponse, ClientError> {
         let signing_key: secp256k1::SigningKey = key.try_into()?;
         let account_id = key.to_account(&self.cfg.prefix)?;
@@ -123,7 +140,7 @@ impl CosmWasmClient {
     }
 
     pub async fn execute(
-        &self, address: String, payload: Vec<u8>, key: &UserKey, funds: Vec<cosm_orc::config::cfg::Coin>,
+        &self, address: String, payload: Vec<u8>, key: &UserKey, funds: Vec<Coin>,
     ) -> Result<ExecResponse, ClientError> {
         let signing_key: secp256k1::SigningKey = key.try_into()?;
         let account_id = key.to_account(&self.cfg.prefix)?;
