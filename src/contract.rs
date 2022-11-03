@@ -188,7 +188,7 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let coins = Vec::<Coin>::interactive_parse()?;
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins.into()).await?;
+    let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
