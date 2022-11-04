@@ -6,12 +6,15 @@ use clap_complete::{
     generate_to,
     shells::{Bash, Zsh},
 };
-use clap_interactive::InteractiveParse;
+use clap_interactive::{InteractiveParse, IterInteractiveParse};
+use colored::Colorize;
+use colored_json::to_colored_json_auto;
 use inquire::{MultiSelect, Select};
 
 use crate::{
     cli::{Cli, Commands},
     contract::{execute_set_up, execute_store, Contract, Execute, Query},
+    cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
     wasm_cli::wasm_cli_import_schemas,
@@ -44,6 +47,7 @@ where
         Commands::Instantiate { contracts } => instantiate(contracts).await,
         Commands::Migrate { contracts } => migrate(contracts).await,
         Commands::Execute { execute_command } => execute(execute_command).await,
+        Commands::CustomExecute { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => query(contract).await,
         Commands::SetUp { contracts } => set_up(contracts).await,
@@ -328,6 +332,30 @@ pub async fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, DeployEr
             crate::contract::execute(e).await?;
         }
     }
+    Ok(Status::Quit)
+}
+
+pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<Status, DeployError> {
+    println!("Executing {}", contract.name());
+    let mut config = Config::load()?;
+    let value: serde_json::Value = serde_json::from_str(string)?;
+    let color = to_colored_json_auto(&value)?;
+    println!("{}", color);
+    let payload = serde_json::to_vec(&value)?;
+    let chain_info = config.get_active_chain_info()?;
+    let client = CosmWasmClient::new(chain_info)?;
+    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let coins = Vec::<Coin>::interactive_parse()?;
+
+    let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins).await?;
+
+    println!(
+        "gas wanted: {}, gas used: {}",
+        response.res.gas_wanted.to_string().green(),
+        response.res.gas_used.to_string().green()
+    );
+    println!("tx hash: {}", response.tx_hash.purple());
+
     Ok(Status::Quit)
 }
 

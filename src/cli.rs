@@ -102,7 +102,7 @@ where
         contracts: Vec<C>,
     },
 
-    /// Stores code for the contracs
+    /// Stores code for the contracts
     StoreCode {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
@@ -135,6 +135,15 @@ where
     Execute {
         #[command(subcommand)]
         execute_command: Option<E>,
+    },
+
+    /// Executes a contract
+    CustomExecute {
+        #[arg(short, long)]
+        contract: C,
+
+        #[arg(short, long)]
+        payload: String,
     },
 
     /// Sends a query to a contract

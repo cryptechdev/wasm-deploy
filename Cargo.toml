@@ -22,7 +22,7 @@ tokio = { version = "1.21.2", default-features = false }
 async-recursion = "1.0.0"
 cosmos-sdk-proto = "0.14.0"
 keyring = "1.2.0"
-cosm-orc = "2.7.0"
+cosm-orc = "=2.7.0"
 colored = "2.0.0"
 colored_json = "3.0.1"
 
