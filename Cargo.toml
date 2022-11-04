@@ -5,6 +5,9 @@ authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
 homepage = "https://nept.finance"
 
+[features]
+wasm_cli = []
+
 [dependencies]
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 clap = { version = "4.0.18", features = ["derive", "string"] }

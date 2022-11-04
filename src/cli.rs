@@ -1,26 +1,28 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 use crate::contract::{Contract, Execute, Query};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-pub struct Cli<C, E, Q>
+pub struct Cli<C, E, Q, S>
 where
     C: Contract,
     E: Execute,
     Q: Query,
+    S: Subcommand,
 {
     #[command(subcommand)]
-    pub command: Commands<C, E, Q>,
+    pub command: Commands<C, E, Q, S>,
 }
 
 #[derive(Parser, Debug)]
 #[clap(rename_all = "snake_case", infer_subcommands = true)]
-pub enum Commands<C, E, Q>
+pub enum Commands<C, E, Q, S>
 where
     C: Contract,
     E: Execute,
     Q: Query,
+    S: Subcommand,
 {
     /// Rebuilds deploy
     Update,
@@ -137,13 +139,19 @@ where
         execute_command: Option<E>,
     },
 
-    /// Executes a contract
-    CustomExecute {
+    /// Executes a contract with a custom payload
+    ExecutePayload {
         #[arg(short, long)]
         contract: C,
 
         #[arg(short, long)]
         payload: String,
+    },
+
+    /// Executes a user defined command
+    CustomCommand {
+        #[command(subcommand)]
+        command: S,
     },
 
     /// Sends a query to a contract

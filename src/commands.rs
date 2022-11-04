@@ -1,7 +1,7 @@
 use std::{env, process::Command};
 
 use async_recursion::async_recursion;
-use clap::CommandFactory;
+use clap::{CommandFactory, Subcommand};
 use clap_complete::{
     generate_to,
     shells::{Bash, Zsh},
@@ -11,13 +11,14 @@ use colored::Colorize;
 use colored_json::to_colored_json_auto;
 use inquire::{MultiSelect, Select};
 
+#[cfg(wasm_cli)]
+use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
     contract::{execute_set_up, execute_store, Contract, Execute, Query},
     cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
-    wasm_cli::wasm_cli_import_schemas,
 };
 
 #[derive(PartialEq)]
@@ -27,14 +28,15 @@ pub enum Status {
 }
 
 #[async_recursion(?Send)]
-pub async fn execute_args<C, E, Q>(cli: &Cli<C, E, Q>) -> Result<Status, DeployError>
+pub async fn execute_args<C, E, Q, S>(cli: &Cli<C, E, Q, S>) -> Result<Status, DeployError>
 where
     C: Contract,
     E: Execute,
     Q: Query,
+    S: Subcommand,
 {
     match &cli.command {
-        Commands::Update {} => update::<C, E, Q>(),
+        Commands::Update {} => update::<C, E, Q, S>(),
         Commands::Init {} => init(),
         Commands::Build { contracts } => build(contracts),
         Commands::Chain { add, delete } => chain(add, delete),
@@ -47,11 +49,12 @@ where
         Commands::Instantiate { contracts } => instantiate(contracts).await,
         Commands::Migrate { contracts } => migrate(contracts).await,
         Commands::Execute { execute_command } => execute(execute_command).await,
-        Commands::CustomExecute { contract, payload } => custom_execute(contract, payload).await,
+        Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => query(contract).await,
         Commands::SetUp { contracts } => set_up(contracts).await,
-        Commands::Interactive {} => interactive::<C, E, Q>().await,
+        Commands::Interactive {} => interactive::<C, E, Q, S>().await,
+        Commands::CustomCommand { .. } => Ok(Status::Continue),
     }
 }
 
@@ -141,26 +144,28 @@ pub async fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<S
     Ok(Status::Continue)
 }
 
-pub fn update<C, E, Q>() -> Result<Status, DeployError>
+pub fn update<C, E, Q, S>() -> Result<Status, DeployError>
 where
     C: Contract,
     E: Execute,
     Q: Query,
+    S: Subcommand,
 {
     Command::new("mv").arg("./target/debug/deploy").arg("./target/debug/deploy.old").spawn()?.wait()?;
 
     Command::new("cargo").arg("build").current_dir("./deployment").spawn()?.wait()?.exit_ok()?;
 
-    generate_completions::<C, E, Q>()?;
+    generate_completions::<C, E, Q, S>()?;
 
     Ok(Status::Quit)
 }
 
-fn generate_completions<C, E, Q>() -> Result<(), DeployError>
+fn generate_completions<C, E, Q, S>() -> Result<(), DeployError>
 where
     C: Contract,
     E: Execute,
     Q: Query,
+    S: Subcommand,
 {
     let shell_completion_dir = match get_shell_completion_dir()? {
         Some(shell_completion_dir) => shell_completion_dir,
@@ -168,7 +173,7 @@ where
     };
     let string = env::var_os("SHELL").unwrap().into_string().unwrap();
     let (_, last_word) = string.rsplit_once('/').unwrap();
-    let mut cmd = Cli::<C, E, Q>::command();
+    let mut cmd = Cli::<C, E, Q, S>::command();
 
     match last_word {
         "zsh" => {
@@ -247,6 +252,7 @@ pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
             .exit_ok()?;
     }
 
+    #[cfg(wasm_cli)]
     // Import schemas
     for contract in contracts {
         wasm_cli_import_schemas(&contract.name())?;
@@ -372,12 +378,13 @@ pub async fn query<Q: Query>(query: &Option<Q>) -> Result<Status, DeployError> {
     Ok(Status::Quit)
 }
 
-pub async fn interactive<C, E, Q>() -> Result<Status, DeployError>
+pub async fn interactive<C, E, Q, S>() -> Result<Status, DeployError>
 where
     C: Contract,
     E: Execute,
     Q: Query,
+    S: Subcommand,
 {
-    let cli = Cli::<C, E, Q>::interactive_parse()?;
+    let cli = Cli::<C, E, Q, S>::interactive_parse()?;
     execute_args(&cli).await
 }
