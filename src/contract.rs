@@ -13,6 +13,7 @@ use crate::{
     file::{Config, ContractInfo},
 };
 
+// TODO: consider switching to generic associated types. Would be much more elegant.
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Display + Clone + 'static {
     fn name(&self) -> String;
     fn admin(&self) -> String;
