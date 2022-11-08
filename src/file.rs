@@ -124,7 +124,7 @@ impl Config {
         Ok(())
     }
 
-    pub(crate) fn get_active_env_mut(&mut self) -> Result<&mut Env, DeployError> {
+    pub fn get_active_env_mut(&mut self) -> Result<&mut Env, DeployError> {
         match self.envs.iter().position(|x| x.is_active) {
             Some(index) => Ok(self.envs.get_mut(index).unwrap()),
             None => {
@@ -134,7 +134,7 @@ impl Config {
         }
     }
 
-    pub(crate) fn get_active_env(&self) -> Result<&Env, DeployError> {
+    pub fn get_active_env(&self) -> Result<&Env, DeployError> {
         match self.envs.iter().position(|x| x.is_active) {
             Some(index) => Ok(self.envs.get(index).unwrap()),
             None => Err(DeployError::EnvNotFound),
