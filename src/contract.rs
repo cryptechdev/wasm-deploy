@@ -19,7 +19,7 @@ pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Disp
     fn admin(&self) -> String;
     fn instantiate_msg(&self) -> Result<Value, DeployError>;
     fn external_instantiate_msgs(&self) -> Result<Vec<ExternalInstantiate>, DeployError>;
-    fn base_config_msg(&self) -> Result<Value, DeployError>;
+    fn base_config_msg(&self) -> Result<Option<Value>, DeployError>;
     fn execute_msg(&self) -> Result<Value, DeployError>;
     fn query_msg(&self) -> Result<Value, DeployError>;
     fn set_up_msgs(&self) -> Result<Vec<Value>, DeployError>;
@@ -133,7 +133,7 @@ pub async fn execute_migrate(contract: &impl Contract) -> Result<(), DeployError
 pub async fn execute_set_config(contract: &impl Contract) -> Result<(), DeployError> {
     println!("Setting config for {}", contract.name());
     let mut config = Config::load()?;
-    let mut msg = contract.base_config_msg()?;
+    let Some(mut msg) = contract.base_config_msg()? else { return Ok(()) };
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
     let payload = serde_json::to_vec(&msg)?;
     let chain_info = config.get_active_chain_info()?;
