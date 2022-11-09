@@ -13,15 +13,15 @@ use crate::{
     file::{Config, ContractInfo},
 };
 
-// TODO: consider switching to generic associated types. Would be much more elegant.
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Display + Clone + 'static {
+    type ExecuteMsg: Execute;
+    type QueryMsg: Query;
+
     fn name(&self) -> String;
     fn admin(&self) -> String;
     fn instantiate_msg(&self) -> Result<Value, DeployError>;
     fn external_instantiate_msgs(&self) -> Result<Vec<ExternalInstantiate>, DeployError>;
     fn base_config_msg(&self) -> Result<Option<Value>, DeployError>;
-    fn execute_msg(&self) -> Result<Value, DeployError>;
-    fn query_msg(&self) -> Result<Value, DeployError>;
     fn set_up_msgs(&self) -> Result<Vec<Value>, DeployError>;
 }
 
@@ -174,7 +174,7 @@ pub async fn execute_set_up(contract: &impl Contract) -> Result<(), DeployError>
     Ok(())
 }
 
-pub trait Execute: Parser + Subcommand + Display {
+pub trait Execute: Parser + Subcommand + Display + Debug {
     fn execute_msg(&self) -> Result<Value, DeployError>;
 }
 
@@ -201,7 +201,7 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub trait Query: Parser + Subcommand + Display {
+pub trait Query: Parser + Subcommand + Display + Debug {
     fn query_msg(&self) -> Result<Value, DeployError>;
 }
 

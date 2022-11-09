@@ -1,28 +1,24 @@
 // TODO: add an easy way to call ExecuteMsgs through a Cw20 Send message
 use clap::{Parser, Subcommand};
 
-use crate::contract::{Contract, Execute, Query};
+use crate::contract::Contract;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-pub struct Cli<C, E, Q, S>
+pub struct Cli<C, S>
 where
     C: Contract,
-    E: Execute,
-    Q: Query,
     S: Subcommand,
 {
     #[command(subcommand)]
-    pub command: Commands<C, E, Q, S>,
+    pub command: Commands<C, S>,
 }
 
 #[derive(Parser, Debug)]
 #[clap(rename_all = "snake_case", infer_subcommands = true)]
-pub enum Commands<C, E, Q, S>
+pub enum Commands<C, S>
 where
     C: Contract,
-    E: Execute,
-    Q: Query,
     S: Subcommand,
 {
     /// Rebuilds deploy
@@ -137,7 +133,7 @@ where
     #[command(visible_alias = "x")]
     Execute {
         #[command(subcommand)]
-        execute_command: Option<E>,
+        execute_command: Option<C::ExecuteMsg>,
     },
 
     /// Executes a contract with a custom payload
@@ -159,7 +155,7 @@ where
     #[command(alias = "q")]
     Query {
         #[command(subcommand)]
-        contract: Option<Q>,
+        contract: Option<C::QueryMsg>,
     },
 
     /// Sets up the smart contract env with executes
