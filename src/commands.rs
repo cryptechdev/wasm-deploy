@@ -189,6 +189,7 @@ where
 
             let source_path = BUILD_DIR.join(generated_file.file_name().unwrap());
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
+            Command::new("rm").arg(target_path.clone()).spawn()?.wait().ok();
 
             if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait()?.exit_ok().is_err() {
                 println!("could not find {}", shell_completion_dir.to_str().unwrap());
