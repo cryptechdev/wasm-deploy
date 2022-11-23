@@ -6,6 +6,7 @@ edition = "2021"
 homepage = "https://nept.finance"
 
 [features]
+default = ["wasm_cli"]
 wasm_cli = []
 
 [dependencies]
