@@ -219,6 +219,9 @@ pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
         Command::new("cargo")
             .env("RUSTFLAGS", "-C link-arg=-s")
             .arg("build")
+            .arg("--features")
+            // TODO: remove for production.
+            .arg("neptune_test")
             .arg("--release")
             .arg("--lib")
             .arg("--target=wasm32-unknown-unknown")
