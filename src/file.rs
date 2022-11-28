@@ -5,15 +5,15 @@ use std::{
     path::PathBuf,
 };
 
-use clap::Parser;
-use clap_interactive::InteractiveParse;
 use cosm_orc::config::cfg::ChainCfg;
 use cosmrs::{
     rpc::{Client, HttpClient},
     tendermint::chain::Id,
 };
 use inquire::{Confirm, CustomType, Select};
+use interactive_parse::traits::InteractiveParseObj;
 use lazy_static::lazy_static;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -39,10 +39,10 @@ impl Display for Env {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.env_id.fmt(f) }
 }
 
-#[derive(Clone, Debug, Parser, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ChainInfo {
     pub denom:          String,
-    pub chain_id:       Id,
+    pub chain_id:       String,
     pub rpc_endpoint:   String,
     pub grpc_endpoint:  String,
     pub gas_price:      f64,
@@ -58,7 +58,7 @@ impl From<ChainInfo> for ChainCfg {
     fn from(val: ChainInfo) -> Self {
         ChainCfg {
             denom:          val.denom,
-            chain_id:       val.chain_id.into(),
+            chain_id:       val.chain_id,
             rpc_endpoint:   val.rpc_endpoint,
             grpc_endpoint:  val.grpc_endpoint,
             gas_prices:     val.gas_price,
@@ -82,7 +82,7 @@ impl From<ChainCfg> for ChainInfo {
     }
 }
 
-#[derive(Clone, Debug, Parser, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ContractInfo {
     pub name:    String,
     pub addr:    Option<String>,
@@ -144,7 +144,7 @@ impl Config {
     pub(crate) fn get_active_chain_info(&mut self) -> Result<ChainInfo, DeployError> {
         let chains = self.chains.clone();
         let env = self.get_active_env_mut()?;
-        match chains.iter().find(|x| x.chain_id == env.chain_id) {
+        match chains.iter().find(|x| x.chain_id == env.chain_id.to_string()) {
             Some(chain_info) => Ok(chain_info.clone()),
             None => self.add_chain(),
         }
@@ -173,7 +173,7 @@ impl Config {
     }
 
     pub(crate) fn _get_active_chain_id(&mut self) -> Result<Id, DeployError> {
-        Ok(self.get_active_chain_info()?.chain_id)
+        Ok(self.get_active_chain_info()?.chain_id.try_into().unwrap())
     }
 
     pub(crate) fn _get_client(&mut self) -> Result<impl Client, DeployError> {
@@ -268,7 +268,7 @@ impl Config {
             .with_help_message("\"dev\", \"prod\", \"other\"")
             .prompt()?
             .name;
-        let env = Env { is_active: true, key_name, env_id, chain_id, contracts: vec![] };
+        let env = Env { is_active: true, key_name, env_id, chain_id: chain_id.try_into().unwrap(), contracts: vec![] };
         self.envs.push(env);
         if self.envs.len() > 1 {
             self.change_env()?

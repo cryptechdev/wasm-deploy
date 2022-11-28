@@ -131,10 +131,7 @@ where
 
     /// Executes a contract
     #[command(visible_alias = "x")]
-    Execute {
-        #[command(subcommand)]
-        execute_command: Option<C::ExecuteMsg>,
-    },
+    Execute {},
 
     /// Executes a contract with a custom payload
     ExecutePayload {
@@ -153,10 +150,7 @@ where
 
     /// Sends a query to a contract
     #[command(alias = "q")]
-    Query {
-        #[command(subcommand)]
-        contract: Option<C::QueryMsg>,
-    },
+    Query {},
 
     /// Sets up the smart contract env with executes
     SetUp {
@@ -164,9 +158,6 @@ where
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
     },
-
-    /// Enables interactive mode
-    Interactive,
 }
 
 fn get_all<C: Contract>() -> Vec<String> { C::iter().map(|x| x.to_string()).collect() }

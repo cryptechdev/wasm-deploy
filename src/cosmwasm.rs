@@ -16,6 +16,8 @@ use cosmrs::{
     tendermint::abci::tag::Key,
     tx::Msg,
 };
+use schemars::JsonSchema;
+use serde::Deserialize;
 use tokio::time;
 
 use crate::{
@@ -24,7 +26,7 @@ use crate::{
     key::UserKey,
 };
 
-#[derive(Parser, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Deserialize, Parser, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, JsonSchema)]
 pub struct Coin {
     pub denom:  String,
     pub amount: u64,

@@ -6,16 +6,16 @@ use clap_complete::{
     generate_to,
     shells::{Bash, Zsh},
 };
-use clap_interactive::{InteractiveParse, IterInteractiveParse};
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
 use inquire::{MultiSelect, Select};
+use interactive_parse::traits::InteractiveParseObj;
 
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{execute_set_up, execute_store, Contract, Execute, Query},
+    contract::{execute_set_up, execute_store, Contract},
     cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
@@ -46,12 +46,11 @@ where
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
         Commands::Migrate { contracts } => migrate(contracts).await,
-        Commands::Execute { execute_command } => execute(execute_command).await,
+        Commands::Execute {} => execute::<C>().await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
-        Commands::Query { contract } => query(contract).await,
+        Commands::Query {} => query::<C>().await,
         Commands::SetUp { contracts } => set_up(contracts).await,
-        Commands::Interactive {} => interactive::<C, S>().await,
         Commands::CustomCommand { .. } => Ok(Status::Continue),
     }
 }
@@ -326,16 +325,9 @@ pub async fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployErro
     Ok(Status::Quit)
 }
 
-pub async fn execute<E: Execute>(execute: &Option<E>) -> Result<Status, DeployError> {
-    match execute {
-        Some(e) => {
-            crate::contract::execute(e).await?;
-        }
-        None => {
-            let e = &E::interactive_parse()?;
-            crate::contract::execute(e).await?;
-        }
-    }
+pub async fn execute<C: Contract>() -> Result<Status, DeployError> {
+    let e = C::ExecuteMsg::interactive_parse()?;
+    crate::contract::execute(&e).await?;
     Ok(Status::Quit)
 }
 
@@ -363,24 +355,8 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     Ok(Status::Quit)
 }
 
-pub async fn query<Q: Query>(query: &Option<Q>) -> Result<Status, DeployError> {
-    match query {
-        Some(q) => {
-            crate::contract::query(q).await?;
-        }
-        None => {
-            let q = &Q::interactive_parse()?;
-            crate::contract::query(q).await?;
-        }
-    }
+pub async fn query<C: Contract>() -> Result<Status, DeployError> {
+    let q = C::QueryMsg::interactive_parse()?;
+    crate::contract::query(&q).await?;
     Ok(Status::Quit)
-}
-
-pub async fn interactive<C, S>() -> Result<Status, DeployError>
-where
-    C: Contract,
-    S: Subcommand,
-{
-    let cli = Cli::<C, S>::interactive_parse()?;
-    execute_args(&cli).await
 }

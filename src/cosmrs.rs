@@ -90,8 +90,9 @@ pub async fn send_tx(
     // `account.sequence` to avoid errors
     let auth_info = SignerInfo::single_direct(Some(key.public_key()), account.sequence).auth_info(fee);
 
-    let sign_doc = SignDoc::new(&tx_body, &auth_info, &cfg.chain_id, account.account_number)
-        .map_err(ClientError::proto_encoding)?;
+    let sign_doc =
+        SignDoc::new(&tx_body, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
+            .map_err(ClientError::proto_encoding)?;
 
     let tx_raw = sign_doc.sign(key).map_err(ClientError::crypto)?;
 
@@ -149,8 +150,8 @@ async fn simulate_gas_fee(
     let auth_info =
         signer_info.auth_info(Fee::from_amount_and_gas(Coin { denom: denom.clone(), amount: 0u64.into() }, 0u64));
 
-    let sign_doc =
-        SignDoc::new(tx, &auth_info, &cfg.chain_id, account.account_number).map_err(ClientError::proto_encoding)?;
+    let sign_doc = SignDoc::new(tx, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
+        .map_err(ClientError::proto_encoding)?;
 
     let tx_raw = sign_doc.sign(key).map_err(ClientError::crypto)?;
 

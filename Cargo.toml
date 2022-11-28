@@ -12,11 +12,12 @@ wasm_cli = []
 [dependencies]
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 clap = { version = "4.0.18", features = ["derive", "string"] }
+schemars = "0.8"
 serde_json = "1.0"
+serde_with = "2"
 lazy_static = "1.4.0"
 clap_complete = "4.0.3"
 inquire = "0.5.2"
-clap-interactive = "0.2.1"
 strum = "0.24.1"
 thiserror = "1.0.37"
 
@@ -29,6 +30,7 @@ keyring = "1.2.0"
 cosm-orc = "=2.7.0"
 colored = "2.0.0"
 colored_json = "3.0.1"
+interactive-parse = { git = "https://github.com/ewoolsey/interactive-parse" }
 
 [dev-dependencies]
 faux = "0.1.7"

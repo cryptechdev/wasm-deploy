@@ -1,20 +1,20 @@
 use std::fmt::Display;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Subcommand};
 use cosm_orc::client::error::ClientError;
 use cosmrs::{bip32, crypto::secp256k1, AccountId};
 use keyring::Entry;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 // https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
 const DERVIATION_PATH: &str = "m/44'/118'/0'/0/0";
 
-#[derive(Serialize, Deserialize, Parser, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq, Eq)]
 pub struct UserKey {
     /// human readable key name
     pub name: String,
     /// private key associated with `name`
-    #[command(subcommand)]
     pub key:  Key,
 }
 
@@ -30,7 +30,7 @@ impl Display for UserKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.name.fmt(f) }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Subcommand)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq, Eq, Subcommand)]
 pub enum Key {
     /// Mnemonic allows you to pass the private key mnemonic words
     /// to Cosm-orc for configuring a transaction signing key.
@@ -46,7 +46,7 @@ pub enum Key {
     },
 }
 
-#[derive(Serialize, Deserialize, Args, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, JsonSchema, Args, Debug, Clone, PartialEq, Eq)]
 pub struct KeyringParams {
     pub service:   String,
     pub user_name: String,
