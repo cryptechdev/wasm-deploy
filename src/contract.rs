@@ -3,7 +3,6 @@ use std::fmt::{Debug, Display};
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
 use interactive_parse::traits::InteractiveParseObj;
-use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use strum::IntoEnumIterator;
@@ -175,8 +174,9 @@ pub async fn execute_set_up(contract: &impl Contract) -> Result<(), DeployError>
     Ok(())
 }
 
-pub trait Execute: JsonSchema + Serialize + DeserializeOwned + Display + Debug {
+pub trait Execute: Serialize + DeserializeOwned + Display + Debug {
     fn execute_msg(&self) -> Result<Value, DeployError>;
+    fn parse(contract: &impl Contract) -> DeployResult<Self>;
 }
 
 pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
@@ -202,8 +202,9 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub trait Query: JsonSchema + Serialize + DeserializeOwned + Display + Debug {
+pub trait Query: Serialize + DeserializeOwned + Display + Debug {
     fn query_msg(&self) -> Result<Value, DeployError>;
+    fn parse(contract: &impl Contract) -> DeployResult<Self>;
 }
 
 pub async fn query(contract: &impl Query) -> Result<(), DeployError> {

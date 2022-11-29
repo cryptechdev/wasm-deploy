@@ -15,7 +15,7 @@ use interactive_parse::traits::InteractiveParseObj;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{execute_set_up, execute_store, Contract},
+    contract::{execute_set_up, execute_store, Contract, Execute, Query},
     cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
@@ -46,10 +46,10 @@ where
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
         Commands::Migrate { contracts } => migrate(contracts).await,
-        Commands::Execute {} => execute::<C>().await,
+        Commands::Execute { contract } => execute::<C>(contract).await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
-        Commands::Query {} => query::<C>().await,
+        Commands::Query { contract } => query::<C>(contract).await,
         Commands::SetUp { contracts } => set_up(contracts).await,
         Commands::CustomCommand { .. } => Ok(Status::Continue),
     }
@@ -325,8 +325,8 @@ pub async fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployErro
     Ok(Status::Quit)
 }
 
-pub async fn execute<C: Contract>() -> Result<Status, DeployError> {
-    let e = C::ExecuteMsg::interactive_parse()?;
+pub async fn execute<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
+    let e = C::ExecuteMsg::parse(contract)?; //parse(contract);
     crate::contract::execute(&e).await?;
     Ok(Status::Quit)
 }
@@ -355,8 +355,8 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     Ok(Status::Quit)
 }
 
-pub async fn query<C: Contract>() -> Result<Status, DeployError> {
-    let q = C::QueryMsg::interactive_parse()?;
+pub async fn query<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
+    let q = C::QueryMsg::parse(contract)?; //parse(contract);
     crate::contract::query(&q).await?;
     Ok(Status::Quit)
 }

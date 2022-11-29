@@ -131,7 +131,7 @@ where
 
     /// Executes a contract
     #[command(visible_alias = "x")]
-    Execute {},
+    Execute { contract: C },
 
     /// Executes a contract with a custom payload
     ExecutePayload {
@@ -150,7 +150,7 @@ where
 
     /// Sends a query to a contract
     #[command(alias = "q")]
-    Query {},
+    Query { contract: C },
 
     /// Sets up the smart contract env with executes
     SetUp {
