@@ -29,7 +29,7 @@ keyring = "1.2.0"
 cosm-orc = "=2.7.0"
 colored = "2.0.0"
 colored_json = "3.0.1"
-interactive-parse = { git = "https://github.com/ewoolsey/interactive-parse" }
+interactive-parse = "0.1.0"
 
 [dev-dependencies]
 faux = "0.1.7"

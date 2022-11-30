@@ -341,7 +341,7 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     let chain_info = config.get_active_chain_info()?;
     let client = CosmWasmClient::new(chain_info)?;
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-    let coins = Vec::<Coin>::interactive_parse()?;
+    let coins = Vec::<Coin>::parse_to_obj()?;
 
     let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins).await?;
 

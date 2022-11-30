@@ -192,7 +192,7 @@ impl Config {
     }
 
     pub(crate) fn add_chain(&mut self) -> Result<ChainInfo, DeployError> {
-        let chain_info = ChainInfo::interactive_parse()?;
+        let chain_info = ChainInfo::parse_to_obj()?;
         self.add_chain_from(chain_info.clone())?;
         Ok(chain_info)
     }
@@ -208,7 +208,7 @@ impl Config {
     }
 
     pub(crate) fn add_contract(&mut self) -> Result<ContractInfo, DeployError> {
-        let contract = ContractInfo::interactive_parse()?;
+        let contract = ContractInfo::parse_to_obj()?;
         self.add_contract_from(contract.clone())?;
         Ok(contract)
     }
@@ -243,7 +243,7 @@ impl Config {
     }
 
     pub(crate) fn add_key(&mut self) -> Result<UserKey, DeployError> {
-        let key = UserKey::interactive_parse()?;
+        let key = UserKey::parse_to_obj()?;
         if let Key::Keyring { params } = key.key.clone() {
             let entry = keyring::Entry::new(&params.service, &params.user_name);
             let password = inquire::Text::new("Mnemonic?").prompt()?;
