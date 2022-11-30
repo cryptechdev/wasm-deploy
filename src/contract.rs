@@ -2,6 +2,8 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
+use cw20::Cw20ExecuteMsg;
+use inquire::{CustomType, Text};
 use interactive_parse::traits::InteractiveParseObj;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
@@ -16,6 +18,7 @@ use crate::{
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Display + Clone + 'static {
     type ExecuteMsg: Execute;
     type QueryMsg: Query;
+    type Cw20HookMsg: Cw20Hook;
 
     fn name(&self) -> String;
     fn admin(&self) -> String;
@@ -223,6 +226,38 @@ pub async fn query(contract: &impl Query) -> Result<(), DeployError> {
     let value: serde_json::Value = serde_json::from_str(string.as_str()).unwrap();
     let color = to_colored_json_auto(&value)?;
     println!("{}", color);
+
+    Ok(())
+}
+
+pub trait Cw20Hook: Serialize + DeserializeOwned + Display + Debug {
+    fn cw20_hook_msg(&self) -> Result<Value, DeployError>;
+    fn parse(contract: &impl Contract) -> DeployResult<Self>;
+}
+
+pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
+    println!("Executing");
+    let mut config = Config::load()?;
+    let hook_msg = contract.cw20_hook_msg()?;
+    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
+    let amount = CustomType::<u64>::new("Amount of tokens to send?").with_help_message("int").prompt()?;
+    let msg = Cw20ExecuteMsg::Send {
+        contract: contract_addr,
+        amount:   amount.into(),
+        msg:      serde_json::to_vec(&hook_msg)?.into(),
+    };
+    let payload = serde_json::to_vec(&msg)?;
+    let chain_info = config.get_active_chain_info()?;
+    let client = CosmWasmClient::new(chain_info)?;
+    let coins = Vec::<Coin>::parse_to_obj()?;
+    let response = client.execute(cw20_contract_addr, payload, &config.get_active_key()?, coins).await?;
+    println!(
+        "gas wanted: {}, gas used: {}",
+        response.res.gas_wanted.to_string().green(),
+        response.res.gas_used.to_string().green()
+    );
+    println!("tx hash: {}", response.tx_hash.purple());
 
     Ok(())
 }

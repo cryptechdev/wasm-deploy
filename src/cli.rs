@@ -133,6 +133,9 @@ where
     #[command(visible_alias = "x")]
     Execute { contract: C },
 
+    /// Sends Cw20 tokens to a contract along with a payload
+    Cw20Send { contract: C },
+
     /// Executes a contract with a custom payload
     ExecutePayload {
         #[arg(short, long)]

@@ -15,7 +15,7 @@ use interactive_parse::traits::InteractiveParseObj;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{execute_set_up, execute_store, Contract, Execute, Query},
+    contract::{execute_set_up, execute_store, Contract, Cw20Hook, Execute, Query},
     cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
@@ -47,6 +47,7 @@ where
         Commands::Instantiate { contracts } => instantiate(contracts).await,
         Commands::Migrate { contracts } => migrate(contracts).await,
         Commands::Execute { contract } => execute::<C>(contract).await,
+        Commands::Cw20Send { contract } => cw20_send::<C>(contract).await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => query::<C>(contract).await,
@@ -328,6 +329,12 @@ pub async fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployErro
 pub async fn execute<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
     let e = C::ExecuteMsg::parse(contract)?; //parse(contract);
     crate::contract::execute(&e).await?;
+    Ok(Status::Quit)
+}
+
+pub async fn cw20_send<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
+    let h = C::Cw20HookMsg::parse(contract)?; //parse(contract);
+    crate::contract::cw20_send(&h).await?;
     Ok(Status::Quit)
 }
 
