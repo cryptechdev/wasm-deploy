@@ -35,10 +35,10 @@ where
 {
     match &cli.command {
         Commands::Update {} => update::<C, S>(),
-        Commands::Init {} => init(),
+        Commands::Init {} => init().await,
         Commands::Build { contracts } => build(contracts),
         Commands::Chain { add, delete } => chain(add, delete),
-        Commands::Key { add, delete } => key(add, delete),
+        Commands::Key { add, delete } => key(add, delete).await,
         Commands::Contract { add, delete } => contract(add, delete),
         Commands::Deploy { contracts, no_build } => deploy(contracts, no_build).await,
         Commands::Env { add, delete, select } => execute_env(add, delete, select),
@@ -56,9 +56,9 @@ where
     }
 }
 
-pub fn init() -> DeployResult<Status> {
+pub async fn init() -> DeployResult<Status> {
     let mut config = Config::init()?;
-    config.add_key()?;
+    config.add_key().await?;
     config.add_chain()?;
     config.add_env()?;
     config.save()?;
@@ -80,10 +80,10 @@ pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     Ok(Status::Quit)
 }
 
-pub fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+pub async fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     let mut config = Config::load()?;
     if *add {
-        config.add_key()?;
+        config.add_key().await?;
     } else if *delete {
         let all_keys = &mut config.keys;
         let keys = MultiSelect::new("Select which keys to delete", all_keys.clone()).prompt()?;
@@ -350,7 +350,7 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let coins = Vec::<Coin>::parse_to_obj()?;
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins).await?;
+    let response = client.execute(contract_addr, payload, &config.get_active_key().await?, coins).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",

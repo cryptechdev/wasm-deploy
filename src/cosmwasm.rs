@@ -11,7 +11,6 @@ use cosmos_sdk_proto::{
 };
 use cosmrs::{
     cosmwasm::{MsgExecuteContract, MsgInstantiateContract, MsgMigrateContract, MsgStoreCode},
-    crypto::secp256k1,
     rpc::{Client, HttpClient},
     tendermint::abci::tag::Key,
     tx::Msg,
@@ -63,8 +62,7 @@ impl CosmWasmClient {
     pub async fn store(
         &self, payload: Vec<u8>, key: &UserKey, instantiate_perms: Option<cosm_orc::orchestrator::AccessConfig>,
     ) -> Result<StoreCodeResponse, ClientError> {
-        let signing_key: secp256k1::SigningKey = key.try_into()?;
-        let account_id = key.to_account(&self.cfg.prefix)?;
+        let account_id = key.to_account(&self.cfg.prefix).await?;
 
         let msg = MsgStoreCode {
             sender:                 account_id.clone(),
@@ -77,7 +75,7 @@ impl CosmWasmClient {
         .to_any()
         .map_err(ClientError::proto_encoding)?;
 
-        let tx_res = send_tx(&self.rpc_client, msg, &signing_key, account_id, &self.cfg).await?;
+        let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
         let res = find_event(&tx_res, "store_code").unwrap();
 
@@ -102,8 +100,7 @@ impl CosmWasmClient {
     pub async fn instantiate(
         &self, code_id: u64, payload: Vec<u8>, key: &UserKey, admin: Option<String>, funds: Vec<Coin>,
     ) -> Result<InstantiateResponse, ClientError> {
-        let signing_key: secp256k1::SigningKey = key.try_into()?;
-        let account_id = key.to_account(&self.cfg.prefix)?;
+        let account_id = key.to_account(&self.cfg.prefix).await?;
 
         let mut cosm_funds = vec![];
         for fund in funds {
@@ -121,7 +118,7 @@ impl CosmWasmClient {
         .to_any()
         .map_err(ClientError::proto_encoding)?;
 
-        let tx_res = send_tx(&self.rpc_client, msg, &signing_key, account_id, &self.cfg).await?;
+        let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
         let res = find_event(&tx_res, "instantiate").unwrap();
 
@@ -144,8 +141,7 @@ impl CosmWasmClient {
     pub async fn execute(
         &self, address: String, payload: Vec<u8>, key: &UserKey, funds: Vec<Coin>,
     ) -> Result<ExecResponse, ClientError> {
-        let signing_key: secp256k1::SigningKey = key.try_into()?;
-        let account_id = key.to_account(&self.cfg.prefix)?;
+        let account_id = key.to_account(&self.cfg.prefix).await?;
 
         let mut cosm_funds = vec![];
         for fund in funds {
@@ -161,7 +157,7 @@ impl CosmWasmClient {
         .to_any()
         .map_err(ClientError::proto_encoding)?;
 
-        let tx_res = send_tx(&self.rpc_client, msg, &signing_key, account_id, &self.cfg).await?;
+        let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
         Ok(ExecResponse {
             tx_hash: tx_res.hash.to_string(),
@@ -186,8 +182,7 @@ impl CosmWasmClient {
     pub async fn migrate(
         &self, address: String, new_code_id: u64, payload: Vec<u8>, key: &UserKey,
     ) -> Result<MigrateResponse, ClientError> {
-        let signing_key: secp256k1::SigningKey = key.try_into()?;
-        let account_id = key.to_account(&self.cfg.prefix)?;
+        let account_id = key.to_account(&self.cfg.prefix).await?;
 
         let msg = MsgMigrateContract {
             sender:   account_id.clone(),
@@ -198,7 +193,7 @@ impl CosmWasmClient {
         .to_any()
         .map_err(ClientError::proto_encoding)?;
 
-        let tx_res = send_tx(&self.rpc_client, msg, &signing_key, account_id, &self.cfg).await?;
+        let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
         Ok(MigrateResponse {
             tx_hash: tx_res.hash.to_string(),

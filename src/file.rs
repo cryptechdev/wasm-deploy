@@ -3,6 +3,7 @@ use std::{
     fs::{create_dir_all, OpenOptions},
     io::prelude::*,
     path::PathBuf,
+    rc::Rc,
 };
 
 use cosm_orc::config::cfg::ChainCfg;
@@ -10,15 +11,18 @@ use cosmrs::{
     rpc::{Client, HttpClient},
     tendermint::chain::Id,
 };
-use inquire::{Confirm, CustomType, Select};
+use inquire::{Confirm, CustomType, Select, Text};
 use interactive_parse::traits::InteractiveParseObj;
 use lazy_static::lazy_static;
+use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use strum::VariantNames;
 
 use crate::{
     error::DeployError,
-    key::{Key, UserKey},
+    key::{Key, KeyringParams, UserKey},
+    ledger::get_ledger_info,
 };
 
 lazy_static! {
@@ -162,14 +166,20 @@ impl Config {
     //     Ok( signing_key )
     // }
 
-    pub(crate) fn get_active_key(&self) -> Result<UserKey, DeployError> {
+    pub(crate) async fn get_active_key(&mut self) -> Result<UserKey, DeployError> {
         let active_key_name = self.get_active_env()?.key_name.clone();
         let key = self
             .keys
-            .iter()
+            .iter_mut()
             .find(|x| x.name == active_key_name)
             .ok_or(DeployError::KeyNotFound { key_name: active_key_name })?;
-        Ok(key.clone())
+        let mut key = key.clone();
+        if let Key::Ledger { connection, .. } = &mut key.key {
+            if connection.is_none() {
+                *connection = Some(Rc::new(Connection::new().await));
+            }
+        }
+        Ok(key)
     }
 
     pub(crate) fn _get_active_chain_id(&mut self) -> Result<Id, DeployError> {
@@ -242,14 +252,26 @@ impl Config {
         Ok(key)
     }
 
-    pub(crate) fn add_key(&mut self) -> Result<UserKey, DeployError> {
-        let key = UserKey::parse_to_obj()?;
-        if let Key::Keyring { params } = key.key.clone() {
-            let entry = keyring::Entry::new(&params.service, &params.user_name);
-            let password = inquire::Text::new("Mnemonic?").prompt()?;
-            entry.set_password(password.as_str())?;
-        }
-        self.add_key_from(key)
+    pub(crate) async fn add_key(&mut self) -> Result<UserKey, DeployError> {
+        let key_type = Select::new("Select Key Type", Key::VARIANTS.to_vec()).prompt()?;
+        let key = match key_type {
+            "Keyring" => {
+                let params = KeyringParams::parse_to_obj()?;
+                let entry = keyring::Entry::new(&params.service, &params.user_name);
+                let password = inquire::Text::new("Mnemonic?").prompt()?;
+                entry.set_password(password.as_str())?;
+                Key::Keyring { params }
+            }
+            "Mnemonic" => Key::Mnemonic { phrase: Text::new("Enter Mnemonic").prompt()? },
+            "Ledger" => {
+                let connection = Connection::new().await;
+                let info = get_ledger_info(&connection).await?;
+                Key::Ledger { info, connection: None }
+            }
+            _ => panic!("should not happen"),
+        };
+        let name = Text::new("Key Name?").prompt()?;
+        self.add_key_from(UserKey { name, key })
     }
 
     pub(crate) fn add_env(&mut self) -> Result<&mut Env, DeployError> {

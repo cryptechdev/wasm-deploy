@@ -7,7 +7,6 @@ use cosmos_sdk_proto::{
     traits::Message,
 };
 use cosmrs::{
-    crypto::secp256k1,
     rpc::{
         endpoint::{abci_query::AbciQuery, broadcast::tx_commit::Response},
         Client, HttpClient,
@@ -19,7 +18,7 @@ use cosmrs::{
     AccountId, Any, Coin, Denom,
 };
 
-use crate::file::ChainInfo;
+use crate::{file::ChainInfo, key::UserKey};
 
 // const MEMO: &str = "hello";
 // const TIMEOUT_HEIGHT: u16 = 10_000u16;
@@ -77,8 +76,10 @@ use crate::file::ChainInfo;
 // }
 
 pub async fn send_tx(
-    client: &HttpClient, msg: Any, key: &secp256k1::SigningKey, account_id: AccountId, cfg: &ChainInfo,
+    client: &HttpClient, msg: Any, key: &UserKey, account_id: AccountId, cfg: &ChainInfo,
 ) -> Result<Response, ClientError> {
+    //let signing_key: secp256k1::SigningKey = key.try_into().unwrap();
+    let public_key = key.public_key().await?.into();
     let timeout_height = 0u16; // TODO
     let account = account(client, account_id).await?;
 
@@ -88,13 +89,13 @@ pub async fn send_tx(
 
     // NOTE: if we are making requests in parallel with the same key, we need to serialize
     // `account.sequence` to avoid errors
-    let auth_info = SignerInfo::single_direct(Some(key.public_key()), account.sequence).auth_info(fee);
+    let auth_info = SignerInfo::single_direct(Some(public_key), account.sequence).auth_info(fee);
 
     let sign_doc =
         SignDoc::new(&tx_body, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
             .map_err(ClientError::proto_encoding)?;
 
-    let tx_raw = sign_doc.sign(key).map_err(ClientError::crypto)?;
+    let tx_raw = key.sign(sign_doc).await?;
 
     let tx_commit_response = tx_raw.broadcast_commit(client).await.map_err(ClientError::proto_encoding)?;
 
@@ -141,19 +142,19 @@ async fn account(client: &HttpClient, account_id: AccountId) -> Result<BaseAccou
 
 #[allow(deprecated)]
 async fn simulate_gas_fee(
-    tx: &tx::Body, account: &BaseAccount, key: &secp256k1::SigningKey, cfg: &ChainInfo,
+    tx: &tx::Body, account: &BaseAccount, user_key: &UserKey, cfg: &ChainInfo,
 ) -> Result<Fee, ClientError> {
     // TODO: support passing in the exact fee too (should be on a per process_msg() call)
     let denom: Denom = cfg.denom.parse().map_err(|_| ClientError::Denom { name: cfg.denom.clone() })?;
 
-    let signer_info = SignerInfo::single_direct(Some(key.public_key()), account.sequence);
+    let signer_info = SignerInfo::single_direct(Some(user_key.public_key().await?.into()), account.sequence);
     let auth_info =
         signer_info.auth_info(Fee::from_amount_and_gas(Coin { denom: denom.clone(), amount: 0u64.into() }, 0u64));
 
     let sign_doc = SignDoc::new(tx, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
         .map_err(ClientError::proto_encoding)?;
 
-    let tx_raw = sign_doc.sign(key).map_err(ClientError::crypto)?;
+    let tx_raw = user_key.sign(sign_doc).await?;
 
     let mut client = ServiceClient::connect(cfg.grpc_endpoint.clone()).await?;
 

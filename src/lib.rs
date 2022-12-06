@@ -7,6 +7,7 @@ pub mod cosmwasm;
 pub mod error;
 pub mod file;
 pub mod key;
+pub mod ledger;
 
 #[cfg(wasm_cli)]
 pub mod wasm_cli;

@@ -36,7 +36,7 @@ pub async fn execute_store(contract: &impl Contract) -> Result<(), DeployError> 
     let path = format!("./artifacts/{}.wasm", contract.name());
     let payload = std::fs::read(path)?;
 
-    let response = client.store(payload, &config.get_active_key()?, None).await?;
+    let response = client.store(payload, &config.get_active_key().await?, None).await?;
 
     match config.get_contract(&contract.to_string()) {
         Ok(contract_info) => contract_info.code_id = Some(response.code_id),
@@ -67,7 +67,7 @@ pub async fn execute_instantiate(contract: &impl Contract) -> Result<(), DeployE
     let mut msg = contract.instantiate_msg()?;
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
     let payload = serde_json::to_vec(&msg)?;
-    let key = config.get_active_key()?;
+    let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
     let client = CosmWasmClient::new(chain_info)?;
     let contract_info = config.get_contract(&contract.to_string())?;
@@ -120,7 +120,7 @@ pub async fn execute_migrate(contract: &impl Contract) -> Result<(), DeployError
     let contract_addr = contract_info.addr.clone().ok_or(DeployError::AddrNotFound)?;
     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
 
-    let response = client.migrate(contract_addr, code_id, payload, &config.get_active_key()?).await?;
+    let response = client.migrate(contract_addr, code_id, payload, &config.get_active_key().await?).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
@@ -143,7 +143,7 @@ pub async fn execute_set_config(contract: &impl Contract) -> Result<(), DeployEr
     let client = CosmWasmClient::new(chain_info)?;
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key()?, vec![]).await?;
+    let response = client.execute(contract_addr, payload, &config.get_active_key().await?, vec![]).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
@@ -165,7 +165,7 @@ pub async fn execute_set_up(contract: &impl Contract) -> Result<(), DeployError>
     for mut msg in contract.set_up_msgs()? {
         replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
         let payload = serde_json::to_vec(&msg)?;
-        let response = client.execute(contract_addr.clone(), payload, &config.get_active_key()?, vec![]).await?;
+        let response = client.execute(contract_addr.clone(), payload, &config.get_active_key().await?, vec![]).await?;
 
         println!(
             "gas wanted: {}, gas used: {}",
@@ -193,7 +193,7 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let coins = Vec::<Coin>::parse_to_obj()?;
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key()?, coins).await?;
+    let response = client.execute(contract_addr, payload, &config.get_active_key().await?, coins).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
@@ -251,7 +251,7 @@ pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
     let chain_info = config.get_active_chain_info()?;
     let client = CosmWasmClient::new(chain_info)?;
     let coins = Vec::<Coin>::parse_to_obj()?;
-    let response = client.execute(cw20_contract_addr, payload, &config.get_active_key()?, coins).await?;
+    let response = client.execute(cw20_contract_addr, payload, &config.get_active_key().await?, coins).await?;
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),

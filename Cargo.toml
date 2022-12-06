@@ -19,7 +19,9 @@ lazy_static = "1.4.0"
 clap_complete = "4.0.3"
 inquire = "0.5.2"
 strum = "0.24.1"
+strum_macros = "0.24.1"
 thiserror = "1.0.37"
+futures = "0.3"
 
 tendermint-rpc = { version = "0.25.0", default-features = false, features = ["http-client"] }
 cosmrs = { version = "0.9.0", features = ["dev", "cosmwasm"] }
@@ -31,6 +33,8 @@ cosm-orc = "=2.7.0"
 colored = "2.0.0"
 colored_json = "3.0.1"
 interactive-parse = "0.1.0"
+ledger-cosmos-secp256k1 = "0.3.0"
+ledger-utility = { git = "https://github.com/ewoolsey/ledger-utility" }
 
 [dev-dependencies]
 faux = "0.1.7"

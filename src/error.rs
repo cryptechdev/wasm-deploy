@@ -5,6 +5,7 @@ use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
 use cosmrs::ErrorReport;
 use inquire::InquireError;
 use interactive_parse::error::SchemaError;
+use ledger_utility::error::LedgerUtilityError;
 use thiserror::Error;
 
 pub type DeployResult<T> = core::result::Result<T, DeployError>;
@@ -31,6 +32,9 @@ pub enum DeployError {
 
     #[error("{0}")]
     ExitStatus(#[from] ExitStatusError),
+
+    #[error("{0}")]
+    LedgerUtilityError(#[from] LedgerUtilityError),
 
     #[error("invalid admin address")]
     AdminAddress,
