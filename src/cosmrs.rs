@@ -79,7 +79,7 @@ pub async fn send_tx(
     client: &HttpClient, msg: Any, key: &UserKey, account_id: AccountId, cfg: &ChainInfo,
 ) -> Result<Response, ClientError> {
     //let signing_key: secp256k1::SigningKey = key.try_into().unwrap();
-    let public_key = key.public_key().await?.into();
+    let public_key = key.public_key(&cfg.derivation_path).await?.into();
     let timeout_height = 0u16; // TODO
     let account = account(client, account_id).await?;
 
@@ -95,7 +95,7 @@ pub async fn send_tx(
         SignDoc::new(&tx_body, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
             .map_err(ClientError::proto_encoding)?;
 
-    let tx_raw = key.sign(sign_doc).await?;
+    let tx_raw = key.sign(&cfg.derivation_path, sign_doc).await?;
 
     let tx_commit_response = tx_raw.broadcast_commit(client).await.map_err(ClientError::proto_encoding)?;
 
@@ -147,14 +147,15 @@ async fn simulate_gas_fee(
     // TODO: support passing in the exact fee too (should be on a per process_msg() call)
     let denom: Denom = cfg.denom.parse().map_err(|_| ClientError::Denom { name: cfg.denom.clone() })?;
 
-    let signer_info = SignerInfo::single_direct(Some(user_key.public_key().await?.into()), account.sequence);
+    let signer_info =
+        SignerInfo::single_direct(Some(user_key.public_key(&cfg.derivation_path).await?.into()), account.sequence);
     let auth_info =
         signer_info.auth_info(Fee::from_amount_and_gas(Coin { denom: denom.clone(), amount: 0u64.into() }, 0u64));
 
     let sign_doc = SignDoc::new(tx, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
         .map_err(ClientError::proto_encoding)?;
 
-    let tx_raw = user_key.sign(sign_doc).await?;
+    let tx_raw = user_key.sign(&cfg.derivation_path, sign_doc).await?;
 
     let mut client = ServiceClient::connect(cfg.grpc_endpoint.clone()).await?;
 

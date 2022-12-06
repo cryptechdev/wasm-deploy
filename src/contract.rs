@@ -32,12 +32,10 @@ pub async fn execute_store(contract: &impl Contract) -> Result<(), DeployError> 
     println!("Storing code for {}", contract.name());
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
+    let client = CosmWasmClient::new(chain_info.clone())?;
     let path = format!("./artifacts/{}.wasm", contract.name());
     let payload = std::fs::read(path)?;
-
     let response = client.store(payload, &config.get_active_key().await?, None).await?;
-
     match config.get_contract(&contract.to_string()) {
         Ok(contract_info) => contract_info.code_id = Some(response.code_id),
         Err(_) => {
@@ -48,6 +46,7 @@ pub async fn execute_store(contract: &impl Contract) -> Result<(), DeployError> 
             })?;
         }
     }
+    println!("here");
 
     config.save()?;
 

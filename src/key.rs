@@ -1,4 +1,6 @@
-use std::{fmt::Display, rc::Rc};
+use std::fmt::Display;
+#[cfg(feature = "ledger")]
+use std::rc::Rc;
 
 use clap::Args;
 use cosm_orc::client::error::ClientError;
@@ -22,7 +24,7 @@ use strum_macros::{Display, EnumVariantNames};
 use crate::ledger::LedgerInfo;
 
 // https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
-const DERVIATION_PATH: &str = "m/44'/118'/0'/0/0";
+//const DERIVATION_PATH: &str = "m/44'/118'/0'/0/0";
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct UserKey {
@@ -33,8 +35,8 @@ pub struct UserKey {
 }
 
 impl UserKey {
-    pub async fn to_account(&self, prefix: &str) -> Result<AccountId, ClientError> {
-        let public_key: OtherPublicKey = self.public_key().await?.into();
+    pub async fn to_account(&self, derivation_path: &str, prefix: &str) -> Result<AccountId, ClientError> {
+        let public_key: OtherPublicKey = self.public_key(derivation_path).await?.into();
         let account = public_key.account_id(prefix).map_err(ClientError::crypto)?;
         Ok(account)
     }
@@ -106,12 +108,12 @@ pub struct KeyringParams {
 // }
 
 impl UserKey {
-    pub async fn public_key(&self) -> Result<PublicKey, ClientError> {
+    pub async fn public_key(&self, derivation_path: &str) -> Result<PublicKey, ClientError> {
         match &self.key {
-            Key::Mnemonic { phrase } => Ok(mnemonic_to_signing_key(phrase)?.public_key().into()),
+            Key::Mnemonic { phrase } => Ok(mnemonic_to_signing_key(derivation_path, phrase)?.public_key().into()),
             Key::Keyring { params } => {
                 let entry = Entry::new(&params.service, &params.user_name);
-                Ok(mnemonic_to_signing_key(&entry.get_password()?)?.public_key().into())
+                Ok(mnemonic_to_signing_key(derivation_path, &entry.get_password()?)?.public_key().into())
             }
             #[cfg(feature = "ledger")]
             Key::Ledger { info, connection } => {
@@ -133,15 +135,15 @@ impl UserKey {
         }
     }
 
-    pub async fn sign(&self, sign_doc: SignDoc) -> Result<Raw, ClientError> {
+    pub async fn sign(&self, derivation_path: &str, sign_doc: SignDoc) -> Result<Raw, ClientError> {
         match &self.key {
             Key::Mnemonic { phrase } => {
-                let signing_key = mnemonic_to_signing_key(phrase)?;
+                let signing_key = mnemonic_to_signing_key(derivation_path, phrase)?;
                 Ok(sign_doc.sign(&signing_key).map_err(ClientError::crypto)?)
             }
             Key::Keyring { params } => {
                 let entry = Entry::new(&params.service, &params.user_name);
-                let signing_key = mnemonic_to_signing_key(&entry.get_password()?)?;
+                let signing_key = mnemonic_to_signing_key(derivation_path, &entry.get_password()?)?;
                 Ok(sign_doc.sign(&signing_key).map_err(ClientError::crypto)?)
             }
             #[cfg(feature = "ledger")]
@@ -163,11 +165,11 @@ impl UserKey {
     }
 }
 
-fn mnemonic_to_signing_key(mnemonic: &str) -> Result<secp256k1::SigningKey, ClientError> {
+fn mnemonic_to_signing_key(derivation_path: &str, mnemonic: &str) -> Result<secp256k1::SigningKey, ClientError> {
     let seed = bip32::Mnemonic::new(mnemonic, bip32::Language::English)
         .map_err(|_| ClientError::Mnemonic)?
         .to_seed("");
-    Ok(bip32::XPrv::derive_from_path(seed, &DERVIATION_PATH.parse().unwrap())
+    Ok(bip32::XPrv::derive_from_path(seed, &derivation_path.parse().unwrap())
         .map_err(|_| ClientError::DerviationPath)?
         .into())
 }

@@ -1,9 +1,10 @@
+#[cfg(feature = "ledger")]
+use std::rc::Rc;
 use std::{
     fmt::Display,
     fs::{create_dir_all, OpenOptions},
     io::prelude::*,
     path::PathBuf,
-    rc::Rc,
 };
 
 use cosm_orc::config::cfg::ChainCfg;
@@ -44,17 +45,25 @@ pub struct Env {
 impl Display for Env {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.env_id.fmt(f) }
 }
-
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ChainInfo {
-    pub denom:          String,
-    pub chain_id:       String,
-    pub rpc_endpoint:   String,
-    pub grpc_endpoint:  String,
-    pub gas_price:      f64,
-    pub gas_adjustment: f64,
-    pub prefix:         String,
+    /// uatom
+    pub denom:           String,
+    pub chain_id:        String,
+    pub rpc_endpoint:    String,
+    pub grpc_endpoint:   String,
+    /// "0.025"
+    pub gas_price:       f64,
+    /// "1.2"
+    pub gas_adjustment:  f64,
+    /// "cosmos"
+    pub prefix:          String,
+    /// "m/44'/118'/0'/0/0"
+    #[serde(default = "default_derivation_path")]
+    pub derivation_path: String,
 }
+
+fn default_derivation_path() -> String { "m/44'/118'/0'/0/0".to_string() }
 
 impl Display for ChainInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.chain_id.fmt(f) }
@@ -70,20 +79,6 @@ impl From<ChainInfo> for ChainCfg {
             gas_prices:     val.gas_price,
             gas_adjustment: val.gas_adjustment,
             prefix:         val.prefix,
-        }
-    }
-}
-
-impl From<ChainCfg> for ChainInfo {
-    fn from(value: ChainCfg) -> Self {
-        Self {
-            denom:          value.denom,
-            chain_id:       value.chain_id.parse().unwrap(),
-            rpc_endpoint:   value.rpc_endpoint,
-            grpc_endpoint:  value.grpc_endpoint,
-            gas_price:      value.gas_prices,
-            gas_adjustment: value.gas_adjustment,
-            prefix:         value.prefix,
         }
     }
 }

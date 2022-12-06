@@ -1,8 +1,6 @@
 use async_recursion::async_recursion;
 use inquire::Select;
-#[cfg(feature = "ledger")]
 use ledger_cosmos_secp256k1::*;
-#[cfg(feature = "ledger")]
 use ledger_utility::{Connection, Device};
 use serde::{Deserialize, Serialize};
 

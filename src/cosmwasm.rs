@@ -46,8 +46,8 @@ impl TryFrom<Coin> for cosmrs::Coin {
 #[derive(Clone, Debug)]
 pub struct CosmWasmClient {
     // http tendermint RPC client
-    rpc_client: HttpClient,
-    cfg:        ChainInfo,
+    pub rpc_client: HttpClient,
+    pub cfg:        ChainInfo,
 }
 
 #[cfg_attr(test, faux::methods)]
@@ -62,8 +62,7 @@ impl CosmWasmClient {
     pub async fn store(
         &self, payload: Vec<u8>, key: &UserKey, instantiate_perms: Option<cosm_orc::orchestrator::AccessConfig>,
     ) -> Result<StoreCodeResponse, ClientError> {
-        let account_id = key.to_account(&self.cfg.prefix).await?;
-
+        let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
         let msg = MsgStoreCode {
             sender:                 account_id.clone(),
             wasm_byte_code:         payload,
@@ -100,7 +99,7 @@ impl CosmWasmClient {
     pub async fn instantiate(
         &self, code_id: u64, payload: Vec<u8>, key: &UserKey, admin: Option<String>, funds: Vec<Coin>,
     ) -> Result<InstantiateResponse, ClientError> {
-        let account_id = key.to_account(&self.cfg.prefix).await?;
+        let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
         let mut cosm_funds = vec![];
         for fund in funds {
@@ -141,7 +140,7 @@ impl CosmWasmClient {
     pub async fn execute(
         &self, address: String, payload: Vec<u8>, key: &UserKey, funds: Vec<Coin>,
     ) -> Result<ExecResponse, ClientError> {
-        let account_id = key.to_account(&self.cfg.prefix).await?;
+        let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
         let mut cosm_funds = vec![];
         for fund in funds {
@@ -182,7 +181,7 @@ impl CosmWasmClient {
     pub async fn migrate(
         &self, address: String, new_code_id: u64, payload: Vec<u8>, key: &UserKey,
     ) -> Result<MigrateResponse, ClientError> {
-        let account_id = key.to_account(&self.cfg.prefix).await?;
+        let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
         let msg = MsgMigrateContract {
             sender:   account_id.clone(),
