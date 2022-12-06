@@ -10,12 +10,15 @@ use cosmrs::{
     AccountId,
 };
 use keyring::Entry;
+#[cfg(feature = "ledger")]
 use ledger_cosmos_secp256k1::CosmosApp;
+#[cfg(feature = "ledger")]
 use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumVariantNames};
 
+#[cfg(feature = "ledger")]
 use crate::ledger::LedgerInfo;
 
 // https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
@@ -54,6 +57,7 @@ pub enum Key {
     Keyring { params: KeyringParams },
 
     /// Use a ledger hardware wallet to sign txs
+    #[cfg(feature = "ledger")]
     Ledger {
         info:       LedgerInfo,
         #[serde(skip)]
@@ -67,6 +71,7 @@ impl PartialEq for Key {
         match (self, other) {
             (Key::Mnemonic { phrase: p1 }, Key::Mnemonic { phrase: p2 }) => p1 == p2,
             (Key::Keyring { params: p1 }, Key::Keyring { params: p2 }) => p1 == p2,
+            #[cfg(feature = "ledger")]
             (Key::Ledger { info: i1, .. }, Key::Ledger { info: i2, .. }) => i1 == i2,
             _ => false,
         }
@@ -108,6 +113,7 @@ impl UserKey {
                 let entry = Entry::new(&params.service, &params.user_name);
                 Ok(mnemonic_to_signing_key(&entry.get_password()?)?.public_key().into())
             }
+            #[cfg(feature = "ledger")]
             Key::Ledger { info, connection } => {
                 println!("Retrieving public key from ledger");
                 match connection {
@@ -138,6 +144,7 @@ impl UserKey {
                 let signing_key = mnemonic_to_signing_key(&entry.get_password()?)?;
                 Ok(sign_doc.sign(&signing_key).map_err(ClientError::crypto)?)
             }
+            #[cfg(feature = "ledger")]
             Key::Ledger { info, connection } => match connection {
                 Some(connection) => {
                     println!("Signing message with ledger");

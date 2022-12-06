@@ -14,15 +14,17 @@ use cosmrs::{
 use inquire::{Confirm, CustomType, Select, Text};
 use interactive_parse::traits::InteractiveParseObj;
 use lazy_static::lazy_static;
+#[cfg(feature = "ledger")]
 use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::VariantNames;
 
+#[cfg(feature = "ledger")]
+use crate::ledger::get_ledger_info;
 use crate::{
     error::DeployError,
     key::{Key, KeyringParams, UserKey},
-    ledger::get_ledger_info,
 };
 
 lazy_static! {
@@ -166,6 +168,7 @@ impl Config {
     //     Ok( signing_key )
     // }
 
+    #[allow(unused_mut)]
     pub(crate) async fn get_active_key(&mut self) -> Result<UserKey, DeployError> {
         let active_key_name = self.get_active_env()?.key_name.clone();
         let key = self
@@ -174,6 +177,7 @@ impl Config {
             .find(|x| x.name == active_key_name)
             .ok_or(DeployError::KeyNotFound { key_name: active_key_name })?;
         let mut key = key.clone();
+        #[cfg(feature = "ledger")]
         if let Key::Ledger { connection, .. } = &mut key.key {
             if connection.is_none() {
                 *connection = Some(Rc::new(Connection::new().await));
@@ -263,6 +267,7 @@ impl Config {
                 Key::Keyring { params }
             }
             "Mnemonic" => Key::Mnemonic { phrase: Text::new("Enter Mnemonic").prompt()? },
+            #[cfg(feature = "ledger")]
             "Ledger" => {
                 let connection = Connection::new().await;
                 let info = get_ledger_info(&connection).await?;

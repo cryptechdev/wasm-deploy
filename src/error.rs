@@ -5,6 +5,7 @@ use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
 use cosmrs::ErrorReport;
 use inquire::InquireError;
 use interactive_parse::error::SchemaError;
+#[cfg(feature = "ledger")]
 use ledger_utility::error::LedgerUtilityError;
 use thiserror::Error;
 
@@ -33,6 +34,7 @@ pub enum DeployError {
     #[error("{0}")]
     ExitStatus(#[from] ExitStatusError),
 
+    #[cfg(feature = "ledger")]
     #[error("{0}")]
     LedgerUtilityError(#[from] LedgerUtilityError),
 

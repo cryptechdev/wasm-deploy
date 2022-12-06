@@ -7,6 +7,8 @@ pub mod cosmwasm;
 pub mod error;
 pub mod file;
 pub mod key;
+
+#[cfg(feature = "ledger")]
 pub mod ledger;
 
 #[cfg(wasm_cli)]
