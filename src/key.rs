@@ -90,23 +90,6 @@ pub struct KeyringParams {
     pub user_name: String,
 }
 
-// impl TryFrom<&UserKey> for secp256k1::SigningKey {
-//     type Error = ClientError;
-
-//     fn try_from(signer: &UserKey) -> Result<secp256k1::SigningKey, ClientError> {
-//         match &signer.key {
-//             Key::Mnemonic { phrase } => mnemonic_to_signing_key(phrase),
-//             Key::Keyring { params } => {
-//                 let entry = Entry::new(&params.service, &params.user_name);
-//                 mnemonic_to_signing_key(&entry.get_password()?)
-//             }
-//             Key::Ledger { .. } => {
-//                 todo!()
-//             }
-//         }
-//     }
-// }
-
 impl UserKey {
     pub async fn public_key(&self, derivation_path: &str) -> Result<PublicKey, ClientError> {
         match &self.key {
