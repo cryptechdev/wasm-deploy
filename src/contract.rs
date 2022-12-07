@@ -46,7 +46,6 @@ pub async fn execute_store(contract: &impl Contract) -> Result<(), DeployError> 
             })?;
         }
     }
-    println!("here");
 
     config.save()?;
 
