@@ -1,5 +1,8 @@
 use cosmos_sdk_proto::cosmwasm::wasm::v1::QuerySmartContractStateResponse;
-use cosmrs::tendermint::abci::Code;
+use cosmrs::tendermint::abci::{
+    response::{CheckTx, DeliverTx},
+    Code,
+};
 use serde::Deserialize;
 use tendermint_rpc::endpoint::abci_query::AbciQuery;
 
@@ -75,13 +78,36 @@ pub struct ChainResponse {
 //         }
 //     }
 // }
+impl From<DeliverTx> for ChainResponse {
+    fn from(res: DeliverTx) -> ChainResponse {
+        ChainResponse {
+            code:       res.code,
+            data:       Some(res.data.into()),
+            log:        res.log.to_string(),
+            gas_wanted: res.gas_wanted.try_into().unwrap(),
+            gas_used:   res.gas_used.try_into().unwrap(),
+        }
+    }
+}
+
+impl From<CheckTx> for ChainResponse {
+    fn from(res: CheckTx) -> ChainResponse {
+        ChainResponse {
+            code:       res.code,
+            data:       Some(res.data.into()),
+            log:        res.log.to_string(),
+            gas_wanted: res.gas_wanted.try_into().unwrap(),
+            gas_used:   res.gas_used.try_into().unwrap(),
+        }
+    }
+}
 
 impl From<AbciQuery> for ChainResponse {
     fn from(res: AbciQuery) -> ChainResponse {
         ChainResponse {
             code:       res.code,
             data:       Some(res.value),
-            log:        res.log.to_string(),
+            log:        res.log,
             gas_wanted: 0,
             gas_used:   0,
         }

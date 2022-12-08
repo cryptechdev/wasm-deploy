@@ -8,6 +8,7 @@ pub mod cosmwasm;
 pub mod error;
 pub mod file;
 pub mod key;
+pub mod msg_execute_contract;
 
 #[cfg(feature = "ledger")]
 pub mod ledger;

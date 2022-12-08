@@ -1,14 +1,15 @@
-use std::fmt::Display;
 #[cfg(feature = "ledger")]
 use std::rc::Rc;
+use std::{fmt::Display, str::FromStr};
 
 use clap::Args;
+use cosmos_sdk_proto::cosmos::auth::v1beta1::BaseAccount;
 use cosmrs::{
     bip32::{self},
     crypto::{secp256k1, PublicKey as OtherPublicKey},
     tendermint::PublicKey,
     tx::{self, Fee, Msg, Raw, SignDoc, SignerInfo},
-    AccountId,
+    AccountId, Coin, Denom,
 };
 use keyring::Entry;
 #[cfg(feature = "ledger")]
@@ -19,9 +20,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumVariantNames};
 
-use crate::error::DeployError;
 #[cfg(feature = "ledger")]
 use crate::ledger::LedgerInfo;
+use crate::{error::DeployError, file::ChainInfo};
 
 // https://github.com/confio/cosmos-hd-key-derivation-spec#the-cosmos-hub-path
 //const DERIVATION_PATH: &str = "m/44'/118'/0'/0/0";
@@ -120,23 +121,31 @@ impl UserKey {
     }
 
     pub async fn sign(
-        &self, derivation_path: &str, fee: Fee, chain_id: String, memo: String, account_number: u64, sequence: u64,
-        msgs: Vec<impl Msg>,
+        &self, account: &BaseAccount, fee: Option<Fee>, chain_info: &ChainInfo, memo: String, msgs: Vec<impl Msg>,
     ) -> Result<Raw, DeployError> {
         let timeout_height = 0u16;
         let anys = msgs.iter().map(|msg| msg.to_any()).collect::<Result<Vec<_>, _>>().unwrap();
         let tx_body = tx::Body::new(anys, memo, timeout_height);
-        let public_key = self.public_key(&derivation_path).await?.into();
-        let auth_info = SignerInfo::single_direct(Some(public_key), sequence).auth_info(fee);
-        let sign_doc = SignDoc::new(&tx_body, &auth_info, &chain_id.clone().try_into().unwrap(), account_number)?;
+        let public_key = self.public_key(&chain_info.derivation_path).await?.into();
+        let fee = fee.unwrap_or(Fee::from_amount_and_gas(
+            Coin { denom: Denom::from_str(&chain_info.denom).unwrap(), amount: 0u64.into() },
+            0u64,
+        ));
+        let auth_info = SignerInfo::single_direct(Some(public_key), account.sequence).auth_info(fee);
+        let sign_doc = SignDoc::new(
+            &tx_body,
+            &auth_info,
+            &chain_info.chain_id.clone().try_into().unwrap(),
+            account.account_number,
+        )?;
         match &self.key {
             Key::Mnemonic { phrase } => {
-                let signing_key = mnemonic_to_signing_key(derivation_path, phrase)?;
+                let signing_key = mnemonic_to_signing_key(&chain_info.derivation_path, phrase)?;
                 Ok(sign_doc.sign(&signing_key)?)
             }
             Key::Keyring { params } => {
                 let entry = Entry::new(&params.service, &params.user_name);
-                let signing_key = mnemonic_to_signing_key(derivation_path, &entry.get_password()?)?;
+                let signing_key = mnemonic_to_signing_key(&chain_info.derivation_path, &entry.get_password()?)?;
                 Ok(sign_doc.sign(&signing_key)?)
             }
             #[cfg(feature = "ledger")]

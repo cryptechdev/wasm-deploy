@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use cosmos_sdk_proto::{
     cosmos::{
         auth::v1beta1::{BaseAccount, QueryAccountRequest, QueryAccountResponse},
@@ -11,13 +13,11 @@ use cosmrs::{
         Client, HttpClient,
     },
     tendermint::abci::{Code, Event},
-    tx::{
-        Fee, Msg, SignDoc, SignerInfo, {self},
-    },
-    AccountId, Any, Coin, Denom,
+    tx::{Fee, Msg},
+    AccountId, Coin, Denom,
 };
 
-use crate::{error::DeployError, file::ChainInfo, key::UserKey};
+use crate::{chain_res::ChainResponse, error::DeployError, file::ChainInfo, key::UserKey};
 
 pub async fn send_tx(
     client: &HttpClient, msg: impl Msg, key: &UserKey, account_id: AccountId, cfg: &ChainInfo,
@@ -26,21 +26,11 @@ pub async fn send_tx(
 
     let account = account(client, account_id).await?;
 
-    let fee = simulate_gas_fee(&tx_body, &account, key, cfg).await?;
+    let fee = simulate_gas_fee(key, &account, cfg, "Sent With Wasm-Deploy".into(), vec![msg.clone()]).await?;
 
-    let tx_raw = key
-        .sign(
-            &cfg.derivation_path,
-            fee.into(),
-            cfg.chain_id,
-            "Sent With Wasm-Deploy".into(),
-            account.account_number,
-            account.sequence,
-            vec![msg],
-        )
-        .await?;
+    let tx_raw = key.sign(&account, fee.into(), cfg, "Sent With Wasm-Deploy".into(), vec![msg]).await?;
 
-    let tx_commit_response = tx_raw.broadcast_commit(client).await.map_err(DeployError::proto_encoding)?;
+    let tx_commit_response = tx_raw.broadcast_commit(client).await?;
 
     if tx_commit_response.check_tx.code.is_err() {
         return Err(DeployError::CosmosSdk { res: tx_commit_response.check_tx.into() });
@@ -54,7 +44,7 @@ pub async fn send_tx(
 
 pub async fn abci_query<T: Message>(client: &HttpClient, req: T, path: &str) -> Result<AbciQuery, DeployError> {
     let mut buf = Vec::with_capacity(req.encoded_len());
-    req.encode(&mut buf).map_err(DeployError::prost_proto_en)?;
+    req.encode(&mut buf)?;
 
     let res = client.abci_query(Some(path.parse().unwrap()), buf, None, false).await?;
 
@@ -73,47 +63,42 @@ async fn account(client: &HttpClient, account_id: AccountId) -> Result<BaseAccou
     )
     .await?;
 
-    let res = QueryAccountResponse::decode(res.value.as_slice())
-        .map_err(DeployError::prost_proto_de)?
+    let res = QueryAccountResponse::decode(res.value.as_slice())?
         .account
         .ok_or(DeployError::AccountId { id: account_id.to_string() })?;
 
-    let base_account = BaseAccount::decode(res.value.as_slice()).map_err(DeployError::prost_proto_de)?;
+    let base_account = BaseAccount::decode(res.value.as_slice())?;
 
     Ok(base_account)
 }
 
 #[allow(deprecated)]
 async fn simulate_gas_fee(
-    tx: &tx::Body, account: &BaseAccount, user_key: &UserKey, cfg: &ChainInfo,
+    user_key: &UserKey, account: &BaseAccount, chain_info: &ChainInfo, memo: String, msgs: Vec<impl Msg>,
 ) -> Result<Fee, DeployError> {
-    // TODO: support passing in the exact fee too (should be on a per process_msg() call)
-    let denom: Denom = cfg.denom.parse().map_err(|_| DeployError::Denom { name: cfg.denom.clone() })?;
+    let tx_raw = user_key.sign(account, None, chain_info, memo, msgs).await?;
 
-    let signer_info =
-        SignerInfo::single_direct(Some(user_key.public_key(&cfg.derivation_path).await?.into()), account.sequence);
-    let auth_info =
-        signer_info.auth_info(Fee::from_amount_and_gas(Coin { denom: denom.clone(), amount: 0u64.into() }, 0u64));
-
-    let sign_doc = SignDoc::new(tx, &auth_info, &cfg.chain_id.clone().try_into().unwrap(), account.account_number)
-        .map_err(DeployError::proto_encoding)?;
-
-    let tx_raw = user_key.sign(&cfg.derivation_path, sign_doc).await?;
-
-    let mut client = ServiceClient::connect(cfg.grpc_endpoint.clone()).await?;
+    let mut client = ServiceClient::connect(chain_info.grpc_endpoint.clone()).await.unwrap();
 
     let gas_info = client
-        .simulate(SimulateRequest { tx: None, tx_bytes: tx_raw.to_bytes().map_err(DeployError::proto_encoding)? })
+        .simulate(SimulateRequest { tx: None, tx_bytes: tx_raw.to_bytes()? })
         .await
         .map_err(|e| DeployError::CosmosSdk {
-            res: ChainResponse { code: Code::Err(e.code() as u32), log: e.message().to_string(), ..Default::default() },
+            res: ChainResponse {
+                code: Code::Err((e.code() as u32).try_into().unwrap()),
+                log: e.message().to_string(),
+                ..Default::default()
+            },
         })?
         .into_inner()
         .gas_info
         .unwrap();
 
-    let gas_limit = (gas_info.gas_used as f64 * cfg.gas_adjustment).ceil();
-    let amount = Coin { denom: denom.clone(), amount: ((gas_limit * cfg.gas_price).ceil() as u64).into() };
+    let gas_limit = (gas_info.gas_used as f64 * chain_info.gas_adjustment).ceil();
+    let amount = Coin {
+        denom:  Denom::from_str(&chain_info.denom).unwrap(),
+        amount: ((gas_limit * chain_info.gas_price).ceil() as u64).into(),
+    };
 
     Ok(Fee::from_amount_and_gas(amount, gas_limit as u64))
 }

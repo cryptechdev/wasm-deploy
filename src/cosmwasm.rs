@@ -1,4 +1,4 @@
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
 use clap::Parser;
 use cosmos_sdk_proto::{
@@ -62,25 +62,14 @@ impl CosmWasmClient {
         let msg = MsgStoreCode {
             sender:                 account_id.clone(),
             wasm_byte_code:         payload,
-            instantiate_permission: instantiate_perms
-                .map(|p| p.try_into())
-                .transpose()
-                .map_err(|e| DeployError::InstantiatePerms { source: e })?,
+            instantiate_permission: instantiate_perms,
         };
 
         let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
         let res = find_event(&tx_res, "store_code").unwrap();
 
-        let code_id = res
-            .attributes
-            .iter()
-            .find(|a| a.key == Key::from_str("code_id").unwrap())
-            .unwrap()
-            .value
-            .as_ref()
-            .parse::<u64>()
-            .unwrap();
+        let code_id = res.attributes.iter().find(|a| a.key == "code_id").unwrap().value.parse::<u64>().unwrap();
 
         Ok(StoreCodeResponse {
             code_id,
@@ -113,13 +102,7 @@ impl CosmWasmClient {
 
         let res = find_event(&tx_res, "instantiate").unwrap();
 
-        let addr = res
-            .attributes
-            .iter()
-            .find(|a| a.key == Key::from_str("_contract_address").unwrap())
-            .unwrap()
-            .value
-            .to_string();
+        let addr = res.attributes.iter().find(|a| a.key == "_contract_address").unwrap().value.to_string();
 
         Ok(InstantiateResponse {
             address: addr,
@@ -163,7 +146,7 @@ impl CosmWasmClient {
         )
         .await?;
 
-        let res = QuerySmartContractStateResponse::decode(res.value.as_slice()).map_err(DeployError::prost_proto_de)?;
+        let res = QuerySmartContractStateResponse::decode(res.value.as_slice())?;
 
         Ok(QueryResponse { res: res.into() })
     }
@@ -173,7 +156,7 @@ impl CosmWasmClient {
     ) -> Result<MigrateResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
-        let msg = MsgMigrateContract {
+        let msg = crate::msg_execute_contract::MsgMigrateContract {
             sender:   account_id.clone(),
             contract: address.parse().unwrap(),
             code_id:  new_code_id,
