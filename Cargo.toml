@@ -24,7 +24,7 @@ strum_macros = "0.24.1"
 thiserror = "1.0.37"
 futures = "0.3"
 
-tendermint-rpc = { version = "0.25.0", default-features = false, features = ["http-client"] }
+tendermint-rpc = { version = "0.27.0", default-features = false, features = ["http-client"] }
 cosmrs = { version = "0.9.0", features = ["dev", "cosmwasm"] }
 tokio = { version = "1.21.2", default-features = false }
 async-recursion = "1.0.0"
@@ -34,11 +34,8 @@ cosm-orc = "=2.7.0"
 colored = "2.0.0"
 colored_json = "3.0.1"
 interactive-parse = "0.1.0"
-# ledger-cosmos-secp256k1 = "0.3.0"
-# ledger-utility = { git = "https://github.com/ewoolsey/ledger-utility" }
+ledger-cosmos-secp256k1 = "0.4.0"
+ledger-utility = { version = "0.3.4", default-features = false, features = ["usb"] }
 
 [dev-dependencies]
 faux = "0.1.7"
-
-# TODO: leaving this here so I remember it later
-# tmkms = { version = "0.12.2", features = ["ledgertm"] }
