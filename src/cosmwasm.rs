@@ -1,26 +1,22 @@
 use std::{str::FromStr, time::Duration};
 
 use clap::Parser;
-use cosm_orc::client::{
-    chain_res::{ExecResponse, InstantiateResponse, MigrateResponse, QueryResponse, StoreCodeResponse},
-    error::ClientError,
-};
 use cosmos_sdk_proto::{
     cosmwasm::wasm::v1::{QuerySmartContractStateRequest, QuerySmartContractStateResponse},
     traits::Message,
 };
 use cosmrs::{
-    cosmwasm::{MsgExecuteContract, MsgInstantiateContract, MsgMigrateContract, MsgStoreCode},
+    cosmwasm::{AccessConfig, MsgExecuteContract, MsgInstantiateContract, MsgStoreCode},
     rpc::{Client, HttpClient},
-    tendermint::abci::tag::Key,
-    tx::Msg,
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
 use tokio::time;
 
 use crate::{
+    chain_res::*,
     cosmrs::{abci_query, find_event, send_tx},
+    error::DeployError,
     file::ChainInfo,
     key::UserKey,
 };
@@ -32,11 +28,11 @@ pub struct Coin {
 }
 
 impl TryFrom<Coin> for cosmrs::Coin {
-    type Error = ClientError;
+    type Error = DeployError;
 
-    fn try_from(value: Coin) -> Result<Self, ClientError> {
+    fn try_from(value: Coin) -> Result<Self, DeployError> {
         Ok(Self {
-            denom:  value.denom.parse().map_err(|_| ClientError::Denom { name: value.denom.clone() })?,
+            denom:  value.denom.parse().map_err(|_| DeployError::Denom { name: value.denom.clone() })?,
             amount: value.amount.into(),
         })
     }
@@ -55,13 +51,13 @@ impl CosmWasmClient {
     // HACK: faux doesn't support mocking a struct wrapped in a Result
     // so we are just ignoring the constructor for this crate's tests
     //#[cfg(not(test))]
-    pub fn new(cfg: ChainInfo) -> Result<Self, ClientError> {
+    pub fn new(cfg: ChainInfo) -> Result<Self, DeployError> {
         Ok(Self { rpc_client: HttpClient::new(cfg.rpc_endpoint.as_str())?, cfg })
     }
 
     pub async fn store(
-        &self, payload: Vec<u8>, key: &UserKey, instantiate_perms: Option<cosm_orc::orchestrator::AccessConfig>,
-    ) -> Result<StoreCodeResponse, ClientError> {
+        &self, payload: Vec<u8>, key: &UserKey, instantiate_perms: Option<AccessConfig>,
+    ) -> Result<StoreCodeResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
         let msg = MsgStoreCode {
             sender:                 account_id.clone(),
@@ -69,10 +65,8 @@ impl CosmWasmClient {
             instantiate_permission: instantiate_perms
                 .map(|p| p.try_into())
                 .transpose()
-                .map_err(|e| ClientError::InstantiatePerms { source: e })?,
-        }
-        .to_any()
-        .map_err(ClientError::proto_encoding)?;
+                .map_err(|e| DeployError::InstantiatePerms { source: e })?,
+        };
 
         let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
@@ -98,7 +92,7 @@ impl CosmWasmClient {
 
     pub async fn instantiate(
         &self, code_id: u64, payload: Vec<u8>, key: &UserKey, admin: Option<String>, funds: Vec<Coin>,
-    ) -> Result<InstantiateResponse, ClientError> {
+    ) -> Result<InstantiateResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
         let mut cosm_funds = vec![];
@@ -108,14 +102,12 @@ impl CosmWasmClient {
 
         let msg = MsgInstantiateContract {
             sender: account_id.clone(),
-            admin: admin.map(|s| s.parse()).transpose().map_err(|_| ClientError::AdminAddress)?,
+            admin: admin.map(|s| s.parse()).transpose().map_err(|_| DeployError::AdminAddress)?,
             code_id,
             label: Some("cosm-orc".to_string()),
             msg: payload,
             funds: cosm_funds,
-        }
-        .to_any()
-        .map_err(ClientError::proto_encoding)?;
+        };
 
         let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
@@ -139,7 +131,7 @@ impl CosmWasmClient {
 
     pub async fn execute(
         &self, address: String, payload: Vec<u8>, key: &UserKey, funds: Vec<Coin>,
-    ) -> Result<ExecResponse, ClientError> {
+    ) -> Result<ExecResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
         let mut cosm_funds = vec![];
@@ -152,9 +144,7 @@ impl CosmWasmClient {
             contract: address.parse().unwrap(),
             msg:      payload,
             funds:    cosm_funds,
-        }
-        .to_any()
-        .map_err(ClientError::proto_encoding)?;
+        };
 
         let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
@@ -165,7 +155,7 @@ impl CosmWasmClient {
         })
     }
 
-    pub async fn query(&self, address: String, payload: Vec<u8>) -> Result<QueryResponse, ClientError> {
+    pub async fn query(&self, address: String, payload: Vec<u8>) -> Result<QueryResponse, DeployError> {
         let res = abci_query(
             &self.rpc_client,
             QuerySmartContractStateRequest { address: address.parse().unwrap(), query_data: payload },
@@ -173,14 +163,14 @@ impl CosmWasmClient {
         )
         .await?;
 
-        let res = QuerySmartContractStateResponse::decode(res.value.as_slice()).map_err(ClientError::prost_proto_de)?;
+        let res = QuerySmartContractStateResponse::decode(res.value.as_slice()).map_err(DeployError::prost_proto_de)?;
 
         Ok(QueryResponse { res: res.into() })
     }
 
     pub async fn migrate(
         &self, address: String, new_code_id: u64, payload: Vec<u8>, key: &UserKey,
-    ) -> Result<MigrateResponse, ClientError> {
+    ) -> Result<MigrateResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
         let msg = MsgMigrateContract {
@@ -188,9 +178,7 @@ impl CosmWasmClient {
             contract: address.parse().unwrap(),
             code_id:  new_code_id,
             msg:      payload,
-        }
-        .to_any()
-        .map_err(ClientError::proto_encoding)?;
+        };
 
         let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
 
@@ -201,7 +189,7 @@ impl CosmWasmClient {
         })
     }
 
-    pub async fn poll_for_n_blocks(&self, n: u64, is_first_block: bool) -> Result<(), ClientError> {
+    pub async fn poll_for_n_blocks(&self, n: u64, is_first_block: bool) -> Result<(), DeployError> {
         if is_first_block {
             self.rpc_client.wait_until_healthy(Duration::from_secs(5)).await?;
 

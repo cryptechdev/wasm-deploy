@@ -7,7 +7,6 @@ use std::{
     path::PathBuf,
 };
 
-use cosm_orc::config::cfg::ChainCfg;
 use cosmrs::{
     rpc::{Client, HttpClient},
     tendermint::chain::Id,
@@ -69,19 +68,19 @@ impl Display for ChainInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.chain_id.fmt(f) }
 }
 
-impl From<ChainInfo> for ChainCfg {
-    fn from(val: ChainInfo) -> Self {
-        ChainCfg {
-            denom:          val.denom,
-            chain_id:       val.chain_id,
-            rpc_endpoint:   val.rpc_endpoint,
-            grpc_endpoint:  val.grpc_endpoint,
-            gas_prices:     val.gas_price,
-            gas_adjustment: val.gas_adjustment,
-            prefix:         val.prefix,
-        }
-    }
-}
+// impl From<ChainInfo> for ChainCfg {
+//     fn from(val: ChainInfo) -> Self {
+//         ChainCfg {
+//             denom:          val.denom,
+//             chain_id:       val.chain_id,
+//             rpc_endpoint:   val.rpc_endpoint,
+//             grpc_endpoint:  val.grpc_endpoint,
+//             gas_prices:     val.gas_price,
+//             gas_adjustment: val.gas_adjustment,
+//             prefix:         val.prefix,
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ContractInfo {

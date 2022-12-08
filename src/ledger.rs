@@ -35,11 +35,12 @@ pub async fn get_ledger_info(connection: &Connection) -> Result<LedgerInfo, Depl
     let device = select_ledger(connection).await?;
     let device_name = device.name().await?;
     let ledger = connection.connect(device).await?;
+    let app = CosmosApp::new(ledger);
     let path = [44, 118, 0, 0, 0];
     let hrp = "cosmos";
     let display_on_ledger = false;
     println!("Requesting public key from ledger...");
-    let secp256k1_res = ledger.get_addr_secp256k1(path, hrp, display_on_ledger).await.unwrap();
+    let secp256k1_res = app.get_addr_secp256k1(path, hrp, display_on_ledger).await.unwrap();
 
     Ok(LedgerInfo { address: secp256k1_res.addr, device_name })
 }

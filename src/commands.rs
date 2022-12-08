@@ -6,7 +6,7 @@ use clap_complete::{
     generate_to,
     shells::{Bash, Zsh},
 };
-use colored::Colorize;
+use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
 use inquire::{MultiSelect, Select};
 use interactive_parse::traits::InteractiveParseObj;

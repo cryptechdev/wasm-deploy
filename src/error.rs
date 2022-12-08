@@ -1,6 +1,5 @@
 use std::{error::Error, process::ExitStatusError};
 
-use cosm_orc::client::{chain_res::ChainResponse, error::ClientError};
 use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
 use cosmrs::ErrorReport;
 use inquire::InquireError;
@@ -8,6 +7,8 @@ use interactive_parse::error::SchemaError;
 #[cfg(feature = "ledger")]
 use ledger_utility::error::LedgerUtilityError;
 use thiserror::Error;
+
+use crate::chain_res::ChainResponse;
 
 pub type DeployResult<T> = core::result::Result<T, DeployError>;
 
@@ -24,9 +25,6 @@ pub enum DeployError {
 
     #[error("{0}")]
     DecodeError(#[from] DecodeError),
-
-    #[error("{0}")]
-    ClientError(#[from] ClientError),
 
     #[error("{0}")]
     EncodeError(#[from] EncodeError),
@@ -139,4 +137,7 @@ pub enum DeployError {
 
     #[error("{} Config file not found, perhaps you need to run \"deploy init\"?", "Deploy Error")]
     ConfigNotFound {},
+
+    #[error("Invalid derivation path.")]
+    DerviationPath,
 }

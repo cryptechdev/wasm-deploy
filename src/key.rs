@@ -3,12 +3,11 @@ use std::fmt::Display;
 use std::rc::Rc;
 
 use clap::Args;
-use cosm_orc::client::error::ClientError;
 use cosmrs::{
     bip32::{self},
     crypto::{secp256k1, PublicKey as OtherPublicKey},
     tendermint::PublicKey,
-    tx::{Raw, SignDoc},
+    tx::{self, Fee, Msg, Raw, SignDoc, SignerInfo},
     AccountId,
 };
 use keyring::Entry;
@@ -20,6 +19,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumVariantNames};
 
+use crate::error::DeployError;
 #[cfg(feature = "ledger")]
 use crate::ledger::LedgerInfo;
 
@@ -35,9 +35,9 @@ pub struct UserKey {
 }
 
 impl UserKey {
-    pub async fn to_account(&self, derivation_path: &str, prefix: &str) -> Result<AccountId, ClientError> {
+    pub async fn to_account(&self, derivation_path: &str, prefix: &str) -> Result<AccountId, DeployError> {
         let public_key: OtherPublicKey = self.public_key(derivation_path).await?.into();
-        let account = public_key.account_id(prefix).map_err(ClientError::crypto)?;
+        let account = public_key.account_id(prefix)?;
         Ok(account)
     }
 }
@@ -91,7 +91,7 @@ pub struct KeyringParams {
 }
 
 impl UserKey {
-    pub async fn public_key(&self, derivation_path: &str) -> Result<PublicKey, ClientError> {
+    pub async fn public_key(&self, derivation_path: &str) -> Result<PublicKey, DeployError> {
         match &self.key {
             Key::Mnemonic { phrase } => Ok(mnemonic_to_signing_key(derivation_path, phrase)?.public_key().into()),
             Key::Keyring { params } => {
@@ -105,10 +105,11 @@ impl UserKey {
                     Some(connection) => {
                         println!("Connecting to {}", info.device_name);
                         let ledger = connection.connect_with_name(info.device_name.clone(), 5).await.unwrap();
+                        let app = CosmosApp::new(ledger);
                         let path = [44, 118, 0, 0, 0];
                         let hrp = "cosmos";
                         let display_on_ledger = false;
-                        let res = ledger.get_addr_secp256k1(path, hrp, display_on_ledger).await.unwrap();
+                        let res = app.get_addr_secp256k1(path, hrp, display_on_ledger).await.unwrap();
                         println!("Address: {}", res.addr);
                         Ok(res.public_key)
                     }
@@ -118,41 +119,84 @@ impl UserKey {
         }
     }
 
-    pub async fn sign(&self, derivation_path: &str, sign_doc: SignDoc) -> Result<Raw, ClientError> {
+    pub async fn sign(
+        &self, derivation_path: &str, fee: Fee, chain_id: String, memo: String, account_number: u64, sequence: u64,
+        msgs: Vec<impl Msg>,
+    ) -> Result<Raw, DeployError> {
+        let timeout_height = 0u16;
+        let anys = msgs.iter().map(|msg| msg.to_any()).collect::<Result<Vec<_>, _>>().unwrap();
+        let tx_body = tx::Body::new(anys, memo, timeout_height);
+        let public_key = self.public_key(&derivation_path).await?.into();
+        let auth_info = SignerInfo::single_direct(Some(public_key), sequence).auth_info(fee);
+        let sign_doc = SignDoc::new(&tx_body, &auth_info, &chain_id.clone().try_into().unwrap(), account_number)?;
         match &self.key {
             Key::Mnemonic { phrase } => {
                 let signing_key = mnemonic_to_signing_key(derivation_path, phrase)?;
-                Ok(sign_doc.sign(&signing_key).map_err(ClientError::crypto)?)
+                Ok(sign_doc.sign(&signing_key)?)
             }
             Key::Keyring { params } => {
                 let entry = Entry::new(&params.service, &params.user_name);
                 let signing_key = mnemonic_to_signing_key(derivation_path, &entry.get_password()?)?;
-                Ok(sign_doc.sign(&signing_key).map_err(ClientError::crypto)?)
+                Ok(sign_doc.sign(&signing_key)?)
             }
             #[cfg(feature = "ledger")]
             Key::Ledger { info, connection } => match connection {
-                Some(connection) => {
-                    println!("Signing message with ledger");
-                    println!("Connecting to {}", info.device_name);
-                    let ledger = connection.connect_with_name(info.device_name.clone(), 5).await.unwrap();
-                    let path = [44, 118, 0, 0, 0];
-                    let serialized = sign_doc.into_bytes().unwrap();
-                    println!("serialized: {:?}", serialized);
-                    let signed = ledger.sign_secp256k1(path, vec![serialized]).await.unwrap();
-                    println!("signed: {:?}", signed);
-                    Ok(signed[0].clone())
-                }
-                None => panic!("missing connection"),
+                // Some(connection) => {
+                //     println!("Signing message with ledger");
+                //     println!("Connecting to {}", info.device_name);
+                //     let ledger = connection.connect_with_name(info.device_name.clone(), 5).await.unwrap();
+                //     let cosmos_app = CosmosApp::new(ledger);
+                //     let path = [44, 118, 0, 0, 0];
+                //     let serialized = sign_doc.into_bytes().unwrap();
+                //     println!("serialized: {:?}", serialized);
+                //     let signed = cosmos_app
+                //         .sign(derivation_path, fee, chain_id, memo, account_number, sequence, serialized)
+                //         .await
+                //         .unwrap();
+                //     println!("signed: {:?}", signed);
+                //     Ok(signed.clone())
+                // }
+                // None => panic!("missing connection"),
+                _ => todo!(),
             },
         }
     }
+
+    // pub async fn sign(&self, derivation_path: &str, sign_doc: SignDoc) -> Result<Raw, DeployError> {
+    //     match &self.key {
+    //         Key::Mnemonic { phrase } => {
+    //             let signing_key = mnemonic_to_signing_key(derivation_path, phrase)?;
+    //             Ok(sign_doc.sign(&signing_key).map_err(DeployError::crypto)?)
+    //         }
+    //         Key::Keyring { params } => {
+    //             let entry = Entry::new(&params.service, &params.user_name);
+    //             let signing_key = mnemonic_to_signing_key(derivation_path, &entry.get_password()?)?;
+    //             Ok(sign_doc.sign(&signing_key).map_err(DeployError::crypto)?)
+    //         }
+    //         #[cfg(feature = "ledger")]
+    //         Key::Ledger { info, connection } => match connection {
+    //             Some(connection) => {
+    //                 println!("Signing message with ledger");
+    //                 println!("Connecting to {}", info.device_name);
+    //                 let ledger = connection.connect_with_name(info.device_name.clone(),
+    // 5).await.unwrap();                 let path = [44, 118, 0, 0, 0];
+    //                 let serialized = sign_doc.into_bytes().unwrap();
+    //                 println!("serialized: {:?}", serialized);
+    //                 let signed = ledger.sign_secp256k1(path, vec![serialized]).await.unwrap();
+    //                 println!("signed: {:?}", signed);
+    //                 Ok(signed[0].clone())
+    //             }
+    //             None => panic!("missing connection"),
+    //         },
+    //     }
+    // }
 }
 
-fn mnemonic_to_signing_key(derivation_path: &str, mnemonic: &str) -> Result<secp256k1::SigningKey, ClientError> {
+fn mnemonic_to_signing_key(derivation_path: &str, mnemonic: &str) -> Result<secp256k1::SigningKey, DeployError> {
     let seed = bip32::Mnemonic::new(mnemonic, bip32::Language::English)
-        .map_err(|_| ClientError::Mnemonic)?
+        .map_err(|_| DeployError::Mnemonic)?
         .to_seed("");
     Ok(bip32::XPrv::derive_from_path(seed, &derivation_path.parse().unwrap())
-        .map_err(|_| ClientError::DerviationPath)?
+        .map_err(|_| DeployError::DerviationPath)?
         .into())
 }

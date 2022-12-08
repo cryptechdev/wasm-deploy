@@ -1,4 +1,5 @@
 #![feature(exit_status_error)]
+pub mod chain_res;
 pub mod cli;
 pub mod commands;
 pub mod contract;
