@@ -263,8 +263,9 @@ impl Config {
             "Mnemonic" => Key::Mnemonic { phrase: Text::new("Enter Mnemonic").prompt()? },
             #[cfg(feature = "ledger")]
             "Ledger" => {
+                let chain_info = self.get_active_chain_info()?;
                 let connection = Connection::new().await;
-                let info = get_ledger_info(&connection).await?;
+                let info = get_ledger_info(&connection, chain_info).await?;
                 Key::Ledger { info, connection: None }
             }
             _ => panic!("should not happen"),

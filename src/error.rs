@@ -78,10 +78,10 @@ pub enum DeployError {
     #[error("cryptographic error")]
     Crypto { source: ErrorReport },
 
-    #[error("Cosmos Sdk Error")]
+    #[error("Account id error")]
     AccountId { id: String },
 
-    #[error("Cosmos Sdk Error")]
+    #[error("Cosmos Sdk Error {:?}", res)]
     CosmosSdk { res: ChainResponse },
 
     #[error("proto encoding error")]

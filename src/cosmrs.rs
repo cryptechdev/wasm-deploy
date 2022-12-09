@@ -13,22 +13,24 @@ use cosmrs::{
         Client, HttpClient,
     },
     tendermint::abci::{Code, Event},
-    tx::{Fee, Msg},
+    tx::{self, Fee, Msg, Raw, SignerInfo},
     AccountId, Coin, Denom,
 };
+use serde::Serialize;
 
 use crate::{chain_res::ChainResponse, error::DeployError, file::ChainInfo, key::UserKey};
 
 pub async fn send_tx(
-    client: &HttpClient, msg: impl Msg, key: &UserKey, account_id: AccountId, cfg: &ChainInfo,
+    client: &HttpClient, msg: impl Msg + Serialize, key: &UserKey, account_id: AccountId, cfg: &ChainInfo,
 ) -> Result<Response, DeployError> {
-    //let signing_key: secp256k1::SigningKey = key.try_into().unwrap();
-
     let account = account(client, account_id).await?;
+    let memo: String = "wasm-deply".into();
 
-    let fee = simulate_gas_fee(key, &account, cfg, "Sent With Wasm-Deploy".into(), vec![msg.clone()]).await?;
+    let fee = simulate_gas_fee(key, &account, cfg, memo.clone(), vec![msg.clone()]).await?;
 
-    let tx_raw = key.sign(&account, fee.into(), cfg, "Sent With Wasm-Deploy".into(), vec![msg]).await?;
+    println!("fee: {:?}", fee);
+
+    let tx_raw = key.sign(&account, fee.into(), cfg, memo, vec![msg]).await?;
 
     let tx_commit_response = tx_raw.broadcast_commit(client).await?;
 
@@ -74,14 +76,29 @@ async fn account(client: &HttpClient, account_id: AccountId) -> Result<BaseAccou
 
 #[allow(deprecated)]
 async fn simulate_gas_fee(
-    user_key: &UserKey, account: &BaseAccount, chain_info: &ChainInfo, memo: String, msgs: Vec<impl Msg>,
+    user_key: &UserKey, account: &BaseAccount, chain_info: &ChainInfo, memo: String, msgs: Vec<impl Msg + Serialize>,
 ) -> Result<Fee, DeployError> {
-    let tx_raw = user_key.sign(account, None, chain_info, memo, msgs).await?;
+    let timeout_height = 0u16;
+    let anys = msgs.iter().map(|msg| msg.to_any()).collect::<Result<Vec<_>, _>>().unwrap();
+    let tx_body = tx::Body::new(anys, memo.clone(), timeout_height);
+    let public_key = user_key.public_key(&chain_info.derivation_path).await?.into();
+    let fee = Fee::from_amount_and_gas(
+        Coin { denom: Denom::from_str(&chain_info.denom).unwrap(), amount: 0u64.into() },
+        0u64,
+    );
+    let auth_info = SignerInfo::single_direct(Some(public_key), account.sequence).auth_info(fee.clone());
+
+    let raw: Raw = cosmos_sdk_proto::cosmos::tx::v1beta1::TxRaw {
+        body_bytes:      tx_body.into_bytes().unwrap(),
+        auth_info_bytes: auth_info.into_bytes().unwrap(),
+        signatures:      vec![vec![0u8; 33]],
+    }
+    .into();
 
     let mut client = ServiceClient::connect(chain_info.grpc_endpoint.clone()).await.unwrap();
 
     let gas_info = client
-        .simulate(SimulateRequest { tx: None, tx_bytes: tx_raw.to_bytes()? })
+        .simulate(SimulateRequest { tx: None, tx_bytes: raw.to_bytes()? })
         .await
         .map_err(|e| DeployError::CosmosSdk {
             res: ChainResponse {

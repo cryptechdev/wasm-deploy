@@ -5,10 +5,7 @@ use cosmos_sdk_proto::{
     cosmwasm::wasm::v1::{QuerySmartContractStateRequest, QuerySmartContractStateResponse},
     traits::Message,
 };
-use cosmrs::{
-    cosmwasm::{AccessConfig, MsgExecuteContract, MsgInstantiateContract, MsgStoreCode},
-    rpc::{Client, HttpClient},
-};
+use cosmrs::rpc::{Client, HttpClient};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use tokio::time;
@@ -19,6 +16,8 @@ use crate::{
     error::DeployError,
     file::ChainInfo,
     key::UserKey,
+    msg::{AccessConfig, MsgExecuteContract, MsgInstantiateContract, MsgMigrateContract, MsgStoreCode},
+    //msg_migrate_contract::MsgMigrateContract,
 };
 
 #[derive(Deserialize, Parser, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, JsonSchema)]
@@ -38,7 +37,6 @@ impl TryFrom<Coin> for cosmrs::Coin {
     }
 }
 
-#[cfg_attr(test, faux::create)]
 #[derive(Clone, Debug)]
 pub struct CosmWasmClient {
     // http tendermint RPC client
@@ -46,7 +44,6 @@ pub struct CosmWasmClient {
     pub cfg:        ChainInfo,
 }
 
-#[cfg_attr(test, faux::methods)]
 impl CosmWasmClient {
     // HACK: faux doesn't support mocking a struct wrapped in a Result
     // so we are just ignoring the constructor for this crate's tests
@@ -56,13 +53,13 @@ impl CosmWasmClient {
     }
 
     pub async fn store(
-        &self, payload: Vec<u8>, key: &UserKey, instantiate_perms: Option<AccessConfig>,
+        &self, payload: Vec<u8>, key: &UserKey, _instantiate_perms: Option<AccessConfig>,
     ) -> Result<StoreCodeResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
         let msg = MsgStoreCode {
             sender:                 account_id.clone(),
             wasm_byte_code:         payload,
-            instantiate_permission: instantiate_perms,
+            instantiate_permission: None,
         };
 
         let tx_res = send_tx(&self.rpc_client, msg, key, account_id, &self.cfg).await?;
@@ -156,7 +153,7 @@ impl CosmWasmClient {
     ) -> Result<MigrateResponse, DeployError> {
         let account_id = key.to_account(&self.cfg.derivation_path, &self.cfg.prefix).await?;
 
-        let msg = crate::msg_execute_contract::MsgMigrateContract {
+        let msg = MsgMigrateContract {
             sender:   account_id.clone(),
             contract: address.parse().unwrap(),
             code_id:  new_code_id,
