@@ -30,7 +30,6 @@ pub async fn select_ledger(connection: &Connection) -> Result<Device, DeployErro
     }
 }
 
-// #[async_recursion(?Send)]
 pub async fn get_ledger_info(connection: &Connection, chain_info: ChainInfo) -> Result<LedgerInfo, DeployError> {
     let device = select_ledger(connection).await?;
     let device_name = device.name().await?;
@@ -48,7 +47,7 @@ pub async fn get_ledger_info(connection: &Connection, chain_info: ChainInfo) -> 
 mod test {
 
     use super::*;
-
+    #[ignore]
     #[tokio::test]
     async fn test_select_ledger() {
         let connection = Connection::new().await;

@@ -1,4 +1,3 @@
-// TODO: add an easy way to call ExecuteMsgs through a Cw20 Send message
 use clap::{Parser, Subcommand};
 
 use crate::contract::Contract;

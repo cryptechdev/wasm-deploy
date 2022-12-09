@@ -68,20 +68,6 @@ impl Display for ChainInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.chain_id.fmt(f) }
 }
 
-// impl From<ChainInfo> for ChainCfg {
-//     fn from(val: ChainInfo) -> Self {
-//         ChainCfg {
-//             denom:          val.denom,
-//             chain_id:       val.chain_id,
-//             rpc_endpoint:   val.rpc_endpoint,
-//             grpc_endpoint:  val.grpc_endpoint,
-//             gas_prices:     val.gas_price,
-//             gas_adjustment: val.gas_adjustment,
-//             prefix:         val.prefix,
-//         }
-//     }
-// }
-
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ContractInfo {
     pub name:    String,
@@ -149,18 +135,6 @@ impl Config {
             None => self.add_chain(),
         }
     }
-
-    // pub(crate) fn get_private_key(&mut self) -> Result<SigningKey, DeployError> {
-    //     let chain = self.get_active_chain_info()?;
-    //     let mnemonic = bip32::Mnemonic::new(chain.mnemonic.clone(), Language::English)?;
-    //     let seed = mnemonic.to_seed("password");
-    //     // let child_path = "m/0/2147483647'/1/2147483646'";
-    //     let child_path = "m/44'/118'/0'/0";
-    //     let signing_key = cosmrs::crypto::secp256k1::SigningKey::derive_from_path(&seed,
-    // &child_path.parse()?)?;     // let child_xprv = XPrv::derive_from_path(&seed,
-    // &child_path.parse()?)?;     // let signing_key: SigningKey = child_xprv.into();
-    //     Ok( signing_key )
-    // }
 
     #[allow(unused_mut)]
     pub(crate) async fn get_active_key(&mut self) -> Result<UserKey, DeployError> {

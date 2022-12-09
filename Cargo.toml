@@ -23,7 +23,6 @@ strum = "0.24.1"
 strum_macros = "0.24.1"
 thiserror = "1.0.37"
 futures = "0.3"
-
 tendermint-rpc = { version = "0.27.0", default-features = false, features = ["http-client"] }
 cosmrs = { version = "0.11", features = ["dev"] }
 tokio = { version = "1.21.2", default-features = false }
@@ -35,5 +34,6 @@ colored_json = "3.0.1"
 interactive-parse = "0.1.0"
 ledger-cosmos-secp256k1 = "0.5.0"
 ledger-utility = { version = "0.3.4", default-features = false, features = ["usb"] }
+log = "0.4"
 
 [dev-dependencies]

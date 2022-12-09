@@ -10,6 +10,7 @@ use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
 use inquire::{MultiSelect, Select};
 use interactive_parse::traits::InteractiveParseObj;
+use log::info;
 
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
@@ -57,6 +58,7 @@ where
 }
 
 pub async fn init() -> DeployResult<Status> {
+    info!("Initializing deploy");
     let mut config = Config::init()?;
     config.add_key().await?;
     config.add_chain()?;
