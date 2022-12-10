@@ -16,6 +16,7 @@ use cosmrs::{
     tx::{self, Fee, Msg, Raw, SignerInfo},
     AccountId, Coin, Denom,
 };
+use log::info;
 use serde::Serialize;
 
 use crate::{chain_res::ChainResponse, error::DeployError, file::ChainInfo, key::UserKey};
@@ -28,7 +29,7 @@ pub async fn send_tx(
 
     let fee = simulate_gas_fee(key, &account, cfg, memo.clone(), vec![msg.clone()]).await?;
 
-    println!("fee: {:?}", fee);
+    info!("fee: {:?}", fee);
 
     let tx_raw = key.sign(&account, fee.into(), cfg, memo, vec![msg]).await?;
 

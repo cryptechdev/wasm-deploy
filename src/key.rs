@@ -16,6 +16,7 @@ use keyring::Entry;
 use ledger_cosmos_secp256k1::CosmosApp;
 #[cfg(feature = "ledger")]
 use ledger_utility::Connection;
+use log::debug;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -131,7 +132,7 @@ impl UserKey {
             0u64,
         ));
         let auth_info = SignerInfo::single_direct(Some(public_key), account.sequence).auth_info(fee.clone());
-        println!("auth_info: {:#?}", auth_info);
+        debug!("auth_info: {:#?}", auth_info);
         let sign_doc = SignDoc::new(
             &tx_body,
             &auth_info,
