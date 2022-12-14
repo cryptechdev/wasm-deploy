@@ -4,11 +4,13 @@ use std::{fmt::Display, str::FromStr};
 
 use clap::Args;
 use cosmos_sdk_proto::cosmos::auth::v1beta1::BaseAccount;
+#[cfg(feature = "ledger")]
+use cosmrs::tx::{mode_info::Single, AuthInfo, ModeInfo, SignMode};
 use cosmrs::{
     bip32::{self},
     crypto::{secp256k1, PublicKey as OtherPublicKey},
     tendermint::PublicKey,
-    tx::{self, mode_info::Single, AuthInfo, Fee, ModeInfo, Msg, Raw, SignDoc, SignMode, SignerInfo},
+    tx::{self, Fee, Msg, Raw, SignDoc, SignerInfo},
     AccountId, Coin, Denom,
 };
 use keyring::Entry;
@@ -19,6 +21,7 @@ use ledger_utility::Connection;
 use log::debug;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "ledger")]
 use serde_json::Value;
 use strum_macros::{Display, EnumVariantNames};
 
@@ -131,6 +134,7 @@ impl UserKey {
             Coin { denom: Denom::from_str(&chain_info.denom).unwrap(), amount: 0u64.into() },
             0u64,
         ));
+        #[allow(clippy::redundant_clone)]
         let auth_info = SignerInfo::single_direct(Some(public_key), account.sequence).auth_info(fee.clone());
         debug!("auth_info: {:#?}", auth_info);
         let sign_doc = SignDoc::new(
