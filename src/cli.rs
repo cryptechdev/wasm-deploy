@@ -135,6 +135,9 @@ where
     /// Sends Cw20 tokens to a contract along with a payload
     Cw20Send { contract: C },
 
+    /// Transfers Cw20 tokens to another address
+    Cw20Transfer {},
+
     /// Executes a contract with a custom payload
     ExecutePayload {
         #[arg(short, long)]

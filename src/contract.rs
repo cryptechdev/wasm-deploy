@@ -234,7 +234,7 @@ pub trait Cw20Hook: Serialize + DeserializeOwned + Display + Debug {
 }
 
 pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
-    println!("Executing");
+    println!("Executing cw20 send");
     let mut config = Config::load()?;
     let hook_msg = contract.cw20_hook_msg()?;
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
@@ -250,6 +250,27 @@ pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
     let client = CosmWasmClient::new(chain_info)?;
     let coins = Vec::<Coin>::parse_to_obj()?;
     let response = client.execute(cw20_contract_addr, payload, &config.get_active_key().await?, coins).await?;
+    println!(
+        "gas wanted: {}, gas used: {}",
+        response.res.gas_wanted.to_string().green(),
+        response.res.gas_used.to_string().green()
+    );
+    println!("tx hash: {}", response.tx_hash.purple());
+
+    Ok(())
+}
+
+pub async fn cw20_transfer() -> Result<(), DeployError> {
+    println!("Executing cw20 transfer");
+    let mut config = Config::load()?;
+    let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
+    let recipient = Text::new("Recipient?").with_help_message("string").prompt()?;
+    let amount = CustomType::<u64>::new("Amount of tokens to send?").with_help_message("int").prompt()?;
+    let msg = Cw20ExecuteMsg::Transfer { recipient, amount: amount.into() };
+    let payload = serde_json::to_vec(&msg)?;
+    let chain_info = config.get_active_chain_info()?;
+    let client = CosmWasmClient::new(chain_info)?;
+    let response = client.execute(cw20_contract_addr, payload, &config.get_active_key().await?, vec![]).await?;
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),

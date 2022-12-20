@@ -49,6 +49,7 @@ where
         Commands::Migrate { contracts } => migrate(contracts).await,
         Commands::Execute { contract } => execute::<C>(contract).await,
         Commands::Cw20Send { contract } => cw20_send::<C>(contract).await,
+        Commands::Cw20Transfer {} => cw20_transfer().await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => query::<C>(contract).await,
@@ -337,6 +338,11 @@ pub async fn execute<C: Contract>(contract: &impl Contract) -> Result<Status, De
 pub async fn cw20_send<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
     let h = C::Cw20HookMsg::parse(contract)?; //parse(contract);
     crate::contract::cw20_send(&h).await?;
+    Ok(Status::Quit)
+}
+
+pub async fn cw20_transfer() -> Result<Status, DeployError> {
+    crate::contract::cw20_transfer().await?;
     Ok(Status::Quit)
 }
 
