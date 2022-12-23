@@ -1,7 +1,18 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
+use cosm_tome::{
+    chain::{coin::Coin, request::TxOptions},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+    modules::{
+        auth::model::Address,
+        cosmwasm::model::{ExecRequest, InstantiateRequest, MigrateRequest, StoreCodeRequest},
+    },
+};
 use cw20::Cw20ExecuteMsg;
 use inquire::{CustomType, Text};
 use interactive_parse::traits::InteractiveParseObj;
@@ -10,7 +21,6 @@ use serde_json::Value;
 use strum::IntoEnumIterator;
 
 use crate::{
-    cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{Config, ContractInfo},
 };
@@ -32,10 +42,15 @@ pub async fn execute_store(contract: &impl Contract) -> Result<(), DeployError> 
     println!("Storing code for {}", contract.name());
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info.clone())?;
+    let key = config.get_active_key().await?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
     let path = format!("./artifacts/{}.wasm", contract.name());
-    let payload = std::fs::read(path)?;
-    let response = client.store(payload, &config.get_active_key().await?, None).await?;
+    let wasm_data = std::fs::read(path)?;
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = StoreCodeRequest { wasm_data, instantiate_perms: None };
+    let response = cosm_tome.wasm_store(req, &key, &tx_options).await?;
+
     match config.get_contract(&contract.to_string()) {
         Ok(contract_info) => contract_info.code_id = Some(response.code_id),
         Err(_) => {
@@ -54,7 +69,7 @@ pub async fn execute_store(contract: &impl Contract) -> Result<(), DeployError> 
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
 }
@@ -64,33 +79,47 @@ pub async fn execute_instantiate(contract: &impl Contract) -> Result<(), DeployE
     let mut config = Config::load()?;
     let mut msg = contract.instantiate_msg()?;
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-    let payload = serde_json::to_vec(&msg)?;
     let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
     let contract_info = config.get_contract(&contract.to_string())?;
     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = InstantiateRequest {
+        code_id,
+        msg,
+        label: String::new(),
+        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+        funds: vec![],
+    };
 
-    let response = client.instantiate(code_id, payload, &key, Some(contract.admin()), vec![]).await?;
+    let response = cosm_tome.wasm_instantiate(req, &key, &tx_options).await?;
 
-    contract_info.addr = Some(response.address);
+    contract_info.addr = Some(response.address.to_string());
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     for mut external in contract.external_instantiate_msgs()? {
         println!("Instantiating {}", external.name);
         replace_strings(&mut external.msg, &config.get_active_env()?.contracts)?;
-        let vec = serde_json::to_vec(&external.msg)?;
+        let req = InstantiateRequest {
+            code_id: external.code_id,
+            msg:     external.msg,
+            label:   String::new(),
+            admin:   Some(Address::from_str(&contract.admin()).unwrap()),
+            funds:   vec![],
+        };
 
-        let response = client.instantiate(external.code_id, vec, &key, Some(contract.admin()), vec![]).await?;
+        let response = cosm_tome.wasm_instantiate(req, &key, &tx_options).await?;
 
         config.add_contract_from(ContractInfo {
             name:    external.name,
-            addr:    Some(response.address),
+            addr:    Some(response.address.to_string()),
             code_id: Some(external.code_id),
         })?;
 
@@ -99,7 +128,7 @@ pub async fn execute_instantiate(contract: &impl Contract) -> Result<(), DeployE
             response.res.gas_wanted.to_string().green(),
             response.res.gas_used.to_string().green()
         );
-        println!("tx hash: {}", response.tx_hash.purple());
+        println!("tx hash: {}", response.res.tx_hash.purple());
     }
     config.save()?;
     Ok(())
@@ -111,21 +140,23 @@ pub async fn execute_migrate(contract: &impl Contract) -> Result<(), DeployError
     let mut config = Config::load()?;
     let mut msg = contract.instantiate_msg()?;
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-    let payload = serde_json::to_vec(&msg)?;
+    let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
     let contract_info = config.get_contract(&contract.to_string())?;
     let contract_addr = contract_info.addr.clone().ok_or(DeployError::AddrNotFound)?;
     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
-
-    let response = client.migrate(contract_addr, code_id, payload, &config.get_active_key().await?).await?;
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = MigrateRequest { msg, address: Address::from_str(&contract_addr).unwrap(), new_code_id: code_id };
+    let response = cosm_tome.wasm_migrate(req, &key, &tx_options).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
 }
@@ -136,19 +167,22 @@ pub async fn execute_set_config(contract: &impl Contract) -> Result<(), DeployEr
     let mut config = Config::load()?;
     let Some(mut msg) = contract.base_config_msg()? else { return Ok(()) };
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-    let payload = serde_json::to_vec(&msg)?;
+    let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = ExecRequest { msg, funds: vec![], address: Address::from_str(&contract_addr).unwrap() };
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key().await?, vec![]).await?;
+    let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
 }
@@ -157,20 +191,24 @@ pub async fn execute_set_up(contract: &impl Contract) -> Result<(), DeployError>
     println!("Executing set up for {}", contract.name());
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let key = config.get_active_key().await?;
 
     for mut msg in contract.set_up_msgs()? {
         replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-        let payload = serde_json::to_vec(&msg)?;
-        let response = client.execute(contract_addr.clone(), payload, &config.get_active_key().await?, vec![]).await?;
+        let req = ExecRequest { msg, funds: vec![], address: Address::from_str(&contract_addr).unwrap() };
+
+        let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
 
         println!(
             "gas wanted: {}, gas used: {}",
             response.res.gas_wanted.to_string().green(),
             response.res.gas_used.to_string().green()
         );
-        println!("tx hash: {}", response.tx_hash.purple());
+        println!("tx hash: {}", response.res.tx_hash.purple());
     }
     Ok(())
 }
@@ -185,20 +223,22 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     let mut msg = contract.execute_msg()?;
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-    let payload = serde_json::to_vec(&msg)?;
+    let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-    let coins = Vec::<Coin>::parse_to_obj()?;
-
-    let response = client.execute(contract_addr, payload, &config.get_active_key().await?, coins).await?;
+    let funds = Vec::<Coin>::parse_to_obj()?;
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = ExecRequest { msg, funds, address: Address::from_str(&contract_addr).unwrap() };
+    let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
 }
@@ -213,12 +253,11 @@ pub async fn query(contract: &impl Query) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     let mut msg = contract.query_msg()?;
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-    let payload = serde_json::to_vec(&msg)?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
-    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-
-    let response = client.query(contract_addr, payload).await?;
+    let addr = config.get_contract_addr_mut(&contract.to_string())?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
+    let response = cosm_tome.wasm_query(Address::from_str(addr).unwrap(), &msg).await?;
 
     let string = String::from_utf8(response.res.data.unwrap()).unwrap();
     let value: serde_json::Value = serde_json::from_str(string.as_str()).unwrap();
@@ -236,6 +275,8 @@ pub trait Cw20Hook: Serialize + DeserializeOwned + Display + Debug {
 pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
     println!("Executing cw20 send");
     let mut config = Config::load()?;
+    let key = config.get_active_key().await?;
+
     let hook_msg = contract.cw20_hook_msg()?;
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
@@ -245,17 +286,19 @@ pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
         amount:   amount.into(),
         msg:      serde_json::to_vec(&hook_msg)?.into(),
     };
-    let payload = serde_json::to_vec(&msg)?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
-    let coins = Vec::<Coin>::parse_to_obj()?;
-    let response = client.execute(cw20_contract_addr, payload, &config.get_active_key().await?, coins).await?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
+    let funds = Vec::<Coin>::parse_to_obj()?;
+    let req = ExecRequest { msg, funds, address: Address::from_str(&cw20_contract_addr).unwrap() };
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
 }
@@ -263,20 +306,25 @@ pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
 pub async fn cw20_transfer() -> Result<(), DeployError> {
     println!("Executing cw20 transfer");
     let mut config = Config::load()?;
+    let key = config.get_active_key().await?;
+
     let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
     let recipient = Text::new("Recipient?").with_help_message("string").prompt()?;
     let amount = CustomType::<u64>::new("Amount of tokens to send?").with_help_message("int").prompt()?;
     let msg = Cw20ExecuteMsg::Transfer { recipient, amount: amount.into() };
-    let payload = serde_json::to_vec(&msg)?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
-    let response = client.execute(cw20_contract_addr, payload, &config.get_active_key().await?, vec![]).await?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = ExecRequest { msg, funds: vec![], address: Address::from_str(&cw20_contract_addr).unwrap() };
+    let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
+
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
 }

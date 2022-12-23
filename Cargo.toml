@@ -33,6 +33,7 @@ colored = "2.0.0"
 colored_json = "3.0.1"
 interactive-parse = "0.1.0"
 ledger-cosmos-secp256k1 = "0.5"
+cosm-tome = { git = "https://github.com/ewoolsey/cosm-tome.git", features = ["os_keyring"] }
 # ledger-utility = { version = "0.3.4", default-features = false, optional = true, features = ["usb"] }
 log = "0.4"
 

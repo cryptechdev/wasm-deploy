@@ -1,4 +1,4 @@
-use std::{env, process::Command};
+use std::{env, process::Command, str::FromStr};
 
 use async_recursion::async_recursion;
 use clap::{CommandFactory, Subcommand};
@@ -8,6 +8,11 @@ use clap_complete::{
 };
 use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
+use cosm_tome::{
+    chain::{coin::Coin, request::TxOptions},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+    modules::{auth::model::Address, cosmwasm::model::ExecRequest},
+};
 use inquire::{MultiSelect, Select};
 use interactive_parse::traits::InteractiveParseObj;
 use log::info;
@@ -17,7 +22,6 @@ use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
     contract::{execute_set_up, execute_store, Contract, Cw20Hook, Execute, Query},
-    cosmwasm::{Coin, CosmWasmClient},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
 };
@@ -74,9 +78,13 @@ pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
         config.add_chain()?;
     } else if *delete {
         let all_chains = &mut config.chains;
-        let chains = MultiSelect::new("Select which chains to delete", all_chains.clone()).prompt()?;
-        for chain in chains {
-            all_chains.retain(|x| x != &chain);
+        let chains_to_remove = MultiSelect::new(
+            "Select which chains to delete",
+            all_chains.iter().map(|x| x.chain_id.clone()).collect::<Vec<_>>(),
+        )
+        .prompt()?;
+        for chain in chains_to_remove {
+            all_chains.retain(|x| x.chain_id != chain);
         }
     }
     config.save()?;
@@ -89,9 +97,13 @@ pub async fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
         config.add_key().await?;
     } else if *delete {
         let all_keys = &mut config.keys;
-        let keys = MultiSelect::new("Select which keys to delete", all_keys.clone()).prompt()?;
-        for key in keys {
-            all_keys.retain(|x| x != &key);
+        let keys_to_remove = MultiSelect::new(
+            "Select which keys to delete",
+            all_keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>(),
+        )
+        .prompt()?;
+        for key in keys_to_remove {
+            all_keys.retain(|x| x.name != key);
         }
     }
     config.save()?;
@@ -352,20 +364,25 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     let value: serde_json::Value = serde_json::from_str(string)?;
     let color = to_colored_json_auto(&value)?;
     println!("{}", color);
-    let payload = serde_json::to_vec(&value)?;
-    let chain_info = config.get_active_chain_info()?;
-    let client = CosmWasmClient::new(chain_info)?;
-    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-    let coins = Vec::<Coin>::parse_to_obj()?;
+    let msg = serde_json::to_vec(&value)?;
+    let key = config.get_active_key().await?;
 
-    let response = client.execute(contract_addr, payload, &config.get_active_key().await?, coins).await?;
+    let chain_info = config.get_active_chain_info()?;
+    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let cosm_tome = CosmTome::new(chain_info, client);
+    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let funds = Vec::<Coin>::parse_to_obj()?;
+    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let req = ExecRequest { msg, funds, address: Address::from_str(&contract_addr).unwrap() };
+
+    let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
         response.res.gas_wanted.to_string().green(),
         response.res.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.tx_hash.purple());
+    println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(Status::Quit)
 }

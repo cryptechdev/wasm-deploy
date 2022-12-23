@@ -7,10 +7,11 @@ use std::{
     path::PathBuf,
 };
 
-use cosmrs::{
-    rpc::{Client, HttpClient},
-    tendermint::chain::Id,
+use cosm_tome::{
+    config::cfg::ChainConfig,
+    signing_key::key::{Key, KeyringParams, SigningKey},
 };
+use cosmrs::tendermint::chain::Id;
 use inquire::{Confirm, CustomType, Select, Text};
 use interactive_parse::traits::InteractiveParseObj;
 use lazy_static::lazy_static;
@@ -18,14 +19,10 @@ use lazy_static::lazy_static;
 use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use strum::VariantNames;
 
+use crate::error::DeployError;
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
-use crate::{
-    error::DeployError,
-    key::{Key, KeyringParams, UserKey},
-};
 
 lazy_static! {
     pub static ref CONFIG_PATH: PathBuf = PathBuf::from("deployment/.wasm-deploy/config.json");
@@ -44,29 +41,6 @@ pub struct Env {
 impl Display for Env {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.env_id.fmt(f) }
 }
-#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
-pub struct ChainInfo {
-    /// uatom
-    pub denom:           String,
-    pub chain_id:        String,
-    pub rpc_endpoint:    String,
-    pub grpc_endpoint:   String,
-    /// "0.025"
-    pub gas_price:       f64,
-    /// "1.2"
-    pub gas_adjustment:  f64,
-    /// "cosmos"
-    pub prefix:          String,
-    /// "m/44'/118'/0'/0/0"
-    #[serde(default = "default_derivation_path")]
-    pub derivation_path: String,
-}
-
-fn default_derivation_path() -> String { "m/44'/118'/0'/0/0".to_string() }
-
-impl Display for ChainInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.chain_id.fmt(f) }
-}
 
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ContractInfo {
@@ -82,9 +56,9 @@ impl Display for ContractInfo {
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     pub shell_completion_dir: Option<PathBuf>,
-    pub chains:               Vec<ChainInfo>,
+    pub chains:               Vec<ChainConfig>,
     pub envs:                 Vec<Env>,
-    pub keys:                 Vec<UserKey>,
+    pub keys:                 Vec<SigningKey>,
 }
 
 impl Config {
@@ -127,7 +101,7 @@ impl Config {
         }
     }
 
-    pub(crate) fn get_active_chain_info(&mut self) -> Result<ChainInfo, DeployError> {
+    pub(crate) fn get_active_chain_info(&mut self) -> Result<ChainConfig, DeployError> {
         let chains = self.chains.clone();
         let env = self.get_active_env_mut()?;
         match chains.iter().find(|x| x.chain_id == env.chain_id.to_string()) {
@@ -137,7 +111,7 @@ impl Config {
     }
 
     #[allow(unused_mut)]
-    pub(crate) async fn get_active_key(&mut self) -> Result<UserKey, DeployError> {
+    pub(crate) async fn get_active_key(&mut self) -> Result<SigningKey, DeployError> {
         let active_key_name = self.get_active_env()?.key_name.clone();
         let key = self
             .keys
@@ -158,12 +132,12 @@ impl Config {
         Ok(self.get_active_chain_info()?.chain_id.try_into().unwrap())
     }
 
-    pub(crate) fn _get_client(&mut self) -> Result<impl Client, DeployError> {
-        let url = self.get_active_chain_info()?.rpc_endpoint;
-        Ok(HttpClient::new(url.as_str()).unwrap())
-    }
+    // pub(crate) fn _get_client(&mut self) -> Result<impl Client, DeployError> {
+    //     let url = self.get_active_chain_info()?.rpc_endpoint;
+    //     Ok(HttpClient::new(url.as_str()).unwrap())
+    // }
 
-    pub(crate) fn add_chain_from(&mut self, chain_info: ChainInfo) -> Result<ChainInfo, DeployError> {
+    pub(crate) fn add_chain_from(&mut self, chain_info: ChainConfig) -> Result<ChainConfig, DeployError> {
         match self.chains.iter().any(|x| x.chain_id == chain_info.chain_id) {
             true => Err(DeployError::ChainAlreadyExists),
             false => {
@@ -173,8 +147,8 @@ impl Config {
         }
     }
 
-    pub(crate) fn add_chain(&mut self) -> Result<ChainInfo, DeployError> {
-        let chain_info = ChainInfo::parse_to_obj()?;
+    pub(crate) fn add_chain(&mut self) -> Result<ChainConfig, DeployError> {
+        let chain_info = ChainConfig::parse_to_obj()?;
         self.add_chain_from(chain_info.clone())?;
         Ok(chain_info)
     }
@@ -216,7 +190,7 @@ impl Config {
         env.contracts.iter_mut().find(|x| &x.name == name).ok_or(DeployError::ContractNotFound)
     }
 
-    pub(crate) fn add_key_from(&mut self, key: UserKey) -> Result<UserKey, DeployError> {
+    pub(crate) fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {
         if self.keys.iter().any(|x| x.name == key.name) {
             return Err(DeployError::KeyAlreadyExists);
         }
@@ -224,17 +198,17 @@ impl Config {
         Ok(key)
     }
 
-    pub(crate) async fn add_key(&mut self) -> Result<UserKey, DeployError> {
-        let key_type = Select::new("Select Key Type", Key::VARIANTS.to_vec()).prompt()?;
+    pub(crate) async fn add_key(&mut self) -> Result<SigningKey, DeployError> {
+        let key_type = Select::new("Select Key Type", vec!["Keyring", "Mnemonic"]).prompt()?;
         let key = match key_type {
             "Keyring" => {
                 let params = KeyringParams::parse_to_obj()?;
-                let entry = keyring::Entry::new(&params.service, &params.user_name);
+                let entry = keyring::Entry::new(&params.service, &params.key_name);
                 let password = inquire::Text::new("Mnemonic?").prompt()?;
                 entry.set_password(password.as_str())?;
-                Key::Keyring { params }
+                Key::Keyring(params)
             }
-            "Mnemonic" => Key::Mnemonic { phrase: Text::new("Enter Mnemonic").prompt()? },
+            "Mnemonic" => Key::Mnemonic(Text::new("Enter Mnemonic").prompt()?),
             #[cfg(feature = "ledger")]
             "Ledger" => {
                 let chain_info = self.get_active_chain_info()?;
@@ -245,7 +219,8 @@ impl Config {
             _ => panic!("should not happen"),
         };
         let name = Text::new("Key Name?").prompt()?;
-        self.add_key_from(UserKey { name, key })
+        let derivation_path = Text::new("Derivation Path?").with_help_message("\"m/44'/330'/0'/0/0\"").prompt()?;
+        self.add_key_from(SigningKey { name, key, derivation_path })
     }
 
     pub(crate) fn add_env(&mut self) -> Result<&mut Env, DeployError> {
@@ -256,14 +231,13 @@ impl Config {
         if self.envs.iter().any(|x| x.env_id == env_id) {
             return Err(DeployError::EnvAlreadyExists);
         }
-        let chain_id = inquire::Select::new("Chain?", self.chains.clone())
-            .with_help_message("\"dev\", \"prod\", \"other\"")
-            .prompt()?
-            .chain_id;
-        let key_name = inquire::Select::new("Key name?", self.keys.clone())
-            .with_help_message("\"dev\", \"prod\", \"other\"")
-            .prompt()?
-            .name;
+        let chain_id =
+            inquire::Select::new("Chain?", self.chains.iter().map(|x| x.chain_id.clone()).collect::<Vec<_>>())
+                .with_help_message("\"dev\", \"prod\", \"other\"")
+                .prompt()?;
+        let key_name = inquire::Select::new("Key name?", self.keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>())
+            .with_help_message("\"my_key\"")
+            .prompt()?;
         let env = Env { is_active: true, key_name, env_id, chain_id: chain_id.try_into().unwrap(), contracts: vec![] };
         self.envs.push(env);
         if self.envs.len() > 1 {
