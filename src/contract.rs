@@ -133,7 +133,7 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
     let key = config.get_active_key().await?;
 
     let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
-    let msg = Cw20ExecuteMsg::parse_to_obj()?; // ::Transfer { recipient, amount: amount.into() };
+    let msg = Cw20ExecuteMsg::parse_to_obj()?;
     let chain_info = config.get_active_chain_info()?;
     let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
     let cosm_tome = CosmTome::new(chain_info, client);

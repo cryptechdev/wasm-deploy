@@ -219,7 +219,7 @@ impl Config {
             _ => panic!("should not happen"),
         };
         let name = Text::new("Key Name?").prompt()?;
-        let derivation_path = Text::new("Derivation Path?").with_help_message("\"m/44'/330'/0'/0/0\"").prompt()?;
+        let derivation_path = Text::new("Derivation Path?").with_help_message("\"m/44'/118'/0'/0/0\"").prompt()?;
         self.add_key_from(SigningKey { name, key, derivation_path })
     }
 
