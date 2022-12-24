@@ -11,6 +11,10 @@ where
 {
     #[command(subcommand)]
     pub command: Commands<C, S>,
+
+    /// Add additional args to cargo build
+    #[arg(long, required = false)]
+    pub cargo_args: Vec<String>,
 }
 
 #[derive(Parser, Debug)]

@@ -42,16 +42,16 @@ where
     match &cli.command {
         Commands::Update {} => update::<C, S>(),
         Commands::Init {} => init().await,
-        Commands::Build { contracts } => build(contracts),
+        Commands::Build { contracts } => build(contracts, &cli.cargo_args),
         Commands::Chain { add, delete } => chain(add, delete),
         Commands::Key { add, delete } => key(add, delete).await,
         Commands::Contract { add, delete } => contract(add, delete),
-        Commands::Deploy { contracts, no_build } => deploy(contracts, no_build).await,
+        Commands::Deploy { contracts, no_build } => deploy(contracts, no_build, &cli.cargo_args).await,
         Commands::Env { add, delete, select } => execute_env(add, delete, select),
         Commands::Schema { contracts } => schemas(contracts),
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
-        Commands::Migrate { contracts } => migrate(contracts).await,
+        Commands::Migrate { contracts } => migrate(contracts, &cli.cargo_args).await,
         Commands::Execute { contract } => execute::<C>(contract).await,
         Commands::Cw20Send { contract } => cw20_send::<C>(contract).await,
         Commands::Cw20Transfer {} => cw20_transfer().await,
@@ -147,9 +147,11 @@ pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<Status, D
     Ok(Status::Quit)
 }
 
-pub async fn deploy(contracts: &Vec<impl Contract>, no_build: &bool) -> Result<Status, DeployError> {
+pub async fn deploy(
+    contracts: &Vec<impl Contract>, no_build: &bool, cargo_args: &Vec<String>,
+) -> Result<Status, DeployError> {
     if !no_build {
-        build(contracts)?;
+        build(contracts, cargo_args)?;
     }
     store_code(contracts).await?;
     instantiate(contracts).await?;
@@ -229,18 +231,16 @@ where
     Ok(())
 }
 
-pub fn build(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result<Status, DeployError> {
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
             .env("RUSTFLAGS", "-C link-arg=-s")
             .arg("build")
-            .arg("--features")
-            // TODO: remove for production.
-            .arg("neptune_test")
             .arg("--release")
             .arg("--lib")
             .arg("--target=wasm32-unknown-unknown")
+            .args(cargo_args)
             .current_dir(format!("./contracts/{}", contract.name()))
             .spawn()?
             .wait()?
@@ -318,8 +318,8 @@ pub async fn instantiate(contracts: &[impl Contract]) -> Result<Status, DeployEr
     Ok(Status::Quit)
 }
 
-pub async fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-    build(contracts)?;
+pub async fn migrate(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result<Status, DeployError> {
+    build(contracts, cargo_args)?;
     store_code(contracts).await?;
     msg_contract(contracts, DeploymentStage::Migrate).await?;
     Ok(Status::Quit)

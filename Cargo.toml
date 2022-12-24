@@ -3,10 +3,15 @@ name = "wasm-deploy"
 version = "0.1.0"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
-homepage = "https://nept.finance"
+homepage = "https://cryptech.dev"
+description = "wasm-deploy is a fully featured deployment sweet for complex, multicontract cosmwasm projects"
+keywords = ["cosmwasm", "smart contracts", "blockchain", "deployment", "cli"]
+license = "MIT"
+repository = "https://github.com/cryptechdev/wasm-deploy"
+readme = "README.md"
+exclude = ["workspace_example/*"]
 
 [features]
-default = ["wasm_cli"]
 wasm_cli = []
 
 [dependencies]
@@ -28,5 +33,3 @@ colored_json = "3.0.1"
 interactive-parse = "0.1.0"
 cosm-tome = { git = "https://github.com/ewoolsey/cosm-tome.git", features = ["os_keyring"] }
 log = "0.4"
-
-[dev-dependencies]

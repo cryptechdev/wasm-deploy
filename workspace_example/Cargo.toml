@@ -1,0 +1,21 @@
+[workspace]
+members = ["contracts/*", "packages/*", "deployment"]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = true
+overflow-checks = true
+
+[profile.dev]
+overflow-checks = true
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"

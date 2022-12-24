@@ -40,7 +40,3 @@ your project must be layed out using cargo workspaces. The API and data types th
 ## interacting with the contracts
 
 ---
-
-## Price Oracle
-
-### API

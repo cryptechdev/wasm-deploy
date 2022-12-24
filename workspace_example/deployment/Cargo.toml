@@ -1,0 +1,27 @@
+[package]
+name = "deploy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Here we link to the api of our contract/s
+# In this case it's the cw20 contract as an example
+cw20 = { path = "../packages/cw20", version = "1.0.1" }
+cw20-base = { path = "../contracts/cw20_base", version = "1.0.1" }
+serde = "1"
+schemars = "0.8"
+cosmwasm-std = "1.0"
+env_logger = "0.10"
+log = "0.4"
+serde_json = "1.0"
+clap = { version = "4.0.18", features = ["derive"] }
+lazy_static = "1.4.0"
+clap_complete = "4.0.2"
+inquire = "0.5.1"
+strum = "0.24.1"
+strum_macros = "0.24"
+wasm-deploy = { version = "0.1.0", path = "../.."}
+tokio = "1.0.0"
+futures = "0.3.25"
+reqwest = { version = "0.11.2", features = ["json"] }
+interactive-parse = "0.1.0"

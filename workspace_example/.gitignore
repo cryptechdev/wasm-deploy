@@ -1,0 +1,25 @@
+# Build results
+/target/
+
+# Deployment files
+/deployment/.wasm-deploy/
+
+# Artifacts
+/artifacts/
+
+# Text file backups
+**/*.rs.bk
+
+# macOS
+.DS_Store
+
+# IDEs
+*.iml
+.idea
+.vscode
+
+# Auto generated typescript from schemas
+**/*.d.ts
+
+# Don't upload json schemas
+**/schema/*.json
