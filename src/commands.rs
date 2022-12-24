@@ -10,7 +10,7 @@ use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
 use cosm_tome::{
     chain::{coin::Coin, request::TxOptions},
-    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
 use inquire::{MultiSelect, Select};
@@ -21,9 +21,10 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{execute_set_up, execute_store, Contract, Cw20Hook, Execute, Query},
+    contract::{Contract, Cw20Hook, Execute, Query},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
+    wasm_msg::{msg_contract, DeploymentStage},
 };
 
 #[derive(PartialEq)]
@@ -279,13 +280,13 @@ pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     let mut handles = vec![];
     for contract in contracts {
         let name = contract.name();
-        println!("Optimizing {} contract", name);
+        println!("Optimizing {name} contract");
         handles.push(
             Command::new("wasm-opt")
                 .arg("-Os")
                 .arg("-o")
-                .arg(format!("artifacts/{}.wasm", name))
-                .arg(format!("target/wasm32-unknown-unknown/release/{}.wasm", name))
+                .arg(format!("artifacts/{name}.wasm"))
+                .arg(format!("target/wasm32-unknown-unknown/release/{name}.wasm"))
                 .spawn()?,
         );
     }
@@ -305,39 +306,32 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
 }
 
 pub async fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-    for contract in contracts {
-        execute_store(contract).await?
+    let chunks = contracts.chunks(2);
+    for chunk in chunks {
+        msg_contract(chunk, DeploymentStage::StoreCode).await?;
     }
     Ok(Status::Quit)
 }
 
-pub async fn instantiate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-    for contract in contracts {
-        crate::contract::execute_instantiate(contract).await?;
-    }
+pub async fn instantiate(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+    msg_contract(contracts, DeploymentStage::Instantiate).await?;
     Ok(Status::Quit)
 }
 
 pub async fn migrate(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     build(contracts)?;
     store_code(contracts).await?;
-    for contract in contracts {
-        crate::contract::execute_migrate(contract).await?;
-    }
+    msg_contract(contracts, DeploymentStage::Migrate).await?;
     Ok(Status::Quit)
 }
 
-pub async fn set_config(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-    for contract in contracts {
-        crate::contract::execute_set_config(contract).await?;
-    }
+pub async fn set_config(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+    msg_contract(contracts, DeploymentStage::SetConfig).await?;
     Ok(Status::Quit)
 }
 
-pub async fn set_up(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
-    for contract in contracts {
-        execute_set_up(contract).await?;
-    }
+pub async fn set_up(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+    msg_contract(contracts, DeploymentStage::SetUp).await?;
     Ok(Status::Quit)
 }
 
@@ -363,12 +357,12 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     let mut config = Config::load()?;
     let value: serde_json::Value = serde_json::from_str(string)?;
     let color = to_colored_json_auto(&value)?;
-    println!("{}", color);
+    println!("{color}");
     let msg = serde_json::to_vec(&value)?;
     let key = config.get_active_key().await?;
 
     let chain_info = config.get_active_chain_info()?;
-    let client = TendermintRPC::new(&chain_info.rpc_endpoint.clone().unwrap()).unwrap();
+    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
     let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
