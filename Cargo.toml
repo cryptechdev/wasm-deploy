@@ -31,5 +31,5 @@ keyring = "1.2.0"
 colored = "2.0.0"
 colored_json = "3.0.1"
 interactive-parse = "0.1.0"
-cosm-tome = { git = "https://github.com/ewoolsey/cosm-tome.git", features = ["os_keyring"] }
+cosm-tome = { version = "0.1", features = ["os_keyring"], package = "cosm-tome-wasm-deploy-fork"}
 log = "0.4"
