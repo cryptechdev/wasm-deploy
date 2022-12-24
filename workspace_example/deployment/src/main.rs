@@ -1,4 +1,4 @@
-#![feature(exit_status_error)]
+// #![feature(exit_status_error)]
 #[allow(clippy::large_enum_variant)]
 pub mod contract;
 pub mod defaults;
@@ -20,6 +20,7 @@ async fn run() -> Result<(), DeployError> {
     let cli = Cli::<Contracts, CustomSubcommand>::command();
     let matches = cli.get_matches();
     let args = Cli::<Contracts, CustomSubcommand>::from_arg_matches(&matches)?;
+    // You can modify the CLI here
     execute_args(&args).await?;
     execute_custom_args(&args)?;
     Ok(())

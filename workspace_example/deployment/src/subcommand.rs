@@ -1,3 +1,4 @@
+// You can leave this file empty or unchanged if you dont want custom functionality.
 use clap::Parser;
 use strum_macros::Display;
 use wasm_deploy::{

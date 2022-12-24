@@ -1,3 +1,4 @@
+// This file defines your contract. It's mostly boiler plate.
 use std::str::FromStr;
 
 use interactive_parse::traits::InteractiveParseObj;
@@ -16,6 +17,7 @@ use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
 /// This is where you define the list of all contracts you want wasm-depoy to know about
 pub enum Contracts {
     Cw20Base,
+    // You can add more contracts to this list
 }
 
 impl From<String> for Contracts {
@@ -34,6 +36,12 @@ impl Contract for Contracts {
     fn instantiate_msg(&self) -> DeployResult<Value> {
         match self {
             Contracts::Cw20Base { .. } => Ok(serde_json::to_value(CW20_INSTANTIATE.to_owned())?),
+        }
+    }
+
+    fn migrate_msg(&self) -> DeployResult<Option<Value>> {
+        match self {
+            Contracts::Cw20Base { .. } => Ok(Some(serde_json::to_value(CW20_INSTANTIATE.to_owned())?)),
         }
     }
 

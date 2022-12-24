@@ -31,6 +31,7 @@ pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Disp
     fn name(&self) -> String;
     fn admin(&self) -> String;
     fn instantiate_msg(&self) -> Result<Value, DeployError>;
+    fn migrate_msg(&self) -> Result<Option<Value>, DeployError>;
     fn external_instantiate_msgs(&self) -> Result<Vec<ExternalInstantiate>, DeployError>;
     fn config_msg(&self) -> Result<Option<Value>, DeployError>;
     fn set_up_msgs(&self) -> Result<Vec<Value>, DeployError>;
