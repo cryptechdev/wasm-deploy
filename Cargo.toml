@@ -13,20 +13,15 @@ wasm_cli = []
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
 clap = { version = "4.0.18", features = ["derive", "string"] }
+clap_complete = "4.0.3"
 schemars = "0.8"
 serde_json = "1.0"
 lazy_static = "1.4.0"
-clap_complete = "4.0.3"
 inquire = "0.5.2"
 strum = "0.24.1"
-strum_macros = "0.24.1"
 thiserror = "1.0.37"
-futures = "0.3"
-tendermint-rpc = { version = "0.27.0", default-features = false, features = ["http-client"] }
-cosmrs = { version = "0.11", features = ["dev"] }
 tokio = { version = "1.21.2", default-features = false }
 async-recursion = "1.0.0"
-cosmos-sdk-proto = "0.16.0"
 keyring = "1.2.0"
 colored = "2.0.0"
 colored_json = "3.0.1"

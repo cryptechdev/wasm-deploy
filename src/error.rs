@@ -1,8 +1,6 @@
 use std::{error::Error, process::ExitStatusError};
 
 use cosm_tome::{chain::response::ChainResponse, modules::cosmwasm::error::CosmwasmError};
-use cosmos_sdk_proto::prost::{DecodeError, EncodeError};
-use cosmrs::ErrorReport;
 use inquire::InquireError;
 use interactive_parse::error::SchemaError;
 #[cfg(feature = "ledger")]
@@ -21,12 +19,6 @@ pub enum DeployError {
 
     #[error(transparent)]
     Keyring(#[from] keyring::Error),
-
-    #[error("{0}")]
-    DecodeError(#[from] DecodeError),
-
-    #[error("{0}")]
-    EncodeError(#[from] EncodeError),
 
     #[error("{0}")]
     ExitStatus(#[from] ExitStatusError),
@@ -54,16 +46,7 @@ pub enum DeployError {
     Inquire(#[from] InquireError),
 
     #[error("{0}")]
-    Bip32(#[from] cosmrs::bip32::Error),
-
-    #[error("{0}")]
     Serde(#[from] serde_json::Error),
-
-    #[error("{0}")]
-    ErrorReport(#[from] ErrorReport),
-
-    #[error("{0}")]
-    RpcError(#[from] tendermint_rpc::Error),
 
     #[error("{0}")]
     Clap(#[from] clap::error::Error),
@@ -74,23 +57,11 @@ pub enum DeployError {
     #[error("invalid derivation path")]
     DerivationPath,
 
-    #[error("invalid instantiate permissions")]
-    InstantiatePerms { source: ErrorReport },
-
-    #[error("cryptographic error")]
-    Crypto { source: ErrorReport },
-
     #[error("Account id error")]
     AccountId { id: String },
 
     #[error("Cosmos Sdk Error {:?}", res)]
     CosmosSdk { res: ChainResponse },
-
-    #[error("proto encoding error")]
-    ProtoEncoding { source: ErrorReport },
-
-    #[error("proto decoding error")]
-    ProtoDecoding { source: ErrorReport },
 
     #[error("Unsupported shell, must use bash or zsh")]
     UnsupportedShell,

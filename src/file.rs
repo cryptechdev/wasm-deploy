@@ -11,7 +11,7 @@ use cosm_tome::{
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
 };
-use cosmrs::tendermint::chain::Id;
+// use cosmrs::tendermint::chain::Id;
 use inquire::{Confirm, CustomType, Select, Text};
 use interactive_parse::traits::InteractiveParseObj;
 use lazy_static::lazy_static;
@@ -33,7 +33,7 @@ lazy_static! {
 pub struct Env {
     pub is_active: bool,
     pub env_id:    String,
-    pub chain_id:  Id,
+    pub chain_id:  String,
     pub contracts: Vec<ContractInfo>,
     pub key_name:  String,
 }
@@ -104,7 +104,7 @@ impl Config {
     pub(crate) fn get_active_chain_info(&mut self) -> Result<ChainConfig, DeployError> {
         let chains = self.chains.clone();
         let env = self.get_active_env_mut()?;
-        match chains.iter().find(|x| x.chain_id == env.chain_id.to_string()) {
+        match chains.iter().find(|x| x.chain_id == env.chain_id) {
             Some(chain_info) => Ok(chain_info.clone()),
             None => self.add_chain(),
         }
@@ -128,8 +128,8 @@ impl Config {
         Ok(key)
     }
 
-    pub(crate) fn _get_active_chain_id(&mut self) -> Result<Id, DeployError> {
-        Ok(self.get_active_chain_info()?.chain_id.try_into().unwrap())
+    pub(crate) fn _get_active_chain_id(&mut self) -> Result<String, DeployError> {
+        Ok(self.get_active_chain_info()?.chain_id)
     }
 
     // pub(crate) fn _get_client(&mut self) -> Result<impl Client, DeployError> {
@@ -238,7 +238,7 @@ impl Config {
         let key_name = inquire::Select::new("Key name?", self.keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>())
             .with_help_message("\"my_key\"")
             .prompt()?;
-        let env = Env { is_active: true, key_name, env_id, chain_id: chain_id.try_into().unwrap(), contracts: vec![] };
+        let env = Env { is_active: true, key_name, env_id, chain_id, contracts: vec![] };
         self.envs.push(env);
         if self.envs.len() > 1 {
             self.change_env()?
