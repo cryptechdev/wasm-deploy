@@ -134,17 +134,18 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
         DeploymentStage::Migrate => {
             let mut reqs = vec![];
             for contract in contracts {
-                println!("Migrating {}", contract.name());
-                let mut msg = contract.instantiate_msg()?;
-                replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-                let contract_info = config.get_contract(&contract.to_string())?;
-                let contract_addr = contract_info.addr.clone().ok_or(DeployError::AddrNotFound)?;
-                let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
-                reqs.push(MigrateRequest {
-                    msg,
-                    address: Address::from_str(&contract_addr).unwrap(),
-                    new_code_id: code_id,
-                });
+                if let Some(mut msg) = contract.migrate_msg()? {
+                    println!("Migrating {}", contract.name());
+                    replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
+                    let contract_info = config.get_contract(&contract.to_string())?;
+                    let contract_addr = contract_info.addr.clone().ok_or(DeployError::AddrNotFound)?;
+                    let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
+                    reqs.push(MigrateRequest {
+                        msg,
+                        address: Address::from_str(&contract_addr).unwrap(),
+                        new_code_id: code_id,
+                    });
+                }
             }
             let response = cosm_tome.wasm_migrate_batch(reqs, &key, &tx_options).await?;
             Some(response.res)
