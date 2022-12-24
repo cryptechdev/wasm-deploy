@@ -6,6 +6,7 @@ pub mod error;
 pub mod file;
 #[cfg(feature = "ledger")]
 pub mod ledger;
+pub mod utils;
 pub mod wasm_msg;
 
 #[cfg(wasm_cli)]

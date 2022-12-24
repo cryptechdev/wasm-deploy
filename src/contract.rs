@@ -19,7 +19,8 @@ use strum::IntoEnumIterator;
 
 use crate::{
     error::{DeployError, DeployResult},
-    file::{Config, ContractInfo},
+    file::Config,
+    utils::replace_strings,
 };
 
 pub trait Contract: Send + Sync + Debug + From<String> + IntoEnumIterator + Display + Clone + 'static {
@@ -131,9 +132,7 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
     let key = config.get_active_key().await?;
 
     let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
-    let recipient = Text::new("Recipient?").with_help_message("string").prompt()?;
-    let amount = CustomType::<u64>::new("Amount of tokens to send?").with_help_message("int").prompt()?;
-    let msg = Cw20ExecuteMsg::Transfer { recipient, amount: amount.into() };
+    let msg = Cw20ExecuteMsg::parse_to_obj()?; // ::Transfer { recipient, amount: amount.into() };
     let chain_info = config.get_active_chain_info()?;
     let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
     let cosm_tome = CosmTome::new(chain_info, client);
@@ -156,33 +155,4 @@ pub struct ExternalInstantiate {
     pub msg:     Value,
     pub code_id: u64,
     pub name:    String,
-}
-
-pub fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> DeployResult<()> {
-    match value {
-        Value::Null => {}
-        Value::Bool(_) => {}
-        Value::Number(_) => {}
-        Value::String(string) => {
-            if let Some((_, new)) = string.split_once('&') {
-                if let Some(contract) = contracts.iter().find(|x| x.name == new) {
-                    match &contract.addr {
-                        Some(addr) => *string = addr.clone(),
-                        None => return Err(DeployError::AddrNotFound),
-                    }
-                }
-            }
-        }
-        Value::Array(array) => {
-            for value in array {
-                replace_strings(value, contracts)?;
-            }
-        }
-        Value::Object(map) => {
-            for (_, value) in map {
-                replace_strings(value, contracts)?;
-            }
-        }
-    }
-    Ok(())
 }

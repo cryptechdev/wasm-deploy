@@ -11,9 +11,10 @@ use cosm_tome::{
 };
 
 use crate::{
-    contract::{replace_strings, Contract},
+    contract::Contract,
     error::{DeployError, DeployResult},
     file::{Config, ContractInfo},
+    utils::replace_strings,
 };
 
 pub enum DeploymentStage {

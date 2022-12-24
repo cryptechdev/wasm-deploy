@@ -300,12 +300,12 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
     // change mod
     for contract in contracts {
         let name = contract.name();
-        Command::new("chmod").arg("+x").arg(format!("artifacts/{}.wasm", name));
+        Command::new("chmod").arg("+x").arg(format!("artifacts/{name}.wasm"));
     }
     Ok(Status::Quit)
 }
 
-pub async fn store_code(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub async fn store_code(contracts: &[impl Contract]) -> Result<Status, DeployError> {
     let chunks = contracts.chunks(2);
     for chunk in chunks {
         msg_contract(chunk, DeploymentStage::StoreCode).await?;
