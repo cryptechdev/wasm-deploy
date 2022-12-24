@@ -1,4 +1,4 @@
-use std::{error::Error, process::ExitStatusError};
+use std::error::Error;
 
 use cosm_tome::{chain::response::ChainResponse, modules::cosmwasm::error::CosmwasmError};
 use inquire::InquireError;
@@ -19,9 +19,6 @@ pub enum DeployError {
 
     #[error(transparent)]
     Keyring(#[from] keyring::Error),
-
-    #[error("{0}")]
-    ExitStatus(#[from] ExitStatusError),
 
     #[cfg(feature = "ledger")]
     #[error("{0}")]

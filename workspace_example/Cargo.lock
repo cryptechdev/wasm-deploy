@@ -404,9 +404,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 
 [[package]]
-name = "cosm-tome"
-version = "0.1.1"
-source = "git+https://github.com/ewoolsey/cosm-tome.git#e49e9b158a6d1a815024e3b5266c44393a2bb0b5"
+name = "cosm-tome-wasm-deploy-fork"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b064eff24d4540399b310a24335da178f7cae439b57ac668f89563036aade702"
 dependencies = [
  "async-trait",
  "cosmrs",
@@ -3119,7 +3120,7 @@ dependencies = [
  "clap_complete",
  "colored",
  "colored_json",
- "cosm-tome",
+ "cosm-tome-wasm-deploy-fork",
  "cw20 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "inquire",
  "interactive-parse",

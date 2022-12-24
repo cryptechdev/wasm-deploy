@@ -167,7 +167,7 @@ where
 {
     Command::new("mv").arg("./target/debug/deploy").arg("./target/debug/deploy.old").spawn()?.wait()?;
 
-    Command::new("cargo").arg("build").current_dir("./deployment").spawn()?.wait()?.exit_ok()?;
+    Command::new("cargo").arg("build").current_dir("./deployment").spawn()?.wait()?;
 
     generate_completions::<C, S>()?;
 
@@ -203,7 +203,7 @@ where
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
             Command::new("rm").arg(target_path.clone()).spawn()?.wait().ok();
 
-            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait()?.exit_ok().is_err() {
+            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait().is_err() {
                 println!("could not find {}", shell_completion_dir.to_str().unwrap());
             }
         }
@@ -219,7 +219,7 @@ where
             let source_path = BUILD_DIR.join(generated_file.file_name().unwrap());
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
 
-            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait()?.exit_ok().is_err() {
+            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait().is_err() {
                 println!("could not find {}", shell_completion_dir.to_str().unwrap());
             }
         }
@@ -243,8 +243,7 @@ pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result
             .args(cargo_args)
             .current_dir(format!("./contracts/{}", contract.name()))
             .spawn()?
-            .wait()?
-            .exit_ok()?;
+            .wait()?;
     }
 
     Command::new("mkdir").arg("-p").arg("artifacts").spawn()?.wait()?;
@@ -262,8 +261,7 @@ pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
             .arg("schema")
             .current_dir(format!("./contracts/{}", contract.name()))
             .spawn()?
-            .wait()?
-            .exit_ok()?;
+            .wait()?;
     }
 
     #[cfg(wasm_cli)]
