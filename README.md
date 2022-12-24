@@ -78,7 +78,7 @@ A bug free experience, and seemless upgrades to newer versions. This project is 
 ## Project Structure
 
 ---
-
+```
 workspace-root/
 ├─ artifacts/
 │  ├─ contract_1.wasm
@@ -103,11 +103,6 @@ workspace-root/
 │  ├─ my_project/
 │  │  ├─ contract_1.rs
 │  │  ├─ contract_2.rs
+```
 
-your project must be layed out using cargo workspaces. The API and data types that your contracts use should be defined in the packages directory, so that the deployment crate has access to them. Please
-
----
-
-## interacting with the contracts
-
----
+your project must be layed out using cargo workspaces. The API and data types that your contracts use should be defined in the packages directory, so that the deployment crate has access to them.
