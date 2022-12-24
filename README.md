@@ -48,7 +48,7 @@ deploy d
 
 Or specific ones with
 ```bash
-deploy d -c caontract_1,contract_2
+deploy d -c contract_1,contract_2
 ```
 
 after deploying them to the chain, you can execute the contract with
