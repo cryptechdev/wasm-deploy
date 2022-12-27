@@ -32,33 +32,37 @@ lazy_static! {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Env {
     pub is_active: bool,
-    pub env_id:    String,
-    pub chain_id:  String,
+    pub env_id: String,
+    pub chain_id: String,
     pub contracts: Vec<ContractInfo>,
-    pub key_name:  String,
+    pub key_name: String,
 }
 
 impl Display for Env {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.env_id.fmt(f) }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.env_id.fmt(f)
+    }
 }
 
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct ContractInfo {
-    pub name:    String,
-    pub addr:    Option<String>,
+    pub name: String,
+    pub addr: Option<String>,
     pub code_id: Option<u64>,
 }
 
 impl Display for ContractInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.name.fmt(f) }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.name.fmt(f)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     pub shell_completion_dir: Option<PathBuf>,
-    pub chains:               Vec<ChainConfig>,
-    pub envs:                 Vec<Env>,
-    pub keys:                 Vec<SigningKey>,
+    pub chains: Vec<ChainConfig>,
+    pub envs: Vec<Env>,
+    pub keys: Vec<SigningKey>,
 }
 
 impl Config {

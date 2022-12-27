@@ -29,7 +29,13 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
     let key = config.get_active_key().await?;
-    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
+
+    // TODO: maybe impl http here, maybe not required
+    let Some(grpc_endpoint) = chain_info.grpc_endpoint.clone() else {
+        return Err(DeployError::MissingGRpc);
+    };
+
+    let client = CosmosgRPC::new(grpc_endpoint);
     let cosm_tome = CosmTome::new(chain_info, client);
     let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
 
@@ -49,8 +55,8 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                     Ok(contract_info) => contract_info.code_id = Some(response.code_ids[i]),
                     Err(_) => {
                         config.add_contract_from(ContractInfo {
-                            name:    contract.name(),
-                            addr:    None,
+                            name: contract.name(),
+                            addr: None,
                             code_id: Some(response.code_ids[i]),
                         })?;
                     }
@@ -61,8 +67,7 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
         }
         DeploymentStage::Instantiate => {
             let mut reqs = vec![];
-            let tx_options =
-                TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+            let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
             for contract in contracts {
                 println!("Instantiating {}", contract.name());
                 let mut msg = contract.instantiate_msg()?;
@@ -81,10 +86,10 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                     replace_strings(&mut external.msg, &config.get_active_env()?.contracts)?;
                     reqs.push(InstantiateRequest {
                         code_id: external.code_id,
-                        msg:     external.msg,
-                        label:   external.name.clone(),
-                        admin:   Some(Address::from_str(&contract.admin()).unwrap()),
-                        funds:   vec![],
+                        msg: external.msg,
+                        label: external.name.clone(),
+                        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+                        funds: vec![],
                     });
                 }
             }
@@ -96,8 +101,8 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                 index += 1;
                 for external in contract.external_instantiate_msgs()? {
                     config.add_contract_from(ContractInfo {
-                        name:    external.name,
-                        addr:    Some(response.addresses[index].to_string()),
+                        name: external.name,
+                        addr: Some(response.addresses[index].to_string()),
                         code_id: Some(external.code_id),
                     })?;
                     index += 1;

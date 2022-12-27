@@ -110,4 +110,16 @@ pub enum DeployError {
 
     #[error("Invalid derivation path.")]
     DerviationPath,
+
+    #[error(
+        "Both gRPC endpoint and RPC endpoint cannot be null.\
+        Update you ChainInfo to add at least one endpoint"
+    )]
+    MissingClient,
+
+    #[error(
+        "The current version of wasm-deploy requires the gRPC endpoint.\
+        Update you ChainInfo to include the endpoint address"
+    )]
+    MissingGRpc,
 }

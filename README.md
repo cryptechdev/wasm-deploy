@@ -27,6 +27,12 @@
 
 # Getting the example working
 
+The first step is installing wasm-opt and ensuring that it is in your path. Run 
+```bash
+wasm-opt --version  
+``` 
+to ensure that it is installed correctly.
+
 cd into the workspace_example directory and run 
 ```bash
 cargo build
@@ -35,36 +41,36 @@ This will build the deploy binary. You will notice there is a sym link from the 
 
 Then you should be able to run
 ```bash
-deploy init
+./deploy init
 ```
-This will innitialize the deployment config and will prompt you for a bunch of information. Please wnsure you fill out the optional gRPC endpoint as it is the only client which is currently fully working.
+This will innitialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional gRPC endpoint as it is the only client which is currently fully working.
 
-Before you deploy the contracts, please be sure to change the ADMIN constant in deployment/src/defaults.rs to your person dev address.
+Before you deploy the contracts, please be sure to change the ADMIN constant in deployment/src/defaults.rs to your personal dev address.
 
 Deploy all contracts with
 ```bash
-deploy d
+./deploy d
 ```
 
 Or specific ones with
 ```bash
-deploy d -c contract_1,contract_2
+./deploy d -c contract_1,contract_2
 ```
 
 after deploying them to the chain, you can execute the contract with
 ```bash
-deploy execute <contract_name>
+./deploy execute <contract_name>
 ```
 in this case, use cw20_base in place of contract_name.
 
 If you make changes to your contract API or deployment code you will need to update the wasm-deploy binary by running
 ```bash
-deploy u
+./deploy u
 ```
 
 To see a list of commands please run 
 ```bash
-deploy --help
+./deploy --help
 ```
 
 ## What To Expect
@@ -73,7 +79,7 @@ In my opinion, the most powerful cosmwasm deployment software ever built. It is 
 
 ## What Not To Expect
 
-A bug free experience, and seemless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR.
+A bug free experience, and seemless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
 
 ## Project Structure
 

@@ -1,4 +1,3 @@
-// #![feature(exit_status_error)]
 #[allow(clippy::large_enum_variant)]
 pub mod contract;
 pub mod defaults;
