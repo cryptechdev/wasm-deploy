@@ -73,6 +73,12 @@ To see a list of commands please run
 ./deploy --help
 ```
 
+Messages sent through wasm deploy are searched for `&<contract_name>` and replaced with the contract address. This allows you to send messages to other contracts without having to manually insert the address. Currently There is no way to escape the `&` character so a future update will likely provide a fix for this.
+
+```bash
+./deploy --help
+```
+
 ## What To Expect
 
 In my opinion, the most powerful cosmwasm deployment software ever built. It is infinitely configurable, automatically interfaces with the apis of your contracts, and is super easy to set up.
@@ -88,7 +94,7 @@ A bug free experience, and seemless upgrades to newer versions. This project is 
 workspace-root/
 ├─ artifacts/
 │  ├─ contract_1.wasm
-│  ├─ .contract_2.wasm
+│  ├─ contract_2.wasm
 ├─ target/
 │  ├─ debug/
 │  │  ├─ deploy

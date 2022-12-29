@@ -49,7 +49,7 @@ pub async fn execute(contract: &impl Execute) -> Result<(), DeployError> {
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
     let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
+    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().ok_or(DeployError::MissingGRpc)?);
     let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
@@ -79,7 +79,7 @@ pub async fn query(contract: &impl Query) -> Result<(), DeployError> {
     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
     let addr = config.get_contract_addr_mut(&contract.to_string())?;
-    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
+    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().ok_or(DeployError::MissingGRpc)?);
     let cosm_tome = CosmTome::new(chain_info, client);
     let response = cosm_tome.wasm_query(Address::from_str(addr).unwrap(), &msg).await?;
 
@@ -107,11 +107,11 @@ pub async fn cw20_send(contract: &impl Cw20Hook) -> Result<(), DeployError> {
     let amount = CustomType::<u64>::new("Amount of tokens to send?").with_help_message("int").prompt()?;
     let msg = Cw20ExecuteMsg::Send {
         contract: contract_addr,
-        amount:   amount.into(),
-        msg:      serde_json::to_vec(&hook_msg)?.into(),
+        amount: amount.into(),
+        msg: serde_json::to_vec(&hook_msg)?.into(),
     };
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
+    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().ok_or(DeployError::MissingGRpc)?);
     let cosm_tome = CosmTome::new(chain_info, client);
     let funds = Vec::<Coin>::parse_to_obj()?;
     let req = ExecRequest { msg, funds, address: Address::from_str(&cw20_contract_addr).unwrap() };
@@ -135,7 +135,7 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
     let cw20_contract_addr = Text::new("Cw20 Contract Address?").with_help_message("string").prompt()?;
     let msg = Cw20ExecuteMsg::parse_to_obj()?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
+    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().ok_or(DeployError::MissingGRpc)?);
     let cosm_tome = CosmTome::new(chain_info, client);
     let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
     let req = ExecRequest { msg, funds: vec![], address: Address::from_str(&cw20_contract_addr).unwrap() };
@@ -153,7 +153,7 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
 
 #[derive(Clone, Debug)]
 pub struct ExternalInstantiate {
-    pub msg:     Value,
+    pub msg: Value,
     pub code_id: u64,
-    pub name:    String,
+    pub name: String,
 }

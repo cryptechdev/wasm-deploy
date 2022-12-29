@@ -183,8 +183,8 @@ where
         Some(shell_completion_dir) => shell_completion_dir,
         None => return Ok(()),
     };
-    let string = env::var_os("SHELL").unwrap().into_string().unwrap();
-    let (_, last_word) = string.rsplit_once('/').unwrap();
+    let string = env::var_os("SHELL").expect("Failed parsing SHELL string").into_string().unwrap();
+    let (_, last_word) = string.rsplit_once('/').expect("Failed parsing SHELL string");
     let mut cmd = Cli::<C, S>::command();
 
     match last_word {
