@@ -15,7 +15,7 @@ pub fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> Depl
                 if let Some(contract) = contracts.iter().find(|x| x.name == new) {
                     match &contract.addr {
                         Some(addr) => *string = addr.clone(),
-                        None => return Err(DeployError::AddrNotFound),
+                        None => return Err(DeployError::AddrNotFound { name: contract.name.clone() }),
                     }
                 }
             }

@@ -143,7 +143,10 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                     println!("Migrating {}", contract.name());
                     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
-                    let contract_addr = contract_info.addr.clone().ok_or(DeployError::AddrNotFound)?;
+                    let contract_addr = contract_info
+                        .addr
+                        .clone()
+                        .ok_or(DeployError::AddrNotFound { name: contract_info.name.clone() })?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(MigrateRequest {
                         msg,

@@ -73,8 +73,7 @@ To see a list of commands please run
 ./deploy --help
 ```
 
-Messages sent through wasm deploy are searched for `&<contract_name>` and replaced with the contract address. This allows you to send messages to other contracts without having to manually insert the address. Currently There is no way to escape the `&` character so a future update will likely provide a fix for this.
-
+Messages sent through wasm deploy are searched for `&<contract_name>` and replaced with the contract address. This allows you to send messages to other contracts without having to manually insert the address.
 ```bash
 ./deploy --help
 ```

@@ -102,8 +102,8 @@ pub enum DeployError {
     #[error("Env not found")]
     EnvNotFound,
 
-    #[error("Contract address not found")]
-    AddrNotFound,
+    #[error("Contract address not found for {name}, perhaps you need to instantiate first?")]
+    AddrNotFound { name: String },
 
     #[error("{} Config file not found, perhaps you need to run \"deploy init\"?", "Deploy Error")]
     ConfigNotFound {},
