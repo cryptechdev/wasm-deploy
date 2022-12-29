@@ -174,7 +174,7 @@ where
     Ok(Status::Quit)
 }
 
-fn generate_completions<C, S>() -> Result<(), DeployError>
+pub fn generate_completions<C, S>() -> Result<(), DeployError>
 where
     C: Contract,
     S: Subcommand,

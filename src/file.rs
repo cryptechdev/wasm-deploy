@@ -235,11 +235,13 @@ impl Config {
         if self.envs.iter().any(|x| x.env_id == env_id) {
             return Err(DeployError::EnvAlreadyExists);
         }
-        let chain_id =
-            inquire::Select::new("Chain?", self.chains.iter().map(|x| x.chain_id.clone()).collect::<Vec<_>>())
-                .with_help_message("\"dev\", \"prod\", \"other\"")
-                .prompt()?;
-        let key_name = inquire::Select::new("Key name?", self.keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>())
+        let chain_id = inquire::Select::new(
+            "Select which chain to activate",
+            self.chains.iter().map(|x| x.chain_id.clone()).collect::<Vec<_>>(),
+        )
+        .with_help_message("\"dev\", \"prod\", \"other\"")
+        .prompt()?;
+        let key_name = inquire::Select::new("Select key", self.keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>())
             .with_help_message("\"my_key\"")
             .prompt()?;
         let env = Env { is_active: true, key_name, env_id, chain_id, contracts: vec![] };

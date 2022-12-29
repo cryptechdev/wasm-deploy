@@ -169,4 +169,6 @@ where
     },
 }
 
-fn get_all<C: Contract>() -> Vec<String> { C::iter().map(|x| x.to_string()).collect() }
+fn get_all<C: Contract>() -> Vec<String> {
+    C::iter().map(|x| x.to_string()).collect()
+}
