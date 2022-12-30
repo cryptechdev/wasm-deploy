@@ -105,7 +105,10 @@ pub enum DeployError {
     #[error("Contract address not found for {name}, perhaps you need to instantiate first?")]
     AddrNotFound { name: String },
 
-    #[error("{} Config file not found, perhaps you need to run \"deploy init\"?", "Deploy Error")]
+    #[error(
+        "{} Config file not found, perhaps you need to run \"deploy init\"?",
+        "Deploy Error"
+    )]
     ConfigNotFound {},
 
     #[error("Invalid derivation path.")]

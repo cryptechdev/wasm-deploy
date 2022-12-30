@@ -82,7 +82,11 @@ impl Config {
     }
 
     pub fn save(&self) -> Result<(), DeployError> {
-        let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(CONFIG_PATH.as_path())?;
+        let mut file = OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .create(true)
+            .open(CONFIG_PATH.as_path())?;
         let serialized = serde_json::to_vec_pretty(self)?;
         file.write_all(&serialized)?;
         Ok(())
@@ -121,7 +125,9 @@ impl Config {
             .keys
             .iter_mut()
             .find(|x| x.name == active_key_name)
-            .ok_or(DeployError::KeyNotFound { key_name: active_key_name })?;
+            .ok_or(DeployError::KeyNotFound {
+                key_name: active_key_name,
+            })?;
         let mut key = key.clone();
         #[cfg(feature = "ledger")]
         if let Key::Ledger { connection, .. } = &mut key.key {
@@ -141,8 +147,15 @@ impl Config {
     //     Ok(HttpClient::new(url.as_str()).unwrap())
     // }
 
-    pub(crate) fn add_chain_from(&mut self, chain_info: ChainConfig) -> Result<ChainConfig, DeployError> {
-        match self.chains.iter().any(|x| x.chain_id == chain_info.chain_id) {
+    pub(crate) fn add_chain_from(
+        &mut self,
+        chain_info: ChainConfig,
+    ) -> Result<ChainConfig, DeployError> {
+        match self
+            .chains
+            .iter()
+            .any(|x| x.chain_id == chain_info.chain_id)
+        {
             true => Err(DeployError::ChainAlreadyExists),
             false => {
                 self.chains.push(chain_info.clone());
@@ -158,9 +171,16 @@ impl Config {
     }
 
     /// Adds or replaces a contract
-    pub(crate) fn add_contract_from(&mut self, new_contract: ContractInfo) -> Result<ContractInfo, DeployError> {
+    pub(crate) fn add_contract_from(
+        &mut self,
+        new_contract: ContractInfo,
+    ) -> Result<ContractInfo, DeployError> {
         let env = self.get_active_env_mut()?;
-        match env.contracts.iter_mut().find(|x| x.name == new_contract.name) {
+        match env
+            .contracts
+            .iter_mut()
+            .find(|x| x.name == new_contract.name)
+        {
             Some(contract) => *contract = new_contract.clone(),
             None => env.contracts.push(new_contract.clone()),
         }
@@ -191,7 +211,10 @@ impl Config {
 
     pub(crate) fn get_contract(&mut self, name: &String) -> Result<&mut ContractInfo, DeployError> {
         let env = self.get_active_env_mut()?;
-        env.contracts.iter_mut().find(|x| &x.name == name).ok_or(DeployError::ContractNotFound)
+        env.contracts
+            .iter_mut()
+            .find(|x| &x.name == name)
+            .ok_or(DeployError::ContractNotFound)
     }
 
     pub(crate) fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {
@@ -218,13 +241,22 @@ impl Config {
                 let chain_info = self.get_active_chain_info()?;
                 let connection = Connection::new().await;
                 let info = get_ledger_info(&connection, chain_info).await?;
-                Key::Ledger { info, connection: None }
+                Key::Ledger {
+                    info,
+                    connection: None,
+                }
             }
             _ => panic!("should not happen"),
         };
         let name = Text::new("Key Name?").prompt()?;
-        let derivation_path = Text::new("Derivation Path?").with_help_message("\"m/44'/118'/0'/0/0\"").prompt()?;
-        self.add_key_from(SigningKey { name, key, derivation_path })
+        let derivation_path = Text::new("Derivation Path?")
+            .with_help_message("\"m/44'/118'/0'/0/0\"")
+            .prompt()?;
+        self.add_key_from(SigningKey {
+            name,
+            key,
+            derivation_path,
+        })
     }
 
     pub(crate) fn add_env(&mut self) -> Result<&mut Env, DeployError> {
@@ -237,14 +269,26 @@ impl Config {
         }
         let chain_id = inquire::Select::new(
             "Select which chain to activate",
-            self.chains.iter().map(|x| x.chain_id.clone()).collect::<Vec<_>>(),
+            self.chains
+                .iter()
+                .map(|x| x.chain_id.clone())
+                .collect::<Vec<_>>(),
         )
         .with_help_message("\"dev\", \"prod\", \"other\"")
         .prompt()?;
-        let key_name = inquire::Select::new("Select key", self.keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>())
-            .with_help_message("\"my_key\"")
-            .prompt()?;
-        let env = Env { is_active: true, key_name, env_id, chain_id, contracts: vec![] };
+        let key_name = inquire::Select::new(
+            "Select key",
+            self.keys.iter().map(|x| x.name.clone()).collect::<Vec<_>>(),
+        )
+        .with_help_message("\"my_key\"")
+        .prompt()?;
+        let env = Env {
+            is_active: true,
+            key_name,
+            env_id,
+            chain_id,
+            contracts: vec![],
+        };
         self.envs.push(env);
         if self.envs.len() > 1 {
             self.change_env()?
@@ -265,12 +309,15 @@ pub fn get_shell_completion_dir() -> Result<Option<PathBuf>, DeployError> {
     match config.shell_completion_dir {
         Some(shell_completion_path) => Ok(Some(shell_completion_path)),
         None => {
-            let ans = Confirm::new("Shell completion directory not found.\nWould you like to add one?")
-                .with_default(true)
-                .prompt()?;
+            let ans =
+                Confirm::new("Shell completion directory not found.\nWould you like to add one?")
+                    .with_default(true)
+                    .prompt()?;
             match ans {
                 true => {
-                    let string = CustomType::<String>::new("Enter you shell completion script directory.").prompt()?;
+                    let string =
+                        CustomType::<String>::new("Enter you shell completion script directory.")
+                            .prompt()?;
                     let path = PathBuf::from(string);
                     match path.is_dir() {
                         true => {
