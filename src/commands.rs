@@ -15,7 +15,7 @@ use cosm_tome::{
 };
 use inquire::{MultiSelect, Select};
 use interactive_parse::traits::InteractiveParseObj;
-use log::{info};
+use log::{debug, info};
 
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
@@ -26,6 +26,7 @@ use crate::{
     file::{get_shell_completion_dir, Config, BUILD_DIR},
     wasm_msg::{msg_contract, DeploymentStage},
 };
+use std::fmt::Debug;
 
 #[derive(PartialEq)]
 pub enum Status {
@@ -37,8 +38,9 @@ pub enum Status {
 pub async fn execute_args<C, S>(cli: &Cli<C, S>) -> Result<Status, DeployError>
 where
     C: Contract,
-    S: Subcommand,
+    S: Subcommand + Clone + Debug,
 {
+    debug!("Executing args: {:?}", cli);
     match &cli.command {
         Commands::Update {} => update::<C, S>(),
         Commands::Init {} => init().await,
@@ -46,8 +48,15 @@ where
         Commands::Chain { add, delete } => chain(add, delete),
         Commands::Key { add, delete } => key(add, delete).await,
         Commands::Contract { add, delete } => contract(add, delete),
-        Commands::Deploy { contracts, no_build } => deploy(contracts, no_build, &cli.cargo_args).await,
-        Commands::Env { add, delete, select } => execute_env(add, delete, select),
+        Commands::Deploy {
+            contracts,
+            no_build,
+        } => deploy(contracts, no_build, &cli.cargo_args).await,
+        Commands::Env {
+            add,
+            delete,
+            select,
+        } => execute_env(add, delete, select),
         Commands::Schema { contracts } => schemas(contracts),
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
@@ -81,7 +90,10 @@ pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
         let all_chains = &mut config.chains;
         let chains_to_remove = MultiSelect::new(
             "Select which chains to delete",
-            all_chains.iter().map(|x| x.chain_id.clone()).collect::<Vec<_>>(),
+            all_chains
+                .iter()
+                .map(|x| x.chain_id.clone())
+                .collect::<Vec<_>>(),
         )
         .prompt()?;
         for chain in chains_to_remove {
@@ -118,7 +130,8 @@ pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
     } else if *delete {
         let env = config.get_active_env_mut()?;
         let all_contracts = &mut env.contracts;
-        let contracts = MultiSelect::new("Select which contracts to delete", all_contracts.clone()).prompt()?;
+        let contracts =
+            MultiSelect::new("Select which contracts to delete", all_contracts.clone()).prompt()?;
         for contract in contracts {
             all_contracts.retain(|x| x != &contract);
         }
@@ -148,7 +161,9 @@ pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<Status, D
 }
 
 pub async fn deploy(
-    contracts: &Vec<impl Contract>, no_build: &bool, cargo_args: &Vec<String>,
+    contracts: &Vec<impl Contract>,
+    no_build: &bool,
+    cargo_args: &Vec<String>,
 ) -> Result<Status, DeployError> {
     if !no_build {
         build(contracts, cargo_args)?;
@@ -163,11 +178,19 @@ pub async fn deploy(
 pub fn update<C, S>() -> Result<Status, DeployError>
 where
     C: Contract,
-    S: Subcommand,
+    S: Subcommand + Clone + Debug,
 {
-    Command::new("mv").arg("./target/debug/deploy").arg("./target/debug/deploy.old").spawn()?.wait()?;
+    Command::new("mv")
+        .arg("./target/debug/deploy")
+        .arg("./target/debug/deploy.old")
+        .spawn()?
+        .wait()?;
 
-    Command::new("cargo").arg("build").current_dir("./deployment").spawn()?.wait()?;
+    Command::new("cargo")
+        .arg("build")
+        .current_dir("./deployment")
+        .spawn()?
+        .wait()?;
 
     generate_completions::<C, S>()?;
 
@@ -177,14 +200,19 @@ where
 pub fn generate_completions<C, S>() -> Result<(), DeployError>
 where
     C: Contract,
-    S: Subcommand,
+    S: Subcommand + Clone + Debug,
 {
     let shell_completion_dir = match get_shell_completion_dir()? {
         Some(shell_completion_dir) => shell_completion_dir,
         None => return Ok(()),
     };
-    let string = env::var_os("SHELL").expect("Failed parsing SHELL string").into_string().unwrap();
-    let (_, last_word) = string.rsplit_once('/').expect("Failed parsing SHELL string");
+    let string = env::var_os("SHELL")
+        .expect("Failed parsing SHELL string")
+        .into_string()
+        .unwrap();
+    let (_, last_word) = string
+        .rsplit_once('/')
+        .expect("Failed parsing SHELL string");
     let mut cmd = Cli::<C, S>::command();
 
     match last_word {
@@ -201,9 +229,19 @@ where
 
             let source_path = BUILD_DIR.join(generated_file.file_name().unwrap());
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
-            Command::new("rm").arg(target_path.clone()).spawn()?.wait().ok();
+            Command::new("rm")
+                .arg(target_path.clone())
+                .spawn()?
+                .wait()
+                .ok();
 
-            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait().is_err() {
+            if Command::new("cp")
+                .arg(source_path)
+                .arg(target_path)
+                .spawn()?
+                .wait()
+                .is_err()
+            {
                 println!("could not find {}", shell_completion_dir.to_str().unwrap());
             }
         }
@@ -219,7 +257,13 @@ where
             let source_path = BUILD_DIR.join(generated_file.file_name().unwrap());
             let target_path = shell_completion_dir.join(generated_file.file_name().unwrap());
 
-            if Command::new("cp").arg(source_path).arg(target_path).spawn()?.wait().is_err() {
+            if Command::new("cp")
+                .arg(source_path)
+                .arg(target_path)
+                .spawn()?
+                .wait()
+                .is_err()
+            {
                 println!("could not find {}", shell_completion_dir.to_str().unwrap());
             }
         }
@@ -231,7 +275,10 @@ where
     Ok(())
 }
 
-pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result<Status, DeployError> {
+pub fn build(
+    contracts: &Vec<impl Contract>,
+    cargo_args: &Vec<String>,
+) -> Result<Status, DeployError> {
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
@@ -246,7 +293,11 @@ pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result
             .wait()?;
     }
 
-    Command::new("mkdir").arg("-p").arg("artifacts").spawn()?.wait()?;
+    Command::new("mkdir")
+        .arg("-p")
+        .arg("artifacts")
+        .spawn()?
+        .wait()?;
 
     optimize(contracts)?;
     set_execute_permissions(contracts)?;
@@ -298,7 +349,9 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
     // change mod
     for contract in contracts {
         let name = contract.name();
-        Command::new("chmod").arg("+x").arg(format!("artifacts/{name}.wasm"));
+        Command::new("chmod")
+            .arg("+x")
+            .arg(format!("artifacts/{name}.wasm"));
     }
     Ok(Status::Quit)
 }
@@ -316,7 +369,10 @@ pub async fn instantiate(contracts: &[impl Contract]) -> Result<Status, DeployEr
     Ok(Status::Quit)
 }
 
-pub async fn migrate(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result<Status, DeployError> {
+pub async fn migrate(
+    contracts: &Vec<impl Contract>,
+    cargo_args: &Vec<String>,
+) -> Result<Status, DeployError> {
     build(contracts, cargo_args)?;
     store_code(contracts).await?;
     msg_contract(contracts, DeploymentStage::Migrate).await?;
@@ -350,7 +406,10 @@ pub async fn cw20_transfer() -> Result<Status, DeployError> {
     Ok(Status::Quit)
 }
 
-pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<Status, DeployError> {
+pub async fn custom_execute<C: Contract>(
+    contract: &C,
+    string: &str,
+) -> Result<Status, DeployError> {
     println!("Executing {}", contract.name());
     let mut config = Config::load()?;
     let value: serde_json::Value = serde_json::from_str(string)?;
@@ -364,8 +423,16 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<S
     let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
-    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
-    let req = ExecRequest { msg, funds, address: Address::from_str(&contract_addr).unwrap() };
+    let tx_options = TxOptions {
+        timeout_height: None,
+        fee: None,
+        memo: "wasm_deploy".into(),
+    };
+    let req = ExecRequest {
+        msg,
+        funds,
+        address: Address::from_str(&contract_addr).unwrap(),
+    };
 
     let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
 

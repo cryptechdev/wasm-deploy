@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 
+use std::fmt::Debug;
+
 use crate::contract::Contract;
 
 #[derive(Parser, Clone, Debug)]
@@ -7,7 +9,7 @@ use crate::contract::Contract;
 pub struct Cli<C, S>
 where
     C: Contract,
-    S: Subcommand,
+    S: Subcommand + Clone + Debug,
 {
     #[command(subcommand)]
     pub command: Commands<C, S>,
@@ -22,7 +24,7 @@ where
 pub enum Commands<C, S>
 where
     C: Contract,
-    S: Subcommand,
+    S: Subcommand + Clone + Debug,
 {
     /// Rebuilds deploy
     Update,
