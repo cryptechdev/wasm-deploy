@@ -116,4 +116,23 @@ workspace-root/
 │  │  ├─ contract_2.rs
 ```
 
-your project must be layed out using cargo workspaces. The API and data types that your contracts use should be defined in the packages directory, so that the deployment crate has access to them.
+## Feature List
+
+- [x] Full deployment automation
+- [x] Interactive parsing of all jsonschema types
+- [x] Automatic contract address insertion.
+- [x] ExecuteMsg
+- [x] QueryMsg
+- [x] InstantiateMsg
+- [x] MigrateMsg
+- [x] QueryMsg
+- [x] Cw20HookMsg
+- [x] Batching messages of the same type
+- [ ] Batching messages of different types
+- [x] gRPC client
+- [ ] HTTP client
+- [ ] Automatic wasm-deploy compilation
+- [x] Mnemonic key
+- [x] OS Keyring key
+- [ ] Ledger key
+- [ ] Automatic wasm-deploy compilation
