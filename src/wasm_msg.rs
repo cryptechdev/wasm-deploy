@@ -25,7 +25,10 @@ pub enum DeploymentStage {
     Migrate,
 }
 
-pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage) -> DeployResult<()> {
+pub async fn msg_contract(
+    contracts: &[impl Contract],
+    msg_type: DeploymentStage,
+) -> DeployResult<()> {
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
     let key = config.get_active_key().await?;
@@ -37,7 +40,11 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
 
     let client = CosmosgRPC::new(grpc_endpoint);
     let cosm_tome = CosmTome::new(chain_info, client);
-    let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+    let tx_options = TxOptions {
+        timeout_height: None,
+        fee: None,
+        memo: "wasm_deploy".into(),
+    };
 
     let response: Option<ChainTxResponse> = match msg_type {
         DeploymentStage::StoreCode => {
@@ -46,7 +53,10 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                 println!("Storing code for {}", contract.name());
                 let path = format!("./artifacts/{}.wasm", contract.name());
                 let wasm_data = std::fs::read(path)?;
-                reqs.push(StoreCodeRequest { wasm_data, instantiate_perms: None });
+                reqs.push(StoreCodeRequest {
+                    wasm_data,
+                    instantiate_perms: None,
+                });
             }
             let response = cosm_tome.wasm_store_batch(reqs, &key, &tx_options).await?;
 
@@ -67,7 +77,11 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
         }
         DeploymentStage::Instantiate => {
             let mut reqs = vec![];
-            let tx_options = TxOptions { timeout_height: None, fee: None, memo: "wasm_deploy".into() };
+            let tx_options = TxOptions {
+                timeout_height: None,
+                fee: None,
+                memo: "wasm_deploy".into(),
+            };
             for contract in contracts {
                 println!("Instantiating {}", contract.name());
                 let mut msg = contract.instantiate_msg()?;
@@ -93,7 +107,9 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                     });
                 }
             }
-            let response = cosm_tome.wasm_instantiate_batch(reqs, &key, &tx_options).await?;
+            let response = cosm_tome
+                .wasm_instantiate_batch(reqs, &key, &tx_options)
+                .await?;
             let mut index = 0;
             for contract in contracts {
                 let contract_info = config.get_contract(&contract.to_string())?;
@@ -118,9 +134,15 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                 let Some(mut msg) = contract.config_msg()? else { return Ok(()) };
                 replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
                 let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-                reqs.push(ExecRequest { msg, funds: vec![], address: Address::from_str(&contract_addr).unwrap() });
+                reqs.push(ExecRequest {
+                    msg,
+                    funds: vec![],
+                    address: Address::from_str(&contract_addr).unwrap(),
+                });
             }
-            let response = cosm_tome.wasm_execute_batch(reqs, &key, &tx_options).await?;
+            let response = cosm_tome
+                .wasm_execute_batch(reqs, &key, &tx_options)
+                .await?;
             Some(response.res)
         }
         DeploymentStage::SetUp => {
@@ -129,11 +151,18 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                 println!("Executing Set Up for {}", contract.name());
                 for mut msg in contract.set_up_msgs()? {
                     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-                    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-                    reqs.push(ExecRequest { msg, funds: vec![], address: Address::from_str(&contract_addr).unwrap() });
+                    let contract_addr =
+                        config.get_contract_addr_mut(&contract.to_string())?.clone();
+                    reqs.push(ExecRequest {
+                        msg,
+                        funds: vec![],
+                        address: Address::from_str(&contract_addr).unwrap(),
+                    });
                 }
             }
-            let response = cosm_tome.wasm_execute_batch(reqs, &key, &tx_options).await?;
+            let response = cosm_tome
+                .wasm_execute_batch(reqs, &key, &tx_options)
+                .await?;
             Some(response.res)
         }
         DeploymentStage::Migrate => {
@@ -143,10 +172,13 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                     println!("Migrating {}", contract.name());
                     replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
-                    let contract_addr = contract_info
-                        .addr
-                        .clone()
-                        .ok_or(DeployError::AddrNotFound { name: contract_info.name.clone() })?;
+                    let contract_addr =
+                        contract_info
+                            .addr
+                            .clone()
+                            .ok_or(DeployError::AddrNotFound {
+                                name: contract_info.name.clone(),
+                            })?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(MigrateRequest {
                         msg,
@@ -155,12 +187,18 @@ pub async fn msg_contract(contracts: &[impl Contract], msg_type: DeploymentStage
                     });
                 }
             }
-            let response = cosm_tome.wasm_migrate_batch(reqs, &key, &tx_options).await?;
+            let response = cosm_tome
+                .wasm_migrate_batch(reqs, &key, &tx_options)
+                .await?;
             Some(response.res)
         }
     };
     if let Some(res) = response {
-        println!("gas wanted: {}, gas used: {}", res.gas_wanted.to_string().green(), res.gas_used.to_string().green());
+        println!(
+            "gas wanted: {}, gas used: {}",
+            res.gas_wanted.to_string().green(),
+            res.gas_used.to_string().green()
+        );
         println!("tx hash: {}", res.tx_hash.purple());
     }
 
