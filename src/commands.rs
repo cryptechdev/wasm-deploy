@@ -40,7 +40,7 @@ where
     C: Contract,
     S: Subcommand + Clone + Debug,
 {
-    debug!("Executing args: {:?}", cli);
+    info!("Executing args: {:#?}", cli);
     match &cli.command {
         Commands::Update {} => update::<C, S>(),
         Commands::Init {} => init().await,
