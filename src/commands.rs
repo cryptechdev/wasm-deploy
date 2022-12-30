@@ -15,7 +15,7 @@ use cosm_tome::{
 };
 use inquire::{MultiSelect, Select};
 use interactive_parse::traits::InteractiveParseObj;
-use log::info;
+use log::{info};
 
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;

@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 use crate::contract::Contract;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Clone, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli<C, S>
 where
@@ -17,7 +17,7 @@ where
     pub cargo_args: Vec<String>,
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Clone, Debug)]
 #[clap(rename_all = "snake_case", infer_subcommands = true)]
 pub enum Commands<C, S>
 where
