@@ -367,6 +367,7 @@ pub async fn store_code(contracts: &[impl Contract]) -> Result<Status, DeployErr
 
 pub async fn instantiate(contracts: &[impl Contract]) -> Result<Status, DeployError> {
     msg_contract(contracts, DeploymentStage::Instantiate).await?;
+    msg_contract(contracts, DeploymentStage::ExternalInstantiate).await?;
     Ok(Status::Quit)
 }
 

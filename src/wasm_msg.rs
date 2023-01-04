@@ -20,6 +20,7 @@ use crate::{
 pub enum DeploymentStage {
     StoreCode,
     Instantiate,
+    ExternalInstantiate,
     SetConfig,
     SetUp,
     Migrate,
@@ -95,6 +96,25 @@ pub async fn msg_contract(
                     admin: Some(Address::from_str(&contract.admin()).unwrap()),
                     funds: vec![],
                 });
+            }
+            let response = cosm_tome
+                .wasm_instantiate_batch(reqs, &key, &tx_options)
+                .await?;
+            for (index, contract) in contracts.iter().enumerate() {
+                let contract_info = config.get_contract(&contract.to_string())?;
+                contract_info.addr = Some(response.addresses[index].to_string());
+            }
+            config.save()?;
+            Some(response.res)
+        }
+        DeploymentStage::ExternalInstantiate => {
+            let mut reqs = vec![];
+            let tx_options = TxOptions {
+                timeout_height: None,
+                fee: None,
+                memo: "wasm_deploy".into(),
+            };
+            for contract in contracts {
                 for mut external in contract.external_instantiate_msgs()? {
                     println!("Instantiating {}", external.name);
                     replace_strings(&mut external.msg, &config.get_active_env()?.contracts)?;
@@ -112,9 +132,6 @@ pub async fn msg_contract(
                 .await?;
             let mut index = 0;
             for contract in contracts {
-                let contract_info = config.get_contract(&contract.to_string())?;
-                contract_info.addr = Some(response.addresses[index].to_string());
-                index += 1;
                 for external in contract.external_instantiate_msgs()? {
                     config.add_contract_from(ContractInfo {
                         name: external.name,
