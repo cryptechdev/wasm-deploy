@@ -357,7 +357,8 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
 }
 
 pub async fn store_code(contracts: &[impl Contract]) -> Result<Status, DeployError> {
-    let chunks = contracts.chunks(2);
+    let chunk_size = Config::load()?.settings.store_code_chunk_size;
+    let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
         msg_contract(chunk, DeploymentStage::StoreCode).await?;
     }

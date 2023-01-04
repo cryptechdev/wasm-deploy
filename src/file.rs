@@ -57,8 +57,23 @@ impl Display for ContractInfo {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Settings {
+    pub store_code_chunk_size: usize,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            store_code_chunk_size: 2,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Config {
+    #[serde(default)]
+    pub settings: Settings,
     pub shell_completion_dir: Option<PathBuf>,
     pub chains: Vec<ChainConfig>,
     pub envs: Vec<Env>,
