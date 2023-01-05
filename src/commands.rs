@@ -332,7 +332,7 @@ pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
         println!("Optimizing {name} contract");
         handles.push(
             Command::new("wasm-opt")
-                .arg("-Os")
+                .arg("-Oz")
                 .arg("-o")
                 .arg(format!("artifacts/{name}.wasm"))
                 .arg(format!("target/wasm32-unknown-unknown/release/{name}.wasm"))
