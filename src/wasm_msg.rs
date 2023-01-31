@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use colored::Colorize;
 use cosm_tome::{
-    chain::{request::TxOptions, response::ChainTxResponse},
+    chain::{coin::Coin, request::TxOptions, response::ChainTxResponse},
     clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
     modules::{
         auth::model::Address,
@@ -27,7 +27,10 @@ pub enum DeploymentStage {
     Migrate,
 }
 
-pub async fn send_messages(contract: impl Contract, msgs: Vec<Value>) -> DeployResult<()> {
+pub async fn send_messages(
+    contract: impl Contract,
+    msgs: Vec<(Value, Vec<Coin>)>,
+) -> DeployResult<()> {
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
     let key = config.get_active_key().await?;
@@ -46,11 +49,11 @@ pub async fn send_messages(contract: impl Contract, msgs: Vec<Value>) -> DeployR
     let mut reqs = vec![];
 
     for mut msg in msgs {
-        replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
+        replace_strings(&mut msg.0, &config.get_active_env()?.contracts)?;
         let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
         reqs.push(ExecRequest {
-            msg,
-            funds: vec![],
+            msg: msg.0,
+            funds: msg.1,
             address: Address::from_str(&contract_addr).unwrap(),
         });
     }
