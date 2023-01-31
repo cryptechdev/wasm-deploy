@@ -9,6 +9,7 @@ use cosm_tome::{
         cosmwasm::model::{ExecRequest, InstantiateRequest, MigrateRequest, StoreCodeRequest},
     },
 };
+use serde_json::Value;
 
 use crate::{
     contract::Contract,
@@ -24,6 +25,50 @@ pub enum DeploymentStage {
     SetConfig,
     SetUp,
     Migrate,
+}
+
+pub async fn send_messages(contract: impl Contract, msgs: Vec<Value>) -> DeployResult<()> {
+    let mut config = Config::load()?;
+    let chain_info = config.get_active_chain_info()?;
+    let key = config.get_active_key().await?;
+    let Some(grpc_endpoint) = chain_info.grpc_endpoint.clone() else {
+        return Err(DeployError::MissingGRpc);
+    };
+
+    let client = CosmosgRPC::new(grpc_endpoint);
+    let cosm_tome = CosmTome::new(chain_info, client);
+    let tx_options = TxOptions {
+        timeout_height: None,
+        fee: None,
+        memo: "wasm_deploy".into(),
+    };
+
+    let mut reqs = vec![];
+
+    for mut msg in msgs {
+        replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
+        let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+        reqs.push(ExecRequest {
+            msg,
+            funds: vec![],
+            address: Address::from_str(&contract_addr).unwrap(),
+        });
+    }
+
+    let response = cosm_tome
+        .wasm_execute_batch(reqs, &key, &tx_options)
+        .await?;
+
+    let res = response.res;
+
+    println!(
+        "gas wanted: {}, gas used: {}",
+        res.gas_wanted.to_string().green(),
+        res.gas_used.to_string().green()
+    );
+    println!("tx hash: {}", res.tx_hash.purple());
+
+    Ok(())
 }
 
 pub async fn msg_contract(
