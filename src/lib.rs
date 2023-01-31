@@ -6,5 +6,7 @@ pub mod file;
 pub mod utils;
 pub mod wasm_msg;
 
+pub extern crate cosm_tome;
+
 #[cfg(wasm_cli)]
 pub mod wasm_cli;
