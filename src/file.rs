@@ -124,7 +124,7 @@ impl Config {
         }
     }
 
-    pub(crate) fn get_active_chain_info(&mut self) -> Result<ChainConfig, DeployError> {
+    pub fn get_active_chain_info(&mut self) -> Result<ChainConfig, DeployError> {
         let chains = self.chains.clone();
         let env = self.get_active_env_mut()?;
         match chains.iter().find(|x| x.chain_id == env.chain_id) {
@@ -134,7 +134,7 @@ impl Config {
     }
 
     #[allow(unused_mut)]
-    pub(crate) async fn get_active_key(&mut self) -> Result<SigningKey, DeployError> {
+    pub async fn get_active_key(&mut self) -> Result<SigningKey, DeployError> {
         let active_key_name = self.get_active_env()?.key_name.clone();
         let key = self
             .keys
@@ -153,19 +153,16 @@ impl Config {
         Ok(key)
     }
 
-    pub(crate) fn _get_active_chain_id(&mut self) -> Result<String, DeployError> {
+    pub fn _get_active_chain_id(&mut self) -> Result<String, DeployError> {
         Ok(self.get_active_chain_info()?.chain_id)
     }
 
-    // pub(crate) fn _get_client(&mut self) -> Result<impl Client, DeployError> {
+    // pub fn _get_client(&mut self) -> Result<impl Client, DeployError> {
     //     let url = self.get_active_chain_info()?.rpc_endpoint;
     //     Ok(HttpClient::new(url.as_str()).unwrap())
     // }
 
-    pub(crate) fn add_chain_from(
-        &mut self,
-        chain_info: ChainConfig,
-    ) -> Result<ChainConfig, DeployError> {
+    pub fn add_chain_from(&mut self, chain_info: ChainConfig) -> Result<ChainConfig, DeployError> {
         match self
             .chains
             .iter()
@@ -179,14 +176,14 @@ impl Config {
         }
     }
 
-    pub(crate) fn add_chain(&mut self) -> Result<ChainConfig, DeployError> {
+    pub fn add_chain(&mut self) -> Result<ChainConfig, DeployError> {
         let chain_info = ChainConfig::parse_to_obj()?;
         self.add_chain_from(chain_info.clone())?;
         Ok(chain_info)
     }
 
     /// Adds or replaces a contract
-    pub(crate) fn add_contract_from(
+    pub fn add_contract_from(
         &mut self,
         new_contract: ContractInfo,
     ) -> Result<ContractInfo, DeployError> {
@@ -202,13 +199,13 @@ impl Config {
         Ok(new_contract)
     }
 
-    pub(crate) fn add_contract(&mut self) -> Result<ContractInfo, DeployError> {
+    pub fn add_contract(&mut self) -> Result<ContractInfo, DeployError> {
         let contract = ContractInfo::parse_to_obj()?;
         self.add_contract_from(contract.clone())?;
         Ok(contract)
     }
 
-    pub(crate) fn get_contract_addr_mut(&mut self, name: &String) -> Result<&String, DeployError> {
+    pub fn get_contract_addr_mut(&mut self, name: &String) -> Result<&String, DeployError> {
         let contract = self.get_contract(name)?;
         match &contract.addr {
             Some(addr) => Ok(addr),
@@ -216,7 +213,7 @@ impl Config {
         }
     }
 
-    pub(crate) fn _get_code_id(&mut self, name: &String) -> Result<&mut u64, DeployError> {
+    pub fn _get_code_id(&mut self, name: &String) -> Result<&mut u64, DeployError> {
         let contract = self.get_contract(name)?;
         match &mut contract.code_id {
             Some(code_id) => Ok(code_id),
@@ -224,7 +221,7 @@ impl Config {
         }
     }
 
-    pub(crate) fn get_contract(&mut self, name: &String) -> Result<&mut ContractInfo, DeployError> {
+    pub fn get_contract(&mut self, name: &String) -> Result<&mut ContractInfo, DeployError> {
         let env = self.get_active_env_mut()?;
         env.contracts
             .iter_mut()
@@ -232,7 +229,7 @@ impl Config {
             .ok_or(DeployError::ContractNotFound)
     }
 
-    pub(crate) fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {
+    pub fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {
         if self.keys.iter().any(|x| x.name == key.name) {
             return Err(DeployError::KeyAlreadyExists);
         }
@@ -240,7 +237,7 @@ impl Config {
         Ok(key)
     }
 
-    pub(crate) async fn add_key(&mut self) -> Result<SigningKey, DeployError> {
+    pub async fn add_key(&mut self) -> Result<SigningKey, DeployError> {
         let key_type = Select::new("Select Key Type", vec!["Keyring", "Mnemonic"]).prompt()?;
         let key = match key_type {
             "Keyring" => {
@@ -274,7 +271,7 @@ impl Config {
         })
     }
 
-    pub(crate) fn add_env(&mut self) -> Result<&mut Env, DeployError> {
+    pub fn add_env(&mut self) -> Result<&mut Env, DeployError> {
         println!("Creating new deployment environment");
         let env_id = inquire::Text::new("Environment label?")
             .with_help_message("\"dev\", \"prod\", \"other\"")
@@ -311,7 +308,7 @@ impl Config {
         Ok(self.envs.last_mut().unwrap())
     }
 
-    pub(crate) fn change_env(&mut self) -> Result<(), DeployError> {
+    pub fn change_env(&mut self) -> Result<(), DeployError> {
         let env = Select::new("Select env to activate", self.envs.clone()).prompt()?;
         self.envs.iter_mut().for_each(|x| x.is_active = *x == env);
         Ok(())

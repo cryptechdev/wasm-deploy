@@ -7,9 +7,6 @@ use crate::{
 
 pub fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> DeployResult<()> {
     match value {
-        Value::Null => {}
-        Value::Bool(_) => {}
-        Value::Number(_) => {}
         Value::String(string) => {
             if let Some((_, new)) = string.split_once('&') {
                 if let Some(contract) = contracts.iter().find(|x| x.name == new) {
@@ -34,6 +31,7 @@ pub fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> Depl
                 replace_strings(value, contracts)?;
             }
         }
+        _ => {}
     }
     Ok(())
 }

@@ -17,15 +17,15 @@ wasm_cli = []
 [dependencies]
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
-clap = { version = "4.0.18", features = ["derive", "string"] }
-clap_complete = "4.0.3"
+clap = { version = "4", features = ["derive", "string"] }
+clap_complete = "4"
 schemars = "0.8"
 serde_json = "1.0"
 lazy_static = "1.4.0"
 inquire = "0.5.2"
 strum = "0.24.1"
 thiserror = "1.0.37"
-tokio = { version = "1.21.2", default-features = false }
+tokio = { version = "1.24.1", default-features = false }
 async-recursion = "1.0.0"
 keyring = "1.2.0"
 colored = "2.0.0"
