@@ -87,7 +87,7 @@ pub trait Query: Serialize + DeserializeOwned + Display + Debug {
     fn parse(contract: &impl Contract) -> DeployResult<Self>;
 }
 
-pub async fn query(contract: &impl Query) -> Result<(), DeployError> {
+pub async fn query(contract: &impl Query) -> Result<Value, DeployError> {
     println!("Querying");
     let mut config = Config::load()?;
     let mut msg = contract.query_msg()?;
@@ -110,7 +110,7 @@ pub async fn query(contract: &impl Query) -> Result<(), DeployError> {
     let color = to_colored_json_auto(&value)?;
     println!("{color}");
 
-    Ok(())
+    Ok(value)
 }
 
 pub trait Cw20Hook: Serialize + DeserializeOwned + Display + Debug {
