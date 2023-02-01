@@ -8,6 +8,7 @@ use std::{
 };
 
 use cosm_tome::{
+    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
 };
@@ -20,7 +21,7 @@ use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::DeployError;
+use crate::error::{DeployError, DeployResult};
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
 
@@ -312,6 +313,17 @@ impl Config {
         let env = Select::new("Select env to activate", self.envs.clone()).prompt()?;
         self.envs.iter_mut().for_each(|x| x.is_active = *x == env);
         Ok(())
+    }
+
+    pub fn get_grpc_client(&mut self) -> DeployResult<CosmTome<CosmosgRPC>> {
+        let chain_info = self.get_active_chain_info()?;
+        let client = CosmosgRPC::new(
+            chain_info
+                .grpc_endpoint
+                .clone()
+                .ok_or(DeployError::MissingGRpc)?,
+        );
+        Ok(CosmTome::new(chain_info, client))
     }
 }
 
