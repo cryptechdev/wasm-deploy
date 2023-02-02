@@ -161,10 +161,14 @@ pub async fn msg_contract(
                     address: Address::from_str(&contract_addr).unwrap(),
                 });
             }
-            let response = cosm_tome
-                .wasm_execute_batch(reqs, &key, &tx_options)
-                .await?;
-            Some(response.res)
+            if reqs.is_empty() {
+                None
+            } else {
+                let response = cosm_tome
+                    .wasm_execute_batch(reqs, &key, &tx_options)
+                    .await?;
+                Some(response.res)
+            }
         }
         DeploymentStage::SetUp => {
             let mut reqs = vec![];
@@ -181,10 +185,14 @@ pub async fn msg_contract(
                     });
                 }
             }
-            let response = cosm_tome
-                .wasm_execute_batch(reqs, &key, &tx_options)
-                .await?;
-            Some(response.res)
+            if reqs.is_empty() {
+                None
+            } else {
+                let response = cosm_tome
+                    .wasm_execute_batch(reqs, &key, &tx_options)
+                    .await?;
+                Some(response.res)
+            }
         }
         DeploymentStage::Migrate => {
             let mut reqs = vec![];
