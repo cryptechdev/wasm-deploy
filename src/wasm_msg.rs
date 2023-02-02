@@ -127,22 +127,26 @@ pub async fn msg_contract(
                     });
                 }
             }
-            let response = cosm_tome
-                .wasm_instantiate_batch(reqs, &key, &tx_options)
-                .await?;
-            let mut index = 0;
-            for contract in contracts {
-                for external in contract.external_instantiate_msgs()? {
-                    config.add_contract_from(ContractInfo {
-                        name: external.name,
-                        addr: Some(response.addresses[index].to_string()),
-                        code_id: Some(external.code_id),
-                    })?;
-                    index += 1;
+            if reqs.is_empty() {
+                None
+            } else {
+                let response = cosm_tome
+                    .wasm_instantiate_batch(reqs, &key, &tx_options)
+                    .await?;
+                let mut index = 0;
+                for contract in contracts {
+                    for external in contract.external_instantiate_msgs()? {
+                        config.add_contract_from(ContractInfo {
+                            name: external.name,
+                            addr: Some(response.addresses[index].to_string()),
+                            code_id: Some(external.code_id),
+                        })?;
+                        index += 1;
+                    }
                 }
+                config.save()?;
+                Some(response.res)
             }
-            config.save()?;
-            Some(response.res)
         }
         DeploymentStage::SetConfig => {
             let mut reqs = vec![];
