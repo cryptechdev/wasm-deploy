@@ -63,7 +63,7 @@ where
         Commands::Migrate { contracts } => migrate(contracts, &cli.cargo_args).await,
         Commands::Execute { contract } => execute::<C>(contract).await,
         Commands::Cw20Send { contract } => cw20_send::<C>(contract).await,
-        Commands::Cw20Transfer {} => cw20_transfer().await,
+        Commands::Cw20 {} => cw20_transfer().await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => query::<C>(contract).await,
