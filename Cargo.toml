@@ -1,6 +1,6 @@
 [package]
 name = "wasm-deploy"
-version = "0.2.0"
+version = "0.2.2"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
 homepage = "https://cryptech.dev"
@@ -32,5 +32,4 @@ colored = "2.0.0"
 colored_json = "3.0.1"
 interactive-parse = "0.1.0"
 cosm-tome = { version = "0.2", features = ["os_keyring"] }
-# cosm-tome = { version = "0.1", features = ["os_keyring"], package = "cosm-tome-wasm-deploy-fork"}
 log = "0.4"
