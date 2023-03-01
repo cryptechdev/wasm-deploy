@@ -28,7 +28,7 @@ pub trait Msg: Debug {
 }
 
 #[typetag::serialize]
-impl<T> Msg for T where T: Debug + Serialize + Send + Sync {}
+impl<T> Msg for T where T: Debug + Serialize + Send + Sync + 'static {}
 
 pub trait Contract:
     Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
