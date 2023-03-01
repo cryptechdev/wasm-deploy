@@ -4,6 +4,7 @@ pub mod contract;
 pub mod deployment;
 pub mod error;
 pub mod file;
+pub mod query;
 pub mod utils;
 
 pub use cosm_tome;

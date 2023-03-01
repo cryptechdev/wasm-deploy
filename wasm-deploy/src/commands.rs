@@ -21,10 +21,11 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{cw20_send, execute, query_contract, Contract},
+    contract::{cw20_send, execute, Contract},
     deployment::{msg_contract, DeploymentStage},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
+    query::query_contract,
 };
 use std::fmt::Debug;
 
