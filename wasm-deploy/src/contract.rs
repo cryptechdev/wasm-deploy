@@ -48,7 +48,7 @@ pub trait Contract:
     fn set_up_msgs(&self) -> Vec<Box<dyn Msg>>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExternalInstantiate<T> {
     pub msg: T,
     pub code_id: u64,
