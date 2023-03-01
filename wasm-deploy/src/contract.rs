@@ -41,7 +41,7 @@ pub trait Contract:
     fn cw20_send(&self) -> DeployResult<Box<dyn Msg>>;
 
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>>;
-    fn external_instantiate_msgs(&self) -> Vec<Box<ExternalInstantiate>>;
+    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate>;
     fn migrate_msg(&self) -> Option<Box<dyn Msg>>;
     fn set_config_msg(&self) -> Option<Box<dyn Msg>>;
     // TODO: Ideally these could be any generic request type
