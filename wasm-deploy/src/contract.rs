@@ -73,7 +73,7 @@ where
     }
 }
 
-pub async fn execute<C: Contract>(contract: &C) -> Result<(), DeployError> {
+pub async fn execute(contract: &impl Contract) -> Result<(), DeployError> {
     println!("Executing");
     let mut config = Config::load()?;
     let msg = contract.execute()?;
@@ -112,14 +112,25 @@ pub async fn execute<C: Contract>(contract: &C) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
+pub async fn query_contract(contract: &impl Contract) -> Result<Value, DeployError> {
     println!("Querying");
     let mut config = Config::load()?;
     let msg = contract.query()?;
+    let addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let value = query(&mut config, addr, msg).await?;
+    let color = to_colored_json_auto(&value)?;
+    println!("{color}");
+    Ok(value)
+}
+
+pub async fn query(
+    config: &mut Config,
+    addr: impl AsRef<str>,
+    msg: impl Serialize,
+) -> Result<Value, DeployError> {
     let mut value = serde_json::to_value(msg)?;
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
-    let addr = config.get_contract_addr_mut(&contract.to_string())?;
     let client = CosmosgRPC::new(
         chain_info
             .grpc_endpoint
@@ -128,18 +139,13 @@ pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
     );
     let cosm_tome = CosmTome::new(chain_info, client);
     let response = cosm_tome
-        .wasm_query(Address::from_str(addr).unwrap(), &value)
+        .wasm_query(Address::from_str(addr.as_ref()).unwrap(), &value)
         .await?;
-
     let string = String::from_utf8(response.res.data.unwrap()).unwrap();
-    let value: serde_json::Value = serde_json::from_str(string.as_str()).unwrap();
-    let color = to_colored_json_auto(&value)?;
-    println!("{color}");
-
-    Ok(value)
+    Ok(serde_json::from_str::<Value>(string.as_str()).unwrap())
 }
 
-pub async fn cw20_send<C: Contract>(contract: &C) -> Result<(), DeployError> {
+pub async fn cw20_send(contract: &impl Contract) -> Result<(), DeployError> {
     println!("Executing cw20 send");
     let mut config = Config::load()?;
     let key = config.get_active_key().await?;
