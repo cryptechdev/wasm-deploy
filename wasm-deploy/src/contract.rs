@@ -22,13 +22,22 @@ use serde::Serialize;
 use serde_json::Value;
 use strum::{IntoEnumIterator, ParseError};
 
-#[typetag::serialize]
-pub trait Msg: Debug + Send + Sync {
+// #[typetag::serialize(tag = "None", content = "None")]
+pub trait Msg: Debug + Send + Sync + erased_serde::Serialize {
     fn hello(&self) {}
 }
 
-#[typetag::serialize]
+// #[typetag::serialize]
 impl<T> Msg for T where T: Debug + Serialize + Send + Sync {}
+
+impl Serialize for dyn Msg {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        erased_serde::serialize(self, serializer)
+    }
+}
 
 pub trait Contract:
     Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
@@ -111,6 +120,7 @@ pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
     println!("Querying");
     let mut config = Config::load()?;
     let msg = contract.query()?;
+    println!("{:?}", msg);
     let mut value = serde_json::to_value(msg)?;
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
@@ -122,6 +132,7 @@ pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
             .ok_or(DeployError::MissingGRpc)?,
     );
     let cosm_tome = CosmTome::new(chain_info, client);
+    println!("{:?}", value);
     let response = cosm_tome
         .wasm_query(Address::from_str(addr).unwrap(), &value)
         .await?;

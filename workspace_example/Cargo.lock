@@ -3377,6 +3377,7 @@ dependencies = [
  "convert_case",
  "cosm-tome",
  "cw20 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "erased-serde",
  "inquire",
  "interactive-parse",
  "keyring 2.0.1",
