@@ -158,9 +158,9 @@ pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<(), Deplo
 }
 
 pub async fn deploy(
-    contracts: &Vec<impl Contract>,
+    contracts: &[impl Contract],
     no_build: &bool,
-    cargo_args: &Vec<String>,
+    cargo_args: &[String],
 ) -> Result<(), DeployError> {
     if !no_build {
         build(contracts, cargo_args)?;
@@ -272,7 +272,7 @@ where
     Ok(())
 }
 
-pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result<(), DeployError> {
+pub fn build(contracts: &[impl Contract], cargo_args: &[String]) -> Result<(), DeployError> {
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
@@ -299,7 +299,7 @@ pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result
     Ok(())
 }
 
-pub fn schemas(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
+pub fn schemas(contracts: &[impl Contract]) -> Result<(), DeployError> {
     // Generate schemas
     for contract in contracts {
         Command::new("cargo")
@@ -318,7 +318,7 @@ pub fn schemas(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub fn optimize(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
+pub fn optimize(contracts: &[impl Contract]) -> Result<(), DeployError> {
     // Optimize contracts
     let mut handles = vec![];
     for contract in contracts {
@@ -339,7 +339,7 @@ pub fn optimize(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
+pub fn set_execute_permissions(contracts: &[impl Contract]) -> Result<(), DeployError> {
     // change mod
     for contract in contracts {
         let name = contract.name();
@@ -366,8 +366,8 @@ pub async fn instantiate(contracts: &[impl Contract]) -> Result<(), DeployError>
 }
 
 pub async fn migrate(
-    contracts: &Vec<impl Contract>,
-    cargo_args: &Vec<String>,
+    contracts: &[impl Contract],
+    cargo_args: &[String],
 ) -> Result<(), DeployError> {
     build(contracts, cargo_args)?;
     store_code(contracts).await?;

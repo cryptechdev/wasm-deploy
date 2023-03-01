@@ -198,6 +198,8 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
         .with_help_message("string")
         .prompt()?;
     let msg = Cw20ExecuteMsg::parse_to_obj()?;
+    let mut value = serde_json::to_value(msg)?;
+    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
     let client = CosmosgRPC::new(
         chain_info
@@ -212,7 +214,7 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
         memo: "wasm_deploy".into(),
     };
     let req = ExecRequest {
-        msg,
+        msg: value,
         funds: vec![],
         address: Address::from_str(&cw20_contract_addr).unwrap(),
     };
