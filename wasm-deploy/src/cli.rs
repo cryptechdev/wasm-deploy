@@ -27,12 +27,14 @@ where
     S: Subcommand + Clone + Debug,
 {
     /// Rebuilds deploy
+    #[command(visible_alias = "u")]
     Update,
 
     /// Initializes deploy, adding keys, chains, and envs
     Init,
 
     /// Builds the contracts
+    #[command(visible_alias = "b")]
     Build {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
@@ -61,7 +63,7 @@ where
         delete: bool,
     },
 
-    /// Modify chains
+    /// Modify contracts
     Contract {
         /// Triggers dialogue to add a contract
         #[arg(short, long, exclusive = true)]
@@ -73,7 +75,7 @@ where
     },
 
     /// Builds, optimizes, stores, instantiates and sets configs.
-    /// Does not run set_up
+    #[command(visible_alias = "d")]
     Deploy {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>(), value_parser=C::from_str)]
@@ -114,6 +116,7 @@ where
     },
 
     /// Instantiates a contract
+    #[command(visible_alias = "i")]
     Instantiate {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
@@ -121,6 +124,7 @@ where
     },
 
     /// Migrates contracts
+    #[command(visible_alias = "m")]
     Migrate {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
@@ -158,7 +162,7 @@ where
     Custom(S),
 
     /// Sends a query to a contract
-    #[command(alias = "q")]
+    #[command(visible_alias = "q")]
     Query { contract: C },
 
     /// Sets up the smart contract env with executes
