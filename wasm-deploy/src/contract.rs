@@ -23,12 +23,12 @@ use serde_json::Value;
 use strum::{IntoEnumIterator, ParseError};
 
 #[typetag::serialize]
-pub trait Msg: Debug {
+pub trait Msg: Debug + Send + Sync {
     fn hello(&self) {}
 }
 
 #[typetag::serialize]
-impl<T> Msg for T where T: Debug + Serialize {}
+impl<T> Msg for T where T: Debug + Serialize + Send + Sync {}
 
 pub trait Contract:
     Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
@@ -41,7 +41,7 @@ pub trait Contract:
     fn cw20_send(&self) -> DeployResult<Box<dyn Msg>>;
 
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>>;
-    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate>;
+    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>>;
     fn migrate_msg(&self) -> Option<Box<dyn Msg>>;
     fn set_config_msg(&self) -> Option<Box<dyn Msg>>;
     // TODO: Ideally these could be any generic request type
@@ -49,10 +49,23 @@ pub trait Contract:
 }
 
 #[derive(Debug)]
-pub struct ExternalInstantiate {
-    pub msg: Box<dyn Msg + Send + Sync>,
+pub struct ExternalInstantiate<T> {
+    pub msg: T,
     pub code_id: u64,
     pub name: String,
+}
+
+impl<T> From<ExternalInstantiate<T>> for ExternalInstantiate<Box<dyn Msg>>
+where
+    T: Msg + Clone + 'static,
+{
+    fn from(msg: ExternalInstantiate<T>) -> Self {
+        ExternalInstantiate {
+            msg: Box::new(msg.msg),
+            code_id: msg.code_id,
+            name: msg.name,
+        }
+    }
 }
 
 pub async fn execute<C: Contract>(contract: &C) -> Result<(), DeployError> {

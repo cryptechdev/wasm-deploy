@@ -44,7 +44,7 @@ impl Contract for Contracts {
         }
     }
 
-    fn external_instantiate_msgs(&self) -> Vec<Box<ExternalInstantiate>> {
+    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>> {
         match self {
             Contracts::Cw20Base => vec![],
         }

@@ -1,6 +1,7 @@
 // Use this file to define the various default message you want deploy to use
 use cw20::MinterResponse;
 use lazy_static::lazy_static;
+use wasm_deploy::contract::ExternalInstantiate;
 
 // pub const ADMIN: &str = "cosmos19r3350dnszl6r7r9mtlneccr9p9hpwe6gzs0l8";
 pub const ADMIN: &str = "noria19n42dwl6mgwcep5ytqt7qpthy067ssq72gjsrk";
@@ -22,4 +23,10 @@ lazy_static! {
         // for example
         // cw20_base::msg::ExecuteMsg::Mint { recipient: "&cw20_base".into(), amount: 1_200_000_000u64.into() },
     ];
+    pub static ref EXTERNAL_INSTANTIATE: Vec<ExternalInstantiate<cw20_base::msg::InstantiateMsg>> = vec![
+        ExternalInstantiate {
+            name: "cw20_base".into(),
+            msg: CW20_INSTANTIATE.to_owned(),
+            code_id: 1,
+        }];
 }
