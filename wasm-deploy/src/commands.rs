@@ -21,23 +21,17 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{Contract, Cw20Hook, Execute, Query},
+    contract::{cw20_send, execute, query, Contract},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
     wasm_msg::{msg_contract, DeploymentStage},
 };
 use std::fmt::Debug;
 
-#[derive(PartialEq)]
-pub enum Status {
-    Continue,
-    Quit,
-}
-
 #[async_recursion(?Send)]
-pub async fn execute_args<C, S>(cli: &Cli<C, S>) -> Result<Status, DeployError>
+pub async fn execute_args<C, S>(cli: &Cli<C, S>) -> Result<(), DeployError>
 where
-    C: Contract,
+    C: Contract + Clone,
     S: Subcommand + Clone + Debug,
 {
     info!("Executing args: {:#?}", cli);
@@ -66,23 +60,26 @@ where
         Commands::Cw20 {} => cw20_transfer().await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
-        Commands::Query { contract } => query::<C>(contract).await,
+        Commands::Query { contract } => {
+            query::<C>(contract).await;
+            Ok(())
+        }
         Commands::SetUp { contracts } => set_up(contracts).await,
-        Commands::CustomCommand { .. } => Ok(Status::Continue),
+        Commands::CustomCommand { .. } => Ok(()),
     }
 }
 
-pub async fn init() -> DeployResult<Status> {
+pub async fn init() -> DeployResult<()> {
     info!("Initializing deploy");
     let mut config = Config::init()?;
     config.add_key().await?;
     config.add_chain()?;
     config.add_env()?;
     config.save()?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+pub fn chain(add: &bool, delete: &bool) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     if *add {
         config.add_chain()?;
@@ -101,10 +98,10 @@ pub fn chain(add: &bool, delete: &bool) -> Result<Status, DeployError> {
         }
     }
     config.save()?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+pub async fn key(add: &bool, delete: &bool) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     if *add {
         config.add_key().await?;
@@ -120,10 +117,10 @@ pub async fn key(add: &bool, delete: &bool) -> Result<Status, DeployError> {
         }
     }
     config.save()?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
+pub fn contract(add: &bool, delete: &bool) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     if *add {
         config.add_contract()?;
@@ -137,10 +134,10 @@ pub fn contract(add: &bool, delete: &bool) -> Result<Status, DeployError> {
         }
     }
     config.save()?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<Status, DeployError> {
+pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     if *add {
         config.add_env()?;
@@ -157,14 +154,14 @@ pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<Status, D
     }
 
     config.save()?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
 pub async fn deploy(
     contracts: &Vec<impl Contract>,
     no_build: &bool,
     cargo_args: &Vec<String>,
-) -> Result<Status, DeployError> {
+) -> Result<(), DeployError> {
     if !no_build {
         build(contracts, cargo_args)?;
     }
@@ -172,12 +169,12 @@ pub async fn deploy(
     instantiate(contracts).await?;
     set_config(contracts).await?;
     set_up(contracts).await?;
-    Ok(Status::Continue)
+    Ok(())
 }
 
-pub fn update<C, S>() -> Result<Status, DeployError>
+pub fn update<C, S>() -> Result<(), DeployError>
 where
-    C: Contract,
+    C: Contract + Clone,
     S: Subcommand + Clone + Debug,
 {
     Command::new("mv")
@@ -194,12 +191,12 @@ where
 
     generate_completions::<C, S>()?;
 
-    Ok(Status::Quit)
+    Ok(())
 }
 
 pub fn generate_completions<C, S>() -> Result<(), DeployError>
 where
-    C: Contract,
+    C: Contract + Clone,
     S: Subcommand + Clone + Debug,
 {
     let shell_completion_dir = match get_shell_completion_dir()? {
@@ -275,10 +272,7 @@ where
     Ok(())
 }
 
-pub fn build(
-    contracts: &Vec<impl Contract>,
-    cargo_args: &Vec<String>,
-) -> Result<Status, DeployError> {
+pub fn build(contracts: &Vec<impl Contract>, cargo_args: &Vec<String>) -> Result<(), DeployError> {
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
@@ -302,10 +296,10 @@ pub fn build(
     optimize(contracts)?;
     set_execute_permissions(contracts)?;
 
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub fn schemas(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
     // Generate schemas
     for contract in contracts {
         Command::new("cargo")
@@ -321,10 +315,10 @@ pub fn schemas(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
         wasm_cli_import_schemas(&contract.name())?;
     }
 
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub fn optimize(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
     // Optimize contracts
     let mut handles = vec![];
     for contract in contracts {
@@ -342,10 +336,10 @@ pub fn optimize(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
     handles.iter_mut().for_each(|x| {
         x.wait().unwrap();
     });
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status, DeployError> {
+pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<(), DeployError> {
     // change mod
     for contract in contracts {
         let name = contract.name();
@@ -353,65 +347,62 @@ pub fn set_execute_permissions(contracts: &Vec<impl Contract>) -> Result<Status,
             .arg("+x")
             .arg(format!("artifacts/{name}.wasm"));
     }
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn store_code(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+pub async fn store_code(contracts: &[impl Contract]) -> Result<(), DeployError> {
     let chunk_size = Config::load()?.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
         msg_contract(chunk, DeploymentStage::StoreCode).await?;
     }
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn instantiate(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+pub async fn instantiate(contracts: &[impl Contract]) -> Result<(), DeployError> {
     msg_contract(contracts, DeploymentStage::Instantiate).await?;
     msg_contract(contracts, DeploymentStage::ExternalInstantiate).await?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
 pub async fn migrate(
     contracts: &Vec<impl Contract>,
     cargo_args: &Vec<String>,
-) -> Result<Status, DeployError> {
+) -> Result<(), DeployError> {
     build(contracts, cargo_args)?;
     store_code(contracts).await?;
     msg_contract(contracts, DeploymentStage::Migrate).await?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn set_config(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+pub async fn set_config(contracts: &[impl Contract]) -> Result<(), DeployError> {
     msg_contract(contracts, DeploymentStage::SetConfig).await?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn set_up(contracts: &[impl Contract]) -> Result<Status, DeployError> {
+pub async fn set_up(contracts: &[impl Contract]) -> Result<(), DeployError> {
     msg_contract(contracts, DeploymentStage::SetUp).await?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn execute<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
-    let e = C::ExecuteMsg::parse(contract)?; //parse(contract);
-    crate::contract::execute(&e).await?;
-    Ok(Status::Quit)
-}
+// pub async fn execute<C: Contract>(contract: &impl Contract) -> Result<(), DeployError> {
+//     let e = C::ExecuteMsg::parse(contract)?; //parse(contract);
+//     crate::contract::execute(&e).await?;
+//     Ok(())
+// }
 
-pub async fn cw20_send<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
-    let h = C::Cw20HookMsg::parse(contract)?; //parse(contract);
-    crate::contract::cw20_send(&h).await?;
-    Ok(Status::Quit)
-}
+// pub async fn cw20_send<C: Contract>(contract: &impl Contract) -> Result<(), DeployError> {
+//     let h = C::Cw20HookMsg::parse(contract)?; //parse(contract);
+//     crate::contract::cw20_send(&h).await?;
+//     Ok(())
+// }
 
-pub async fn cw20_transfer() -> Result<Status, DeployError> {
+pub async fn cw20_transfer() -> Result<(), DeployError> {
     crate::contract::cw20_transfer().await?;
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn custom_execute<C: Contract>(
-    contract: &C,
-    string: &str,
-) -> Result<Status, DeployError> {
+pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<(), DeployError> {
     println!("Executing {}", contract.name());
     let mut config = Config::load()?;
     let value: serde_json::Value = serde_json::from_str(string)?;
@@ -445,11 +436,11 @@ pub async fn custom_execute<C: Contract>(
     );
     println!("tx hash: {}", response.res.tx_hash.purple());
 
-    Ok(Status::Quit)
+    Ok(())
 }
 
-pub async fn query<C: Contract>(contract: &impl Contract) -> Result<Status, DeployError> {
-    let q = C::QueryMsg::parse(contract)?; //parse(contract);
-    crate::contract::query(&q).await?;
-    Ok(Status::Quit)
-}
+// pub async fn query<C: Contract>(contract: &impl Contract) -> Result<(), DeployError> {
+//     let q = C::QueryMsg::parse(contract)?; //parse(contract);
+//     crate::contract::query(&q).await?;
+//     Ok(())
+// }

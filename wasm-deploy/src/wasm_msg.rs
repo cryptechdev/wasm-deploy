@@ -21,9 +21,9 @@ pub enum DeploymentStage {
     StoreCode,
     Instantiate,
     ExternalInstantiate,
+    Migrate,
     SetConfig,
     SetUp,
-    Migrate,
 }
 
 pub async fn msg_contract(
@@ -84,18 +84,20 @@ pub async fn msg_contract(
                 memo: "wasm_deploy".into(),
             };
             for contract in contracts {
-                println!("Instantiating {}", contract.name());
-                let mut msg = contract.instantiate_msg()?;
-                replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-                let contract_info = config.get_contract(&contract.to_string())?;
-                let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
-                reqs.push(InstantiateRequest {
-                    code_id,
-                    msg,
-                    label: contract.name(),
-                    admin: Some(Address::from_str(&contract.admin()).unwrap()),
-                    funds: vec![],
-                });
+                if let Some(msg) = contract.instantiate_msg() {
+                    println!("Instantiating {}", contract.name());
+                    let mut value = serde_json::to_value(msg)?;
+                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
+                    let contract_info = config.get_contract(&contract.to_string())?;
+                    let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
+                    reqs.push(InstantiateRequest {
+                        code_id,
+                        msg,
+                        label: contract.name(),
+                        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+                        funds: vec![],
+                    });
+                }
             }
             let response = cosm_tome
                 .wasm_instantiate_batch(reqs, &key, &tx_options)
@@ -115,9 +117,10 @@ pub async fn msg_contract(
                 memo: "wasm_deploy".into(),
             };
             for contract in contracts {
-                for mut external in contract.external_instantiate_msgs()? {
+                for external in contract.external_instantiate_msgs() {
                     println!("Instantiating {}", external.name);
-                    replace_strings(&mut external.msg, &config.get_active_env()?.contracts)?;
+                    let mut value = serde_json::to_value(external.msg)?;
+                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     reqs.push(InstantiateRequest {
                         code_id: external.code_id,
                         msg: external.msg,
@@ -135,7 +138,7 @@ pub async fn msg_contract(
                     .await?;
                 let mut index = 0;
                 for contract in contracts {
-                    for external in contract.external_instantiate_msgs()? {
+                    for external in contract.external_instantiate_msgs() {
                         config.add_contract_from(ContractInfo {
                             name: external.name,
                             addr: Some(response.addresses[index].to_string()),
@@ -152,14 +155,17 @@ pub async fn msg_contract(
             let mut reqs = vec![];
             for contract in contracts {
                 println!("Setting config for {}", contract.name());
-                let Some(mut msg) = contract.config_msg()? else { return Ok(()) };
-                replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
-                let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
-                reqs.push(ExecRequest {
-                    msg,
-                    funds: vec![],
-                    address: Address::from_str(&contract_addr).unwrap(),
-                });
+                if let Some(msg) = contract.set_config_msg() {
+                    let mut value = serde_json::to_value(&msg)?;
+                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
+                    let contract_addr =
+                        config.get_contract_addr_mut(&contract.to_string())?.clone();
+                    reqs.push(ExecRequest {
+                        msg,
+                        funds: vec![],
+                        address: Address::from_str(&contract_addr).unwrap(),
+                    });
+                };
             }
             if reqs.is_empty() {
                 None
@@ -174,8 +180,9 @@ pub async fn msg_contract(
             let mut reqs = vec![];
             for contract in contracts {
                 println!("Executing Set Up for {}", contract.name());
-                for mut msg in contract.set_up_msgs()? {
-                    replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
+                for msg in contract.set_up_msgs() {
+                    let mut value = serde_json::to_value(msg)?;
+                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_addr =
                         config.get_contract_addr_mut(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
@@ -197,9 +204,10 @@ pub async fn msg_contract(
         DeploymentStage::Migrate => {
             let mut reqs = vec![];
             for contract in contracts {
-                if let Some(mut msg) = contract.migrate_msg()? {
+                if let Some(msg) = contract.migrate_msg() {
                     println!("Migrating {}", contract.name());
-                    replace_strings(&mut msg, &config.get_active_env()?.contracts)?;
+                    let mut value = serde_json::to_value(msg)?;
+                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let contract_addr =
                         contract_info

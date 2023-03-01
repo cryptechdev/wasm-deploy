@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use strum::IntoEnumIterator;
 
 use std::fmt::Debug;
 
@@ -6,9 +7,9 @@ use crate::contract::Contract;
 
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about, long_about = None)]
-pub struct Cli<C, S>
+pub struct Cli<C, S = EmptySubcommand>
 where
-    C: Contract,
+    C: Contract + Clone,
     S: Subcommand + Clone + Debug,
 {
     #[command(subcommand)]
@@ -23,7 +24,7 @@ where
 #[clap(rename_all = "snake_case", infer_subcommands = true)]
 pub enum Commands<C, S>
 where
-    C: Contract,
+    C: Contract + Clone,
     S: Subcommand + Clone + Debug,
 {
     /// Rebuilds deploy
@@ -171,6 +172,9 @@ where
     },
 }
 
-fn get_all<C: Contract>() -> Vec<String> {
+fn get_all<C: Contract + IntoEnumIterator>() -> Vec<String> {
     C::iter().map(|x| x.to_string()).collect()
 }
+
+#[derive(Subcommand, Clone, Debug)]
+enum EmptySubcommand {}

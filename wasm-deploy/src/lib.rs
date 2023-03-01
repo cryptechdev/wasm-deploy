@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod commands;
 pub mod contract;
+// pub mod enumerate;
 pub mod error;
 pub mod file;
 pub mod utils;

@@ -9,7 +9,7 @@ use wasm_deploy::{
 };
 
 //#[async_recursion(?Send)]
-pub fn execute_custom_args<C>(cli: &Cli<C, CustomSubcommand>) -> Result<Status, DeployError>
+pub fn execute_custom_args<C>(cli: &Cli<C, CustomSubcommand>) -> Result<(), DeployError>
 where
     C: Contract,
 {
