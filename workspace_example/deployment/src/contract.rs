@@ -1,7 +1,6 @@
 // This file defines your contract. It's mostly boiler plate.
 use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
 use interactive_parse::traits::InteractiveParseObj;
-use std::str::FromStr;
 use strum_macros::{Display, EnumIter, EnumString};
 use wasm_deploy::{
     contract::{Contract, ExternalInstantiate, Msg},
@@ -16,12 +15,6 @@ use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
 pub enum Contracts {
     Cw20Base,
     // You can add more contracts to this list
-}
-
-impl From<String> for Contracts {
-    fn from(value: String) -> Self {
-        Contracts::from_str(value.as_str()).expect("Error parsing contracts")
-    }
 }
 
 impl Contract for Contracts {
