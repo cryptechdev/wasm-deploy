@@ -23,9 +23,9 @@ macro_rules! expand_contracts {
     ($contracts:expr) => {
         let names = $contracts
             .iter()
-            .map(|x| x.to_case(Case::Title))
+            .map(|x| x.name().to_case(Case::Title))
             .collect::<Vec<String>>();
-        $i
+        format!()
     };
 }
 

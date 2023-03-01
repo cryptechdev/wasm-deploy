@@ -28,7 +28,7 @@ pub trait Msg: Debug {
 }
 
 #[typetag::serialize]
-impl<T> Msg for T where T: Debug + Serialize + Send + Sync + 'static {}
+impl<T> Msg for T where T: Debug + Serialize {}
 
 pub trait Contract:
     Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
@@ -50,7 +50,7 @@ pub trait Contract:
 
 #[derive(Debug)]
 pub struct ExternalInstantiate {
-    pub msg: Box<dyn Msg>,
+    pub msg: Box<dyn Msg + Send + Sync>,
     pub code_id: u64,
     pub name: String,
 }
