@@ -22,9 +22,9 @@ use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
     contract::{cw20_send, execute, query, Contract},
+    deployment::{msg_contract, DeploymentStage},
     error::{DeployError, DeployResult},
     file::{get_shell_completion_dir, Config, BUILD_DIR},
-    wasm_msg::{msg_contract, DeploymentStage},
 };
 use std::fmt::Debug;
 

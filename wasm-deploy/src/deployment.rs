@@ -28,7 +28,8 @@ pub enum DeploymentStage {
 
 pub async fn msg_contract(
     contracts: &[impl Contract],
-    msg_type: DeploymentStage,
+    // TODO: perhaps accept &[DeploymentStage]
+    deployment_stage: DeploymentStage,
 ) -> DeployResult<()> {
     let mut config = Config::load()?;
     let chain_info = config.get_active_chain_info()?;
@@ -47,7 +48,7 @@ pub async fn msg_contract(
         memo: "wasm_deploy".into(),
     };
 
-    let response: Option<ChainTxResponse> = match msg_type {
+    let response: Option<ChainTxResponse> = match deployment_stage {
         DeploymentStage::StoreCode => {
             let mut reqs = vec![];
             for contract in contracts {
@@ -154,8 +155,8 @@ pub async fn msg_contract(
         DeploymentStage::SetConfig => {
             let mut reqs = vec![];
             for contract in contracts {
-                println!("Setting config for {}", contract.name());
                 if let Some(msg) = contract.set_config_msg() {
+                    println!("Setting config for {}", contract.name());
                     let mut value = serde_json::to_value(msg)?;
                     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_addr =
@@ -179,8 +180,10 @@ pub async fn msg_contract(
         DeploymentStage::SetUp => {
             let mut reqs = vec![];
             for contract in contracts {
-                println!("Executing Set Up for {}", contract.name());
-                for msg in contract.set_up_msgs() {
+                for (i, msg) in contract.set_up_msgs().into_iter().enumerate() {
+                    if i == 0 {
+                        println!("Executing Set Up for {}", contract.name());
+                    }
                     let mut value = serde_json::to_value(msg)?;
                     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_addr =
