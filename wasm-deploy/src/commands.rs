@@ -61,11 +61,11 @@ where
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => {
-            query::<C>(contract).await;
+            query::<C>(contract).await?;
             Ok(())
         }
         Commands::SetUp { contracts } => set_up(contracts).await,
-        Commands::CustomCommand { .. } => Ok(()),
+        Commands::Custom(..) => Ok(()),
     }
 }
 

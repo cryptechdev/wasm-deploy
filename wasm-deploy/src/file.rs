@@ -243,7 +243,7 @@ impl Config {
         let key = match key_type {
             "Keyring" => {
                 let params = KeyringParams::parse_to_obj()?;
-                let entry = keyring::Entry::new(&params.service, &params.key_name);
+                let entry = keyring::Entry::new(&params.service, &params.key_name)?;
                 let password = inquire::Text::new("Mnemonic?").prompt()?;
                 entry.set_password(password.as_str())?;
                 Key::Keyring(params)

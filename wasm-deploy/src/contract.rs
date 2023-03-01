@@ -18,129 +18,42 @@ use cosm_tome::{
 use cw20::Cw20ExecuteMsg;
 use inquire::{CustomType, Text};
 use interactive_parse::traits::InteractiveParseObj;
+use serde::Serialize;
 use serde_json::Value;
-use strum::IntoEnumIterator;
+use strum::{IntoEnumIterator, ParseError};
 
-// pub trait Request: Debug + Send + Sync {
-//     fn to_any(&self, sender_addr: Address) -> DeployResult<Any>;
-// }
+#[typetag::serialize]
+pub trait Msg: Debug {
+    fn hello(&self) {}
+}
 
-// impl<S> Request for ExecRequest<S>
-// where
-//     S: Serialize + Clone + Debug + Send + Sync,
-// {
-//     fn to_any(&self, sender_addr: Address) -> DeployResult<Any> {
-//         let proto = self.clone().to_proto(sender_addr)?;
-//         let any = proto.to_any()?;
-//         Ok(any)
-//     }
-// }
-
-// pub trait MyMsg: MySerial + JsonSchema + Display {}
-
-// #[derive(Clone, Debug)]
-// pub struct ContractStruct<'a, E: MyMsg, Q: MyMsg, C: MyMsg> {
-//     pub name: String,
-//     pub admin: String,
-//     pub instantiate_msg: Option<&'a dyn MySerial>,
-//     pub external_instantiate_msgs: Vec<ExternalInstantiate<'a>>,
-//     pub migrate_msg: Option<&'a dyn MySerial>,
-//     pub set_config_msg: Option<&'a dyn MySerial>,
-//     pub set_up_msgs: Vec<&'a dyn MySerial>,
-//     pub execute_type: std::marker::PhantomData<E>,
-//     pub query_type: std::marker::PhantomData<Q>,
-//     pub cw20_hook_type: std::marker::PhantomData<C>,
-// }
-
-// impl<'a, E: MyMsg, Q: MyMsg, C: MyMsg> Display for ContractStruct<'a, E, Q, C> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         todo!()
-//     }
-// }
-
-// impl<'a, E: MyMsg, Q: MyMsg, C: MyMsg> From<String> for ContractStruct<'a, E, Q, C> {
-//     fn from(value: String) -> Self {
-//         todo!()
-//     }
-// }
-
-// impl<'a, E: MyMsg, Q: MyMsg, C: MyMsg> Contract for ContractStruct<'a, E, Q, C> {
-//     type ExecuteMsg = E;
-
-//     type QueryMsg = Q;
-
-//     type Cw20HookMsg = C;
-
-//     fn name(&self) -> String {
-//         self.name.clone()
-//     }
-
-//     fn admin(&self) -> String {
-//         self.admin.clone()
-//     }
-
-//     fn instantiate_msg(&self) -> Option<&dyn MySerial> {
-//         self.instantiate_msg
-//     }
-
-//     fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate> {
-//         self.external_instantiate_msgs
-//     }
-
-//     fn migrate_msg(&self) -> Option<&dyn MySerial> {
-//         self.migrate_msg
-//     }
-
-//     fn set_config_msg(&self) -> Option<&dyn MySerial> {
-//         self.set_config_msg
-//     }
-
-//     fn set_up_msgs(&self) -> Vec<&dyn MySerial> {
-//         self.set_up_msgs
-//     }
-// }
-
-#[typetag::serde(tag = "type")]
-pub trait MySerial: Debug + Send + Sync {}
+#[typetag::serialize]
+impl<T> Msg for T where T: Debug + Serialize {}
 
 pub trait Contract:
-    Send + Sync + Debug + Display + From<String> + IntoEnumIterator + 'static
+    Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
 {
     fn name(&self) -> String;
     fn admin(&self) -> String;
 
-    fn execute(&self) -> DeployResult<Box<dyn MySerial>>;
-    fn query(&self) -> DeployResult<Box<dyn MySerial>>;
-    fn cw20_send(&self) -> DeployResult<Box<dyn MySerial>>;
+    fn execute(&self) -> DeployResult<Box<dyn Msg>>;
+    fn query(&self) -> DeployResult<Box<dyn Msg>>;
+    fn cw20_send(&self) -> DeployResult<Box<dyn Msg>>;
 
-    fn instantiate_msg(&self) -> Option<&dyn MySerial>;
-    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate>;
-    fn migrate_msg(&self) -> Option<&dyn MySerial>;
-    fn set_config_msg(&self) -> Option<&dyn MySerial>;
+    fn instantiate_msg(&self) -> Option<Box<dyn Msg>>;
+    fn external_instantiate_msgs(&self) -> Vec<Box<ExternalInstantiate>>;
+    fn migrate_msg(&self) -> Option<Box<dyn Msg>>;
+    fn set_config_msg(&self) -> Option<Box<dyn Msg>>;
     // TODO: Ideally these could be any generic request type
-    fn set_up_msgs(&self) -> Vec<&dyn MySerial>;
+    fn set_up_msgs(&self) -> Vec<Box<dyn Msg>>;
 }
 
-// pub trait Contract:
-//     Send + Sync + Debug + From<String> + IntoEnumIterator + Display + Clone + 'static
-// {
-//     type ExecuteMsg: Execute;
-//     type QueryMsg: Query;
-//     type Cw20HookMsg: Cw20Hook;
-
-//     fn name(&self) -> String;
-//     fn admin(&self) -> String;
-//     fn instantiate_msg(&self) -> Result<Value, DeployError>;
-//     fn migrate_msg(&self) -> Result<Option<Value>, DeployError>;
-//     fn external_instantiate_msgs(&self) -> Result<Vec<ExternalInstantiate>, DeployError>;
-//     fn config_msg(&self) -> Result<Option<Value>, DeployError>;
-//     fn set_up_msgs(&self) -> Result<Vec<Value>, DeployError>;
-// }
-
-// pub trait Execute: Serialize + DeserializeOwned + Display + Debug {
-//     fn execute_msg(&self) -> Result<Value, DeployError>;
-//     fn parse(contract: &impl Contract) -> DeployResult<Self>;
-// }
+#[derive(Clone, Debug)]
+pub struct ExternalInstantiate<'a> {
+    pub msg: &'a dyn Msg,
+    pub code_id: u64,
+    pub name: String,
+}
 
 pub async fn execute<C: Contract>(contract: &C) -> Result<(), DeployError> {
     println!("Executing");
@@ -181,11 +94,6 @@ pub async fn execute<C: Contract>(contract: &C) -> Result<(), DeployError> {
     Ok(())
 }
 
-// pub trait Query: Serialize + DeserializeOwned + Display + Debug {
-//     fn query_msg(&self) -> Result<Value, DeployError>;
-//     fn parse(contract: &impl Contract) -> DeployResult<Self>;
-// }
-
 pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
     println!("Querying");
     let mut config = Config::load()?;
@@ -212,11 +120,6 @@ pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
 
     Ok(value)
 }
-
-// pub trait Cw20Hook: Serialize + DeserializeOwned + Display + Debug {
-//     fn cw20_hook_msg(&self) -> Result<Value, DeployError>;
-//     fn parse(contract: &impl Contract) -> DeployResult<Self>;
-// }
 
 pub async fn cw20_send<C: Contract>(contract: &C) -> Result<(), DeployError> {
     println!("Executing cw20 send");
@@ -305,11 +208,4 @@ pub async fn cw20_transfer() -> Result<(), DeployError> {
     println!("tx hash: {}", response.res.tx_hash.purple());
 
     Ok(())
-}
-
-#[derive(Clone, Debug)]
-pub struct ExternalInstantiate<'a> {
-    pub msg: &'a dyn MySerial,
-    pub code_id: u64,
-    pub name: String,
 }

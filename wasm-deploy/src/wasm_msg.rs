@@ -92,7 +92,7 @@ pub async fn msg_contract(
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(InstantiateRequest {
                         code_id,
-                        msg,
+                        msg: value,
                         label: contract.name(),
                         admin: Some(Address::from_str(&contract.admin()).unwrap()),
                         funds: vec![],
@@ -123,7 +123,7 @@ pub async fn msg_contract(
                     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     reqs.push(InstantiateRequest {
                         code_id: external.code_id,
-                        msg: external.msg,
+                        msg: value,
                         label: external.name.clone(),
                         admin: Some(Address::from_str(&contract.admin()).unwrap()),
                         funds: vec![],
@@ -156,12 +156,12 @@ pub async fn msg_contract(
             for contract in contracts {
                 println!("Setting config for {}", contract.name());
                 if let Some(msg) = contract.set_config_msg() {
-                    let mut value = serde_json::to_value(&msg)?;
+                    let mut value = serde_json::to_value(msg)?;
                     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_addr =
                         config.get_contract_addr_mut(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
-                        msg,
+                        msg: value,
                         funds: vec![],
                         address: Address::from_str(&contract_addr).unwrap(),
                     });
@@ -186,7 +186,7 @@ pub async fn msg_contract(
                     let contract_addr =
                         config.get_contract_addr_mut(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
-                        msg,
+                        msg: value,
                         funds: vec![],
                         address: Address::from_str(&contract_addr).unwrap(),
                     });
@@ -218,7 +218,7 @@ pub async fn msg_contract(
                             })?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(MigrateRequest {
-                        msg,
+                        msg: value,
                         address: Address::from_str(&contract_addr).unwrap(),
                         new_code_id: code_id,
                     });

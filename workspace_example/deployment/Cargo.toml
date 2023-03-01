@@ -20,7 +20,7 @@ clap_complete = "4.0.2"
 inquire = "0.5.1"
 strum = "0.24.1"
 strum_macros = "0.24"
-wasm-deploy = { version = "0.1.0", path = "../.."}
+wasm-deploy = { version = "0.3.0", path = "../../wasm-deploy" }
 tokio = "1.0.0"
 futures = "0.3.25"
 interactive-parse = "0.1.2"

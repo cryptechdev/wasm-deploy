@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
-use strum::IntoEnumIterator;
-
 use std::fmt::Debug;
+use strum::IntoEnumIterator;
 
 use crate::contract::Contract;
 
@@ -77,7 +76,7 @@ where
     /// Does not run set_up
     Deploy {
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>(), value_parser=C::from_str)]
         contracts: Vec<C>,
 
         /// Deploys but does not recompile first
@@ -155,10 +154,8 @@ where
     },
 
     /// Executes a user defined command
-    CustomCommand {
-        #[command(subcommand)]
-        command: S,
-    },
+    #[command(flatten)]
+    Custom(S),
 
     /// Sends a query to a contract
     #[command(alias = "q")]
@@ -177,4 +174,4 @@ fn get_all<C: Contract + IntoEnumIterator>() -> Vec<String> {
 }
 
 #[derive(Subcommand, Clone, Debug)]
-enum EmptySubcommand {}
+pub enum EmptySubcommand {}
