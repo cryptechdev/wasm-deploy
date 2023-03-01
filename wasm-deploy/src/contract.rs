@@ -22,12 +22,8 @@ use serde::Serialize;
 use serde_json::Value;
 use strum::{IntoEnumIterator, ParseError};
 
-// #[typetag::serialize(tag = "None", content = "None")]
-pub trait Msg: Debug + Send + Sync + erased_serde::Serialize {
-    fn hello(&self) {}
-}
+pub trait Msg: Debug + Send + Sync + erased_serde::Serialize {}
 
-// #[typetag::serialize]
 impl<T> Msg for T where T: Debug + Serialize + Send + Sync {}
 
 impl Serialize for dyn Msg {
