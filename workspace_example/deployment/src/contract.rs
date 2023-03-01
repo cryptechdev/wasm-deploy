@@ -1,7 +1,7 @@
 // This file defines your contract. It's mostly boiler plate.
 use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
 use interactive_parse::traits::InteractiveParseObj;
-use strum_macros::{Display, EnumIter, EnumString};
+use wasm_deploy::derive::contract;
 use wasm_deploy::{
     contract::{Contract, ExternalInstantiate, Msg},
     error::{DeployError, DeployResult},
@@ -9,9 +9,8 @@ use wasm_deploy::{
 
 use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
 
-#[derive(Clone, Debug, Display, EnumIter, EnumString)]
-#[strum(serialize_all = "snake_case")]
-/// This is where you define the list of all contracts you want wasm-depoy to know about
+/// This is where you define the list of all contracts you want wasm-deploy to know about
+#[contract]
 pub enum Contracts {
     Cw20Base,
     // You can add more contracts to this list

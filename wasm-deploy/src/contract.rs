@@ -116,7 +116,6 @@ pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
     println!("Querying");
     let mut config = Config::load()?;
     let msg = contract.query()?;
-    println!("{:?}", msg);
     let mut value = serde_json::to_value(msg)?;
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
@@ -128,7 +127,6 @@ pub async fn query<C: Contract>(contract: &C) -> Result<Value, DeployError> {
             .ok_or(DeployError::MissingGRpc)?,
     );
     let cosm_tome = CosmTome::new(chain_info, client);
-    println!("{:?}", value);
     let response = cosm_tome
         .wasm_query(Address::from_str(addr).unwrap(), &value)
         .await?;

@@ -1,12 +1,12 @@
 // You can leave this file empty or unchanged if you dont want custom functionality.
-use clap::Parser;
-use strum_macros::Display;
+use clap::Subcommand;
 use wasm_deploy::{
     cli::{Cli, Commands},
     contract::Contract,
     error::DeployError,
 };
 
+// You may need async recursion for your custom subcommand.
 //#[async_recursion(?Send)]
 pub fn execute_custom_args<C>(cli: &Cli<C, CustomSubcommand>) -> Result<(), DeployError>
 where
@@ -21,8 +21,7 @@ where
     Ok(())
 }
 // A custom subcommand for user defined functionality.
-#[derive(Clone, Parser, Debug, Display)]
-#[strum(serialize_all = "snake_case")]
+#[derive(Clone, Debug, Subcommand)]
 #[clap(rename_all = "snake_case")]
 pub enum CustomSubcommand {
     /// This is a command that you can define yourself.

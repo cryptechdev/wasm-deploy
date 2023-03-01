@@ -766,13 +766,10 @@ name = "deploy"
 version = "0.1.0"
 dependencies = [
  "clap",
- "clap_complete",
  "cosmwasm-std",
  "cw20 1.0.1",
  "cw20-base",
  "env_logger",
- "futures",
- "inquire",
  "interactive-parse",
  "lazy_static",
  "log",
@@ -3322,8 +3319,19 @@ dependencies = [
  "serde",
  "serde_json",
  "strum",
+ "strum_macros",
  "thiserror",
  "tokio",
+ "wasm-deploy-derive",
+]
+
+[[package]]
+name = "wasm-deploy-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
