@@ -52,7 +52,8 @@ where
             add,
             delete,
             select,
-        } => execute_env(add, delete, select),
+            id,
+        } => execute_env(add, delete, select, id),
         Commands::Schema { contracts } => schemas(contracts),
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
@@ -143,10 +144,11 @@ pub fn contract(add: &bool, delete: &bool) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<(), DeployError> {
+pub fn execute_env(add: &bool, delete: &bool, select: &bool, id: &bool) -> Result<(), DeployError> {
     let mut config = Config::load()?;
     if *add {
         config.add_env()?;
+        config.save()?;
     } else if *delete {
         let envs = MultiSelect::new("Select which envs to delete", config.envs.clone()).prompt()?;
         for env in envs {
@@ -154,14 +156,19 @@ pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<(), Deplo
         }
         let env = Select::new("Select which env to activate", config.envs.clone()).prompt()?;
         config.envs.iter_mut().for_each(|x| x.is_active = x == &env);
+        config.save()?;
     } else if *select {
         let env = Select::new("Select which env to activate", config.envs.clone()).prompt()?;
         config.envs.iter_mut().for_each(|x| x.is_active = x == &env);
+        config.save()?;
+    } else if *id {
+        println!("{}", config.get_active_env()?.env_id);
     } else {
-        println!("{:#?}", config.get_active_env()?);
+        println!(
+            "{}",
+            to_colored_json_auto(&serde_json::to_value(config.get_active_env()?)?)?
+        );
     }
-
-    config.save()?;
     Ok(())
 }
 

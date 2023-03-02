@@ -99,6 +99,10 @@ where
         /// Triggers dialogue to select an env to activate
         #[arg(short, long, exclusive = true)]
         select: bool,
+
+        /// Prints the current active env id
+        #[arg(short, long, exclusive = true)]
+        id: bool,
     },
 
     /// Generates and imports schemas
