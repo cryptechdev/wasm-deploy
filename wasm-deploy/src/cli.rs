@@ -146,7 +146,10 @@ where
     Cw20Send { contract: C },
 
     /// Executes a Cw20 message
-    Cw20 {},
+    Cw20Execute {},
+
+    /// Queries a Cw20 contract
+    Cw20Query {},
 
     /// Executes a contract with a custom payload
     ExecutePayload {

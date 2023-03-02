@@ -26,7 +26,7 @@ pub enum DeploymentStage {
     SetUp,
 }
 
-pub async fn msg_contract(
+pub async fn execute_deployment(
     contracts: &[impl Contract],
     // TODO: perhaps accept &[DeploymentStage]
     deployment_stage: DeploymentStage,

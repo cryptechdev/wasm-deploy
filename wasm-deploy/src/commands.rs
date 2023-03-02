@@ -21,12 +21,12 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{cw20_send, Contract},
-    deployment::{msg_contract, DeploymentStage},
+    contract::{cw20_execute, cw20_send, Contract},
+    deployment::{execute_deployment, DeploymentStage},
     error::{DeployError, DeployResult},
     execute::execute_contract,
     file::{get_shell_completion_dir, Config, BUILD_DIR},
-    query::query_contract,
+    query::{cw20_query, query_contract},
 };
 use std::fmt::Debug;
 
@@ -59,7 +59,11 @@ where
         Commands::Migrate { contracts } => migrate(contracts, &cli.cargo_args).await,
         Commands::Execute { contract } => execute_contract(contract).await,
         Commands::Cw20Send { contract } => cw20_send(contract).await,
-        Commands::Cw20 {} => cw20_transfer().await,
+        Commands::Cw20Execute {} => cw20_execute().await,
+        Commands::Cw20Query {} => {
+            cw20_query().await?;
+            Ok(())
+        }
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => {
@@ -153,6 +157,8 @@ pub fn execute_env(add: &bool, delete: &bool, select: &bool) -> Result<(), Deplo
     } else if *select {
         let env = Select::new("Select which env to activate", config.envs.clone()).prompt()?;
         config.envs.iter_mut().for_each(|x| x.is_active = x == &env);
+    } else {
+        println!("{:#?}", config.get_active_env()?);
     }
 
     config.save()?;
@@ -356,14 +362,14 @@ pub async fn store_code(contracts: &[impl Contract]) -> Result<(), DeployError> 
     let chunk_size = Config::load()?.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
-        msg_contract(chunk, DeploymentStage::StoreCode).await?;
+        execute_deployment(chunk, DeploymentStage::StoreCode).await?;
     }
     Ok(())
 }
 
 pub async fn instantiate(contracts: &[impl Contract]) -> Result<(), DeployError> {
-    msg_contract(contracts, DeploymentStage::Instantiate).await?;
-    msg_contract(contracts, DeploymentStage::ExternalInstantiate).await?;
+    execute_deployment(contracts, DeploymentStage::Instantiate).await?;
+    execute_deployment(contracts, DeploymentStage::ExternalInstantiate).await?;
     Ok(())
 }
 
@@ -373,34 +379,17 @@ pub async fn migrate(
 ) -> Result<(), DeployError> {
     build(contracts, cargo_args)?;
     store_code(contracts).await?;
-    msg_contract(contracts, DeploymentStage::Migrate).await?;
+    execute_deployment(contracts, DeploymentStage::Migrate).await?;
     Ok(())
 }
 
 pub async fn set_config(contracts: &[impl Contract]) -> Result<(), DeployError> {
-    msg_contract(contracts, DeploymentStage::SetConfig).await?;
+    execute_deployment(contracts, DeploymentStage::SetConfig).await?;
     Ok(())
 }
 
 pub async fn set_up(contracts: &[impl Contract]) -> Result<(), DeployError> {
-    msg_contract(contracts, DeploymentStage::SetUp).await?;
-    Ok(())
-}
-
-// pub async fn execute<C: Contract>(contract: &impl Contract) -> Result<(), DeployError> {
-//     let e = C::ExecuteMsg::parse(contract)?; //parse(contract);
-//     crate::contract::execute(&e).await?;
-//     Ok(())
-// }
-
-// pub async fn cw20_send<C: Contract>(contract: &impl Contract) -> Result<(), DeployError> {
-//     let h = C::Cw20HookMsg::parse(contract)?; //parse(contract);
-//     crate::contract::cw20_send(&h).await?;
-//     Ok(())
-// }
-
-pub async fn cw20_transfer() -> Result<(), DeployError> {
-    crate::contract::cw20_transfer().await?;
+    execute_deployment(contracts, DeploymentStage::SetUp).await?;
     Ok(())
 }
 
@@ -440,9 +429,3 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<(
 
     Ok(())
 }
-
-// pub async fn query<C: Contract>(contract: &impl Contract) -> Result<(), DeployError> {
-//     let q = C::QueryMsg::parse(contract)?; //parse(contract);
-//     crate::contract::query(&q).await?;
-//     Ok(())
-// }

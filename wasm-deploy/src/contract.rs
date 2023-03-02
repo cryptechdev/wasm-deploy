@@ -121,7 +121,7 @@ pub async fn cw20_send(contract: &impl Contract) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub async fn cw20_transfer() -> Result<(), DeployError> {
+pub async fn cw20_execute() -> Result<(), DeployError> {
     println!("Executing cw20 transfer");
     let mut config = Config::load()?;
     let key = config.get_active_key().await?;

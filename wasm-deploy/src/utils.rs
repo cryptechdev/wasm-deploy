@@ -1,3 +1,4 @@
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
 use crate::{
@@ -33,5 +34,15 @@ pub fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> Depl
         }
         _ => {}
     }
+    Ok(())
+}
+
+pub fn replace_strings_any<T: Serialize + DeserializeOwned + Clone>(
+    object: &mut T,
+    contracts: &Vec<ContractInfo>,
+) -> DeployResult<()> {
+    let mut value = serde_json::to_value(object.clone())?;
+    replace_strings(&mut value, contracts)?;
+    *object = serde_json::from_value(value)?;
     Ok(())
 }

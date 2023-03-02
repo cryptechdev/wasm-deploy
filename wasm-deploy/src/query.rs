@@ -5,10 +5,18 @@ use cosm_tome::{
     clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
     modules::auth::model::Address,
 };
-use serde::Serialize;
+use cw20::Cw20QueryMsg;
+use inquire::Text;
+use interactive_parse::traits::InteractiveParseObj;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
-use crate::{contract::Contract, error::DeployError, file::Config, utils::replace_strings};
+use crate::{
+    contract::Contract,
+    error::DeployError,
+    file::Config,
+    utils::{replace_strings, replace_strings_any},
+};
 
 pub async fn query_contract(contract: &impl Contract) -> Result<Value, DeployError> {
     println!("Querying");
@@ -23,11 +31,12 @@ pub async fn query_contract(contract: &impl Contract) -> Result<Value, DeployErr
 
 pub async fn query(
     config: &mut Config,
-    addr: impl AsRef<str>,
+    mut addr: impl AsRef<str> + Serialize + DeserializeOwned + Clone,
     msg: impl Serialize,
 ) -> Result<Value, DeployError> {
     let mut value = serde_json::to_value(msg)?;
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
+    replace_strings_any(&mut addr, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
     let client = CosmosgRPC::new(
         chain_info
@@ -41,4 +50,17 @@ pub async fn query(
         .await?;
     let string = String::from_utf8(response.res.data.unwrap()).unwrap();
     Ok(serde_json::from_str::<Value>(string.as_str()).unwrap())
+}
+
+pub async fn cw20_query() -> Result<Value, DeployError> {
+    println!("Querying cw20");
+    let mut config = Config::load()?;
+    let addr = Text::new("Cw20 Contract Address?")
+        .with_help_message("string")
+        .prompt()?;
+    let msg = Cw20QueryMsg::parse_to_obj()?;
+    let value = query(&mut config, addr, msg).await?;
+    let color = to_colored_json_auto(&value)?;
+    println!("{color}");
+    Ok(value)
 }
