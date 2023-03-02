@@ -21,9 +21,10 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{cw20_send, execute, Contract},
+    contract::{cw20_send, Contract},
     deployment::{msg_contract, DeploymentStage},
     error::{DeployError, DeployResult},
+    execute::execute_contract,
     file::{get_shell_completion_dir, Config, BUILD_DIR},
     query::query_contract,
 };
@@ -56,7 +57,7 @@ where
         Commands::StoreCode { contracts } => store_code(contracts).await,
         Commands::Instantiate { contracts } => instantiate(contracts).await,
         Commands::Migrate { contracts } => migrate(contracts, &cli.cargo_args).await,
-        Commands::Execute { contract } => execute(contract).await,
+        Commands::Execute { contract } => execute_contract(contract).await,
         Commands::Cw20Send { contract } => cw20_send(contract).await,
         Commands::Cw20 {} => cw20_transfer().await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
