@@ -3,7 +3,7 @@ use std::str::FromStr;
 use colored::Colorize;
 use cosm_tome::{
     chain::{request::TxOptions, response::ChainTxResponse},
-    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::{
         auth::model::Address,
         cosmwasm::model::{ExecRequest, InstantiateRequest, MigrateRequest, StoreCodeRequest},
@@ -36,11 +36,11 @@ pub async fn execute_deployment(
     let key = config.get_active_key().await?;
 
     // TODO: maybe impl http here, maybe not required
-    let Some(grpc_endpoint) = chain_info.grpc_endpoint.clone() else {
+    let Some(rpc_endpoint) = chain_info.rpc_endpoint.clone() else {
         return Err(DeployError::MissingGRpc);
     };
 
-    let client = CosmosgRPC::new(grpc_endpoint);
+    let client = TendermintRPC::new(&rpc_endpoint)?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let tx_options = TxOptions {
         timeout_height: None,

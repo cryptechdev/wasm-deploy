@@ -15,7 +15,7 @@ exclude = ["workspace_example/*"]
 wasm_cli = []
 
 [dependencies]
-wasm-deploy-derive = { path = "../wasm-deploy-derive" }
+wasm-deploy-derive = { version = "0.1.0", path = "../wasm-deploy-derive" }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
 clap = { version = "4", features = ["derive", "string"] }
@@ -23,7 +23,7 @@ clap_complete = "4"
 schemars = "0.8"
 serde_json = "1.0"
 lazy_static = "1.4.0"
-inquire = "0.5.2"
+inquire = "0.6"
 strum = "0.24.1"
 strum_macros = "0.24.1"
 thiserror = "1.0.37"

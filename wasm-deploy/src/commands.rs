@@ -10,7 +10,7 @@ use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
 use cosm_tome::{
     chain::{coin::Coin, request::TxOptions},
-    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
 use inquire::{MultiSelect, Select};
@@ -410,7 +410,12 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<(
     let key = config.get_active_key().await?;
 
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmosgRPC::new(chain_info.grpc_endpoint.clone().unwrap());
+    let client = TendermintRPC::new(
+        &chain_info
+            .rpc_endpoint
+            .clone()
+            .ok_or(DeployError::MissingGRpc)?,
+    )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use colored_json::to_colored_json_auto;
 use cosm_tome::{
-    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::auth::model::Address,
 };
 use cw20::Cw20QueryMsg;
@@ -38,12 +38,12 @@ pub async fn query(
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     replace_strings_any(&mut addr, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmosgRPC::new(
-        chain_info
+    let client = TendermintRPC::new(
+        &chain_info
             .grpc_endpoint
             .clone()
             .ok_or(DeployError::MissingGRpc)?,
-    );
+    )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let response = cosm_tome
         .wasm_query(Address::from_str(addr.as_ref()).unwrap(), &value)

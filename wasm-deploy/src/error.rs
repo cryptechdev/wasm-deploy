@@ -1,6 +1,9 @@
 use std::error::Error;
 
-use cosm_tome::{chain::response::ChainResponse, modules::cosmwasm::error::CosmwasmError};
+use cosm_tome::{
+    chain::{error::ChainError, response::ChainResponse},
+    modules::cosmwasm::error::CosmwasmError,
+};
 use inquire::InquireError;
 use interactive_parse::error::SchemaError;
 #[cfg(feature = "ledger")]
@@ -59,6 +62,9 @@ pub enum DeployError {
 
     #[error("Cosmos Sdk Error {:?}", res)]
     CosmosSdk { res: ChainResponse },
+
+    #[error("{0}")]
+    Chain(#[from] ChainError),
 
     #[error("Unsupported shell, must use bash or zsh")]
     UnsupportedShell,
@@ -125,4 +131,10 @@ pub enum DeployError {
         Update you ChainInfo to include the endpoint address"
     )]
     MissingGRpc,
+
+    #[error(
+        "The current version of wasm-deploy requires the RPC endpoint.\
+        Update you ChainInfo to include the endpoint address"
+    )]
+    MissingRpc,
 }

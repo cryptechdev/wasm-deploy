@@ -8,7 +8,7 @@ use std::{
 };
 
 use cosm_tome::{
-    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
 };
@@ -315,14 +315,14 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_grpc_client(&mut self) -> DeployResult<CosmTome<CosmosgRPC>> {
+    pub fn get_grpc_client(&mut self) -> DeployResult<CosmTome<TendermintRPC>> {
         let chain_info = self.get_active_chain_info()?;
-        let client = CosmosgRPC::new(
-            chain_info
+        let client = TendermintRPC::new(
+            &chain_info
                 .grpc_endpoint
                 .clone()
                 .ok_or(DeployError::MissingGRpc)?,
-        );
+        )?;
         Ok(CosmTome::new(chain_info, client))
     }
 }

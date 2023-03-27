@@ -2,7 +2,7 @@ use crate::{contract::Contract, error::DeployError, file::Config, utils::replace
 use colored::Colorize;
 use cosm_tome::{
     chain::{coin::Coin, request::TxOptions},
-    clients::{client::CosmTome, cosmos_grpc::CosmosgRPC},
+    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
 use interactive_parse::traits::InteractiveParseObj;
@@ -29,12 +29,12 @@ pub async fn execute(
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?;
-    let client = CosmosgRPC::new(
-        chain_info
-            .grpc_endpoint
+    let client = TendermintRPC::new(
+        &chain_info
+            .rpc_endpoint
             .clone()
             .ok_or(DeployError::MissingGRpc)?,
-    );
+    )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let tx_options = TxOptions {
         timeout_height: None,
