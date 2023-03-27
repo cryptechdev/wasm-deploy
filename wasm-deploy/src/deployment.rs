@@ -60,9 +60,8 @@ pub async fn execute_deployment(
                     instantiate_perms: None,
                 });
             }
-            println!("here");
+
             let response = cosm_tome.wasm_store_batch(reqs, &key, &tx_options).await?;
-            println!("here");
 
             for (i, contract) in contracts.iter().enumerate() {
                 match config.get_contract(&contract.to_string()) {
