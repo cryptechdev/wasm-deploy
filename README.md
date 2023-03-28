@@ -43,7 +43,7 @@ Then you should be able to run
 ```bash
 ./deploy init
 ```
-This will innitialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional gRPC endpoint as it is the only client which is currently fully working.
+This will innitialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional RPC endpoint as it is the only client which is currently fully working.
 
 Before you deploy the contracts, please be sure to change the ADMIN constant in deployment/src/defaults.rs to your personal dev address.
 
@@ -129,8 +129,8 @@ workspace-root/
 - [x] Cw20HookMsg
 - [x] Batching messages of the same type
 - [ ] Batching messages of different types
-- [x] gRPC client
-- [ ] HTTP client
+- [ ] gRPC client
+- [x] HTTP client
 - [ ] Automatic wasm-deploy compilation
 - [x] Mnemonic key
 - [x] OS Keyring key

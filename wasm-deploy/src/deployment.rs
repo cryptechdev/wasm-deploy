@@ -37,7 +37,7 @@ pub async fn execute_deployment(
 
     // TODO: maybe impl http here, maybe not required
     let Some(rpc_endpoint) = chain_info.rpc_endpoint.clone() else {
-        return Err(DeployError::MissingGRpc);
+        return Err(DeployError::MissingRpc);
     };
 
     let client = TendermintRPC::new(&rpc_endpoint)?;
@@ -53,7 +53,7 @@ pub async fn execute_deployment(
             let mut reqs = vec![];
             for contract in contracts {
                 println!("Storing code for {}", contract.name());
-                let path = format!("./artifacts/{}.wasm", contract.name());
+                let path = format!("./artifacts/{}.wasm.gz", contract.name());
                 let wasm_data = std::fs::read(path)?;
                 reqs.push(StoreCodeRequest {
                     wasm_data,

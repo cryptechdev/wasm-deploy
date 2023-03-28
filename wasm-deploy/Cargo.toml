@@ -18,6 +18,7 @@ wasm_cli = []
 wasm-deploy-derive = { version = "0.1.0", path = "../wasm-deploy-derive" }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
+cw20-base = "1"
 clap = { version = "4", features = ["derive", "string"] }
 clap_complete = "4"
 schemars = "0.8"
@@ -33,6 +34,6 @@ keyring = "2"
 colored = "2"
 colored_json = "3.0.1"
 interactive-parse = "0.1"
-cosm-tome = { version = "=0.2.0", features = ["os_keyring"] }
+cosm-tome = { version = "0.2.2", features = ["os_keyring"] }
 log = "0.4"
 erased-serde = "0.3"

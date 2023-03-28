@@ -1,8 +1,8 @@
-use std::error::Error;
+use std::{error::Error, num::ParseIntError};
 
 use cosm_tome::{
     chain::{error::ChainError, response::ChainResponse},
-    modules::cosmwasm::error::CosmwasmError,
+    modules::{auth::error::AccountError, cosmwasm::error::CosmwasmError},
 };
 use inquire::InquireError;
 use interactive_parse::error::SchemaError;
@@ -38,6 +38,9 @@ pub enum DeployError {
 
     #[error("{0}")]
     InteractiveParse(#[from] SchemaError),
+
+    #[error("{0}")]
+    ParseInt(#[from] ParseIntError),
 
     #[error("{0}")]
     Std(#[from] Box<dyn Error>),
@@ -77,6 +80,9 @@ pub enum DeployError {
 
     #[error("Contract not found")]
     ContractNotFound,
+
+    #[error("Contract not found")]
+    Account(#[from] AccountError),
 
     #[error("Env already exists")]
     EnvAlreadyExists,

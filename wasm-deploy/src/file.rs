@@ -315,13 +315,13 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_grpc_client(&mut self) -> DeployResult<CosmTome<TendermintRPC>> {
+    pub fn get_rpc_client(&mut self) -> DeployResult<CosmTome<TendermintRPC>> {
         let chain_info = self.get_active_chain_info()?;
         let client = TendermintRPC::new(
             &chain_info
                 .rpc_endpoint
                 .clone()
-                .ok_or(DeployError::MissingGRpc)?,
+                .ok_or(DeployError::MissingRpc)?,
         )?;
         Ok(CosmTome::new(chain_info, client))
     }

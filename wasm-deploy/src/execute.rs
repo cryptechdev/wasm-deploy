@@ -33,7 +33,7 @@ pub async fn execute(
         &chain_info
             .rpc_endpoint
             .clone()
-            .ok_or(DeployError::MissingGRpc)?,
+            .ok_or(DeployError::MissingRpc)?,
     )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let tx_options = TxOptions {

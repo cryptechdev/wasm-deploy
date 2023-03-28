@@ -42,7 +42,7 @@ pub async fn query(
         &chain_info
             .rpc_endpoint
             .clone()
-            .ok_or(DeployError::MissingGRpc)?,
+            .ok_or(DeployError::MissingRpc)?,
     )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let response = cosm_tome
@@ -63,4 +63,33 @@ pub async fn cw20_query() -> Result<Value, DeployError> {
     let color = to_colored_json_auto(&value)?;
     println!("{color}");
     Ok(value)
+}
+
+#[cfg(test)]
+mod test {
+    use cosm_tome::{
+        clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+        config::cfg::ChainConfig,
+    };
+
+    #[tokio::test]
+    async fn test_query() {
+        let url = "https://archive-rpc.noria.nextnet.zone:443";
+        let client = TendermintRPC::new(url).expect("Failed to create client");
+        let chain_cfg = ChainConfig {
+            denom: "".to_string(),
+            prefix: "".to_string(),
+            chain_id: "".to_string(),
+            derivation_path: "".to_string(),
+            rpc_endpoint: Some("".to_string()),
+            grpc_endpoint: None,
+            gas_price: 0.025,
+            gas_adjustment: 1.2,
+        };
+        let cosm_tome = CosmTome::new(chain_cfg, client);
+
+        let res = cosm_tome.tendermint_query_latest_block().await.unwrap();
+
+        println!("{:#?}", res);
+    }
 }

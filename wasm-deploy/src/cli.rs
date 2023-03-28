@@ -155,6 +155,9 @@ where
     /// Queries a Cw20 contract
     Cw20Query {},
 
+    /// Instantiate a Cw20 contract
+    Cw20Instantiate {},
+
     /// Executes a contract with a custom payload
     ExecutePayload {
         #[arg(short, long)]

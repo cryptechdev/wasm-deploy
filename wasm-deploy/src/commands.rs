@@ -21,7 +21,7 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{cw20_execute, cw20_send, Contract},
+    contract::{cw20_execute, cw20_instantiate, cw20_send, Contract},
     deployment::{execute_deployment, DeploymentStage},
     error::{DeployError, DeployResult},
     execute::execute_contract,
@@ -65,6 +65,7 @@ where
             cw20_query().await?;
             Ok(())
         }
+        Commands::Cw20Instantiate {} => cw20_instantiate().await,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await,
         Commands::SetConfig { contracts } => set_config(contracts).await,
         Commands::Query { contract } => {
@@ -351,6 +352,19 @@ pub fn optimize(contracts: &[impl Contract]) -> Result<(), DeployError> {
     handles.iter_mut().for_each(|x| {
         x.wait().unwrap();
     });
+    for contract in contracts {
+        let name = contract.name();
+        handles.push(
+            Command::new("gzip")
+                .arg("-f")
+                .arg("-k")
+                .arg(format!("artifacts/{name}.wasm"))
+                .spawn()?,
+        );
+    }
+    handles.iter_mut().for_each(|x| {
+        x.wait().unwrap();
+    });
     Ok(())
 }
 
@@ -414,7 +428,7 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> Result<(
         &chain_info
             .rpc_endpoint
             .clone()
-            .ok_or(DeployError::MissingGRpc)?,
+            .ok_or(DeployError::MissingRpc)?,
     )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
