@@ -319,7 +319,7 @@ impl Config {
         let chain_info = self.get_active_chain_info()?;
         let client = TendermintRPC::new(
             &chain_info
-                .grpc_endpoint
+                .rpc_endpoint
                 .clone()
                 .ok_or(DeployError::MissingGRpc)?,
         )?;
