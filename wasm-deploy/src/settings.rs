@@ -22,7 +22,7 @@ impl WorkspaceSettings {
         }
         Self {
             workspace_root: workspace_root.clone(),
-            config_path: workspace_root.join(".wasm_deploy/config.json"),
+            config_path: workspace_root.join(".wasm-deploy/config.json"),
             target_dir: workspace_root.join("target"),
             deployment_dir: workspace_root.join("deployment"),
             artifacts_dir: workspace_root.join("artifacts"),
