@@ -39,6 +39,12 @@ cargo build
 ```
 This will build the deploy binary. You will notice there is a sym link from the root of the workspace to target/debug/deploy. This is so that you can run the deploy binary from the root of the workspace.
 
+Alternatively, you can run
+```bash
+cargo install --path path/to/deployment/dir
+```
+to globally install wasm-deploy.
+
 Then you should be able to run
 ```bash
 ./deploy init
@@ -67,6 +73,7 @@ If you make changes to your contract API or deployment code you will need to upd
 ```bash
 ./deploy u
 ```
+This currently will install the binary globally.
 
 To see a list of commands please run 
 ```bash
