@@ -762,13 +762,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw20-base"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afcd279230b08ed8afd8be5828221622bd5b9ce25d0b01d58bad626c6ce0169c"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus",
+ "cw-utils",
+ "cw2 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw20 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "schemars",
+ "semver",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "deploy"
 version = "0.1.0"
 dependencies = [
  "clap",
  "cosmwasm-std",
  "cw20 1.0.1",
- "cw20-base",
+ "cw20-base 1.0.1",
  "env_logger",
  "interactive-parse",
  "lazy_static",
@@ -1495,6 +1513,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "inquire"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd079157ad94a32f7511b2e13037f3ae417ad80a6a9b0de29154d48b86f5d6c8"
+dependencies = [
+ "bitflags",
+ "crossterm",
+ "dyn-clone",
+ "lazy_static",
+ "newline-converter",
+ "thiserror",
+ "unicode-segmentation",
+ "unicode-width",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1509,7 +1543,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79af435dd7149cf3c2321a2078ea6934cc6334d9a8fcd94cddfebf1839f242d3"
 dependencies = [
- "inquire",
+ "inquire 0.5.2",
  "schemars",
  "serde",
  "serde_json",
@@ -3309,8 +3343,9 @@ dependencies = [
  "colored_json",
  "cosm-tome",
  "cw20 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw20-base 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "erased-serde",
- "inquire",
+ "inquire 0.6.0",
  "interactive-parse",
  "keyring 2.0.1",
  "lazy_static",
