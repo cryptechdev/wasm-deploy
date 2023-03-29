@@ -6,18 +6,18 @@ edition = "2021"
 [dependencies]
 # Here we link to the api of our contract/s
 # In this case it's the cw20 contract as an example
-cw20 = { path = "../packages/cw20", version = "1.0.1" }
-cw20-base = { path = "../contracts/cw20_base", version = "1.0.1" }
+cw20 = { path = "../packages/cw20", version = "1" }
+cw20-base = { path = "../contracts/cw20_base", version = "1" }
 serde = "1"
 schemars = "0.8"
-cosmwasm-std = "1.0"
+cosmwasm-std = "1"
 env_logger = "0.10"
 log = "0.4"
-serde_json = "1.0"
-clap = { version = "4.0.18", features = ["derive"] }
-lazy_static = "1.4.0"
-strum = "0.24.1"
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+lazy_static = "1.4"
+strum = "0.24"
 strum_macros = "0.24"
-wasm-deploy = { version = "0.3.0", path = "../../wasm-deploy" }
-tokio = "1.0.0"
-interactive-parse = "0.1.2"
+wasm-deploy = { version = "0.3", path = "../../wasm-deploy" }
+tokio = "1"
+interactive-parse = "0.1"

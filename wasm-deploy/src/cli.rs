@@ -42,6 +42,7 @@ where
     },
 
     /// Modify chains
+    #[command(arg_required_else_help = true)]
     Chain {
         /// Triggers dialogue to add a chain
         #[arg(short, long, exclusive = true)]
@@ -53,6 +54,7 @@ where
     },
 
     /// Modify keys
+    #[command(arg_required_else_help = true)]
     Key {
         /// Triggers dialogue to add a key
         #[arg(short, long, exclusive = true)]
@@ -64,6 +66,7 @@ where
     },
 
     /// Modify contracts
+    #[command(arg_required_else_help = true)]
     Contract {
         /// Triggers dialogue to add a contract
         #[arg(short, long, exclusive = true)]
