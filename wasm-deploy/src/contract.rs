@@ -1,11 +1,13 @@
 use std::{
     fmt::{Debug, Display},
+    path::PathBuf,
     str::FromStr,
 };
 
 use crate::{
     error::{DeployError, DeployResult},
     file::Config,
+    settings::WorkspaceSettings,
     utils::replace_strings,
 };
 use colored::Colorize;
@@ -52,6 +54,11 @@ pub trait Contract:
     fn set_config_msg(&self) -> Option<Box<dyn Msg>>;
     // TODO: Ideally these could be any generic request type
     fn set_up_msgs(&self) -> Vec<Box<dyn Msg>>;
+
+    /// This should be the path relative to the project root
+    fn path(&self) -> PathBuf {
+        PathBuf::from(format!("contracts/{}", self.name()))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -74,9 +81,12 @@ where
     }
 }
 
-pub async fn cw20_send(contract: &impl Contract) -> Result<(), DeployError> {
+pub async fn cw20_send(
+    settings: &WorkspaceSettings,
+    contract: &impl Contract,
+) -> Result<(), DeployError> {
     println!("Executing cw20 send");
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let key = config.get_active_key().await?;
 
     let hook_msg = contract.cw20_send()?;
@@ -124,9 +134,9 @@ pub async fn cw20_send(contract: &impl Contract) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub async fn cw20_execute() -> Result<(), DeployError> {
+pub async fn cw20_execute(settings: &WorkspaceSettings) -> Result<(), DeployError> {
     println!("Executing cw20 transfer");
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let key = config.get_active_key().await?;
 
     let cw20_contract_addr = Text::new("Cw20 Contract Address?")
@@ -165,9 +175,9 @@ pub async fn cw20_execute() -> Result<(), DeployError> {
     Ok(())
 }
 
-pub async fn cw20_instantiate() -> Result<(), DeployError> {
+pub async fn cw20_instantiate(settings: &WorkspaceSettings) -> Result<(), DeployError> {
     println!("Executing cw20 instantiate");
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let key = config.get_active_key().await?;
 
     let code_id: u64 = Text::new("Cw20 Code Id?")

@@ -15,12 +15,16 @@ use crate::{
     contract::Contract,
     error::DeployError,
     file::Config,
+    settings::WorkspaceSettings,
     utils::{replace_strings, replace_strings_any},
 };
 
-pub async fn query_contract(contract: &impl Contract) -> Result<Value, DeployError> {
+pub async fn query_contract(
+    settings: &WorkspaceSettings,
+    contract: &impl Contract,
+) -> Result<Value, DeployError> {
     println!("Querying");
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let msg = contract.query()?;
     let addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let value = query(&mut config, addr, msg).await?;
@@ -52,9 +56,9 @@ pub async fn query(
     Ok(serde_json::from_str::<Value>(string.as_str()).unwrap())
 }
 
-pub async fn cw20_query() -> Result<Value, DeployError> {
+pub async fn cw20_query(settings: &WorkspaceSettings) -> Result<Value, DeployError> {
     println!("Querying cw20");
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let addr = Text::new("Cw20 Contract Address?")
         .with_help_message("string")
         .prompt()?;

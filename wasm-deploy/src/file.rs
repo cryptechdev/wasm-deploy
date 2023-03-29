@@ -21,13 +21,35 @@ use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::{DeployError, DeployResult};
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
+use crate::{
+    error::{DeployError, DeployResult},
+    settings::WorkspaceSettings,
+};
+
+pub const PROJECT_ROOT_STR: &str = env!("PWD");
 
 lazy_static! {
-    pub static ref CONFIG_PATH: PathBuf = PathBuf::from("deployment/.wasm-deploy/config.json");
-    pub static ref BUILD_DIR: PathBuf = PathBuf::from("target/debug/");
+    // pub static ref TARGET_DIR: String = std::env::var("CARGO_TARGET_DIR").unwrap();
+    // pub static ref PROJECT_ROOT: PathBuf = PathBuf::from(PROJECT_ROOT_STR);
+    pub static ref BIN_NAME: String = std::env::current_exe()
+        .unwrap()
+        .file_stem()
+        .unwrap()
+        .to_owned()
+        .into_string()
+        .unwrap();
+    // pub static ref CONFIG_PATH: PathBuf = {
+    //     let mut project_root = PROJECT_ROOT.clone();
+    //     project_root.push(".wasm_deploy/config.json");
+    //     project_root
+    // };
+    // pub static ref BUILD_DIR: PathBuf = {
+    //     let mut project_root = PROJECT_ROOT.clone();
+    //     project_root.push("target/debug");
+    //     project_root
+    // };
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -82,14 +104,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn init() -> Result<Config, DeployError> {
-        create_dir_all(CONFIG_PATH.parent().expect("Invalid CONFIG_PATH")).unwrap();
+    pub fn init(settings: &WorkspaceSettings) -> Result<Config, DeployError> {
+        create_dir_all(settings.config_path.parent().expect("Invalid CONFIG_PATH")).unwrap();
         let config = Config::default();
         Ok(config)
     }
 
-    pub fn load() -> Result<Config, DeployError> {
-        let config = match std::fs::read(CONFIG_PATH.as_path()) {
+    pub fn load(settings: &WorkspaceSettings) -> Result<Config, DeployError> {
+        let config = match std::fs::read(settings.config_path.clone()) {
             Ok(serialized) => serde_json::from_slice(&serialized)?,
             Err(_) => return Err(DeployError::ConfigNotFound {}),
         };
@@ -97,12 +119,12 @@ impl Config {
         Ok(config)
     }
 
-    pub fn save(&self) -> Result<(), DeployError> {
+    pub fn save(&self, settings: &WorkspaceSettings) -> Result<(), DeployError> {
         let mut file = OpenOptions::new()
             .truncate(true)
             .write(true)
             .create(true)
-            .open(CONFIG_PATH.as_path())?;
+            .open(settings.config_path.clone())?;
         let serialized = serde_json::to_vec_pretty(self)?;
         file.write_all(&serialized)?;
         Ok(())
@@ -328,8 +350,10 @@ impl Config {
 }
 
 // TODO: move this into impl block
-pub fn get_shell_completion_dir() -> Result<Option<PathBuf>, DeployError> {
-    let mut config = Config::load()?;
+pub fn get_shell_completion_dir(
+    settings: &WorkspaceSettings,
+) -> Result<Option<PathBuf>, DeployError> {
+    let mut config = Config::load(settings)?;
     match config.shell_completion_dir {
         Some(shell_completion_path) => Ok(Some(shell_completion_path)),
         None => {
@@ -346,7 +370,7 @@ pub fn get_shell_completion_dir() -> Result<Option<PathBuf>, DeployError> {
                     match path.is_dir() {
                         true => {
                             config.shell_completion_dir = Some(path.clone());
-                            config.save()?;
+                            config.save(settings)?;
                             Ok(Some(path))
                         }
                         false => Err(DeployError::InvalidDir),

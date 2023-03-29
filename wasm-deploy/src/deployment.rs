@@ -14,6 +14,7 @@ use crate::{
     contract::Contract,
     error::{DeployError, DeployResult},
     file::{Config, ContractInfo},
+    settings::WorkspaceSettings,
     utils::replace_strings,
 };
 
@@ -27,11 +28,12 @@ pub enum DeploymentStage {
 }
 
 pub async fn execute_deployment(
+    settings: &WorkspaceSettings,
     contracts: &[impl Contract],
     // TODO: perhaps accept &[DeploymentStage]
     deployment_stage: DeploymentStage,
 ) -> DeployResult<()> {
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let chain_info = config.get_active_chain_info()?;
     let key = config.get_active_key().await?;
 
@@ -53,7 +55,9 @@ pub async fn execute_deployment(
             let mut reqs = vec![];
             for contract in contracts {
                 println!("Storing code for {}", contract.name());
-                let path = format!("./artifacts/{}.wasm.gz", contract.name());
+                let path = settings
+                    .artifacts_dir
+                    .join(format!("{}.wasm.gz", contract.name()));
                 let wasm_data = std::fs::read(path)?;
                 reqs.push(StoreCodeRequest {
                     wasm_data,
@@ -75,7 +79,7 @@ pub async fn execute_deployment(
                     }
                 }
             }
-            config.save()?;
+            config.save(settings)?;
             Some(response.res)
         }
         DeploymentStage::Instantiate => {
@@ -108,7 +112,7 @@ pub async fn execute_deployment(
                 let contract_info = config.get_contract(&contract.to_string())?;
                 contract_info.addr = Some(response.addresses[index].to_string());
             }
-            config.save()?;
+            config.save(settings)?;
             Some(response.res)
         }
         DeploymentStage::ExternalInstantiate => {
@@ -149,7 +153,7 @@ pub async fn execute_deployment(
                         index += 1;
                     }
                 }
-                config.save()?;
+                config.save(settings)?;
                 Some(response.res)
             }
         }

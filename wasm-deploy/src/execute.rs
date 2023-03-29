@@ -1,4 +1,7 @@
-use crate::{contract::Contract, error::DeployError, file::Config, utils::replace_strings};
+use crate::{
+    contract::Contract, error::DeployError, file::Config, settings::WorkspaceSettings,
+    utils::replace_strings,
+};
 use colored::Colorize;
 use cosm_tome::{
     chain::{coin::Coin, request::TxOptions},
@@ -9,9 +12,12 @@ use interactive_parse::traits::InteractiveParseObj;
 use serde::Serialize;
 use std::str::FromStr;
 
-pub async fn execute_contract(contract: &impl Contract) -> Result<(), DeployError> {
+pub async fn execute_contract(
+    settings: &WorkspaceSettings,
+    contract: &impl Contract,
+) -> Result<(), DeployError> {
     println!("Executing");
-    let mut config = Config::load()?;
+    let mut config = Config::load(settings)?;
     let msg = contract.execute()?;
     let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;

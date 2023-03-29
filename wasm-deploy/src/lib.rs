@@ -6,6 +6,7 @@ pub mod error;
 pub mod execute;
 pub mod file;
 pub mod query;
+pub mod settings;
 pub mod utils;
 
 pub use cosm_tome;
