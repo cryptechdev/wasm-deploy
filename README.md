@@ -101,7 +101,7 @@ Install wasm-deploy globally with
 cargo install --path deployment
 ```
 
-Important Note: The generated deployment folder is a template only. You will have to modify BOTH deployment/src/contract.rs deployment/src/defaults.rs to match your project. The template will not work out of the box.
+Important Note: The generated deployment folder is a template only. You will have to modify BOTH deployment/src/contract.rs deployment/src/defaults.rs to match your project. The template will not work out of the box. The generated files should have the correct skeleton and plenty of comments to help you along.
 
 ## What To Expect
 
