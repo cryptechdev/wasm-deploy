@@ -23,7 +23,7 @@ use crate::{
     cli::{Cli, Commands},
     contract::{cw20_execute, cw20_instantiate, cw20_send, Contract},
     deployment::{execute_deployment, DeploymentStage},
-    error::{DeployError, DeployResult},
+    error::DeployError,
     execute::execute_contract,
     file::{get_shell_completion_dir, Config, BIN_NAME},
     query::{cw20_query, query_contract},
@@ -32,10 +32,7 @@ use crate::{
 use std::fmt::Debug;
 
 #[async_recursion(?Send)]
-pub async fn execute_args<C, S>(
-    settings: &WorkspaceSettings,
-    cli: &Cli<C, S>,
-) -> Result<(), DeployError>
+pub async fn execute_args<C, S>(settings: &WorkspaceSettings, cli: &Cli<C, S>) -> anyhow::Result<()>
 where
     C: Contract + Clone,
     S: Subcommand + Clone + Debug,
@@ -43,48 +40,47 @@ where
     info!("Executing args: {:#?}", cli);
     std::env::set_current_dir(settings.workspace_root.clone()).unwrap();
     match &cli.command {
-        Commands::Update {} => update::<C, S>(settings),
-        Commands::Init {} => init(settings).await,
-        Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args),
-        Commands::Chain { add, delete } => chain(settings, add, delete),
-        Commands::Key { add, delete } => key(settings, add, delete).await,
-        Commands::Contract { add, delete } => contract(settings, add, delete),
+        Commands::Update {} => update::<C, S>(settings)?,
+        Commands::Init {} => init(settings).await?,
+        Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args)?,
+        Commands::Chain { add, delete } => chain(settings, add, delete)?,
+        Commands::Key { add, delete } => key(settings, add, delete).await?,
+        Commands::Contract { add, delete } => contract(settings, add, delete)?,
         Commands::Deploy {
             contracts,
             no_build,
-        } => deploy(settings, contracts, no_build, &cli.cargo_args).await,
+        } => deploy(settings, contracts, no_build, &cli.cargo_args).await?,
         Commands::Env {
             add,
             delete,
             select,
             id,
-        } => execute_env(settings, add, delete, select, id),
-        Commands::Schema { contracts } => schemas(contracts),
-        Commands::StoreCode { contracts } => store_code(settings, contracts).await,
-        Commands::Instantiate { contracts } => instantiate(settings, contracts).await,
-        Commands::Migrate { contracts } => migrate(settings, contracts, &cli.cargo_args).await,
-        Commands::Execute { contract } => execute_contract(settings, contract).await,
-        Commands::Cw20Send { contract } => cw20_send(settings, contract).await,
-        Commands::Cw20Execute {} => cw20_execute(settings).await,
+        } => execute_env(settings, add, delete, select, id)?,
+        Commands::Schema { contracts } => schemas(contracts)?,
+        Commands::StoreCode { contracts } => store_code(settings, contracts).await?,
+        Commands::Instantiate { contracts } => instantiate(settings, contracts).await?,
+        Commands::Migrate { contracts } => migrate(settings, contracts, &cli.cargo_args).await?,
+        Commands::Execute { contract } => execute_contract(settings, contract).await?,
+        Commands::Cw20Send { contract } => cw20_send(settings, contract).await?,
+        Commands::Cw20Execute {} => cw20_execute(settings).await?,
         Commands::Cw20Query {} => {
             cw20_query(settings).await?;
-            Ok(())
         }
-        Commands::Cw20Instantiate {} => cw20_instantiate(settings).await,
+        Commands::Cw20Instantiate {} => cw20_instantiate(settings).await?,
         Commands::ExecutePayload { contract, payload } => {
-            custom_execute(settings, contract, payload).await
+            custom_execute(settings, contract, payload).await?
         }
-        Commands::SetConfig { contracts } => set_config(settings, contracts).await,
+        Commands::SetConfig { contracts } => set_config(settings, contracts).await?,
         Commands::Query { contract } => {
             query_contract(settings, contract).await?;
-            Ok(())
         }
-        Commands::SetUp { contracts } => set_up(settings, contracts).await,
-        Commands::Custom(..) => Ok(()),
-    }
+        Commands::SetUp { contracts } => set_up(settings, contracts).await?,
+        Commands::Custom(..) => {}
+    };
+    Ok(())
 }
 
-pub async fn init(settings: &WorkspaceSettings) -> DeployResult<()> {
+pub async fn init(settings: &WorkspaceSettings) -> anyhow::Result<()> {
     info!("Initializing wasm-deploy");
     let mut config = Config::init(settings)?;
     config.add_key().await?;
@@ -94,7 +90,7 @@ pub async fn init(settings: &WorkspaceSettings) -> DeployResult<()> {
     Ok(())
 }
 
-pub fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> Result<(), DeployError> {
+pub fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
     let mut config = Config::load(settings)?;
     if *add {
         config.add_chain()?;
@@ -116,11 +112,7 @@ pub fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> Result<
     Ok(())
 }
 
-pub async fn key(
-    settings: &WorkspaceSettings,
-    add: &bool,
-    delete: &bool,
-) -> Result<(), DeployError> {
+pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
     let mut config = Config::load(settings)?;
     if *add {
         config.add_key().await?;
@@ -139,11 +131,7 @@ pub async fn key(
     Ok(())
 }
 
-pub fn contract(
-    settings: &WorkspaceSettings,
-    add: &bool,
-    delete: &bool,
-) -> Result<(), DeployError> {
+pub fn contract(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
     let mut config = Config::load(settings)?;
     if *add {
         config.add_contract()?;
@@ -166,7 +154,7 @@ pub fn execute_env(
     delete: &bool,
     select: &bool,
     id: &bool,
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     let mut config = Config::load(settings)?;
     if *add {
         config.add_env()?;
@@ -199,7 +187,7 @@ pub async fn deploy(
     contracts: &[impl Contract],
     no_build: &bool,
     cargo_args: &[String],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     if !no_build {
         build(settings, contracts, cargo_args)?;
     }
@@ -210,7 +198,7 @@ pub async fn deploy(
     Ok(())
 }
 
-pub fn update<C, S>(settings: &WorkspaceSettings) -> Result<(), DeployError>
+pub fn update<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
 where
     C: Contract + Clone,
     S: Subcommand + Clone + Debug,
@@ -227,7 +215,7 @@ where
     Ok(())
 }
 
-pub fn generate_completions<C, S>(settings: &WorkspaceSettings) -> Result<(), DeployError>
+pub fn generate_completions<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
 where
     C: Contract + Clone,
     S: Subcommand + Clone + Debug,
@@ -297,7 +285,7 @@ where
             }
         }
         _ => {
-            return Err(DeployError::UnsupportedShell {});
+            return Err(DeployError::UnsupportedShell {}.into());
         }
     }
 
@@ -308,7 +296,7 @@ pub fn build(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
     cargo_args: &[String],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
@@ -335,7 +323,7 @@ pub fn build(
     Ok(())
 }
 
-pub fn schemas(contracts: &[impl Contract]) -> Result<(), DeployError> {
+pub fn schemas(contracts: &[impl Contract]) -> anyhow::Result<()> {
     // Generate schemas
     for contract in contracts {
         Command::new("cargo")
@@ -354,10 +342,7 @@ pub fn schemas(contracts: &[impl Contract]) -> Result<(), DeployError> {
     Ok(())
 }
 
-pub fn optimize(
-    settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
-) -> Result<(), DeployError> {
+pub fn optimize(settings: &WorkspaceSettings, contracts: &[impl Contract]) -> anyhow::Result<()> {
     // Optimize contracts
     let mut handles = vec![];
     for contract in contracts {
@@ -401,7 +386,7 @@ pub fn optimize(
 pub fn set_execute_permissions(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     // change mod
     for contract in contracts {
         let name = contract.name();
@@ -415,7 +400,7 @@ pub fn set_execute_permissions(
 pub async fn store_code(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     let chunk_size = Config::load(settings)?.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
@@ -427,7 +412,7 @@ pub async fn store_code(
 pub async fn instantiate(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, DeploymentStage::Instantiate).await?;
     execute_deployment(settings, contracts, DeploymentStage::ExternalInstantiate).await?;
     Ok(())
@@ -437,7 +422,7 @@ pub async fn migrate(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
     cargo_args: &[String],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     build(settings, contracts, cargo_args)?;
     store_code(settings, contracts).await?;
     execute_deployment(settings, contracts, DeploymentStage::Migrate).await?;
@@ -447,7 +432,7 @@ pub async fn migrate(
 pub async fn set_config(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, DeploymentStage::SetConfig).await?;
     Ok(())
 }
@@ -455,7 +440,7 @@ pub async fn set_config(
 pub async fn set_up(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, DeploymentStage::SetUp).await?;
     Ok(())
 }
@@ -464,7 +449,7 @@ pub async fn custom_execute<C: Contract>(
     settings: &WorkspaceSettings,
     contract: &C,
     string: &str,
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     println!("Executing {}", contract.name());
     let mut config = Config::load(settings)?;
     let value: serde_json::Value = serde_json::from_str(string)?;

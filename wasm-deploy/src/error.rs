@@ -1,11 +1,3 @@
-use std::{error::Error, num::ParseIntError};
-
-use cosm_tome::{
-    chain::{error::ChainError, response::ChainResponse},
-    modules::{auth::error::AccountError, cosmwasm::error::CosmwasmError},
-};
-use inquire::InquireError;
-use interactive_parse::error::SchemaError;
 #[cfg(feature = "ledger")]
 use ledger_utility::error::LedgerUtilityError;
 use thiserror::Error;
@@ -15,59 +7,7 @@ pub type DeployResult<T> = core::result::Result<T, DeployError>;
 #[derive(Error, Debug)]
 pub enum DeployError {
     #[error("{0}")]
-    Error(String),
-
-    #[error("{0}")]
     Generic(String),
-
-    #[error(transparent)]
-    Keyring(#[from] keyring::Error),
-
-    #[cfg(feature = "ledger")]
-    #[error("{0}")]
-    LedgerUtilityError(#[from] LedgerUtilityError),
-
-    #[error("invalid admin address")]
-    AdminAddress,
-
-    #[error("{0}")]
-    Io(#[from] std::io::Error),
-
-    #[error("{0}")]
-    Cosmwasm(#[from] CosmwasmError),
-
-    #[error("{0}")]
-    InteractiveParse(#[from] SchemaError),
-
-    #[error("{0}")]
-    ParseInt(#[from] ParseIntError),
-
-    #[error("{0}")]
-    Std(#[from] Box<dyn Error>),
-
-    #[error("{0}")]
-    Inquire(#[from] InquireError),
-
-    #[error("{0}")]
-    Serde(#[from] serde_json::Error),
-
-    #[error("{0}")]
-    Clap(#[from] clap::error::Error),
-
-    #[error("invalid mnemonic")]
-    Mnemonic,
-
-    #[error("invalid derivation path")]
-    DerivationPath,
-
-    #[error("Account id error")]
-    AccountId { id: String },
-
-    #[error("Cosmos Sdk Error {:?}", res)]
-    CosmosSdk { res: ChainResponse },
-
-    #[error("{0}")]
-    Chain(#[from] ChainError),
 
     #[error("Unsupported shell, must use bash or zsh")]
     UnsupportedShell,
@@ -81,9 +21,6 @@ pub enum DeployError {
     #[error("Contract not found")]
     ContractNotFound,
 
-    #[error("Contract not found")]
-    Account(#[from] AccountError),
-
     #[error("Env already exists")]
     EnvAlreadyExists,
 
@@ -92,15 +29,6 @@ pub enum DeployError {
 
     #[error("Contract does not have an address")]
     NoAddr,
-
-    #[error("Error parsing chain")]
-    ChainId { chain_id: String },
-
-    #[error("Error parsing denom")]
-    Denom { name: String },
-
-    #[error("Empty response")]
-    EmptyResponse,
 
     #[error("Key already exists")]
     KeyAlreadyExists,
@@ -116,15 +44,11 @@ pub enum DeployError {
 
     #[error("Contract address not found for {name}, perhaps you need to instantiate first?")]
     AddrNotFound { name: String },
-
     #[error(
         "{} Config file not found, perhaps you need to run \"deploy init\"?",
         "Deploy Error"
     )]
     ConfigNotFound {},
-
-    #[error("Invalid derivation path.")]
-    DerviationPath,
 
     #[error(
         "Both gRPC endpoint and RPC endpoint cannot be null.\
@@ -143,4 +67,21 @@ pub enum DeployError {
         Update you ChainInfo to include the endpoint address"
     )]
     MissingRpc,
+
+    #[error(
+        "This feature has not been implemented for this contract.\
+     Implement the relevant trait and try again."
+    )]
+    TraitNotImplemented,
+}
+
+#[cfg(test)]
+mod test {
+    use super::DeployError;
+
+    fn test_send_sync<T: Send + Sync>(_: T) {}
+    #[test]
+    fn test_deploy_error() {
+        test_send_sync(DeployError::Generic("".to_string()));
+    }
 }

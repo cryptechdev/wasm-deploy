@@ -5,10 +5,7 @@ use std::{
 };
 
 use crate::{
-    error::{DeployError, DeployResult},
-    file::Config,
-    settings::WorkspaceSettings,
-    utils::replace_strings,
+    error::DeployError, file::Config, settings::WorkspaceSettings, utils::replace_strings,
 };
 use colored::Colorize;
 use cosm_tome::{
@@ -41,21 +38,57 @@ impl Serialize for dyn Msg {
 pub trait Contract:
     Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
 {
+    /// This is the name of the contract and represents
+    /// how it will appear in the cli.
     fn name(&self) -> String;
+
+    /// This is the address of the contract admin.
+    /// It is required when instantiating.
     fn admin(&self) -> String;
 
-    fn execute(&self) -> DeployResult<Box<dyn Msg>>;
-    fn query(&self) -> DeployResult<Box<dyn Msg>>;
-    fn cw20_send(&self) -> DeployResult<Box<dyn Msg>>;
+    /// This method allows executing a contract.
+    /// interactive-parse should be used to generate the msg.
+    fn execute(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
 
+    /// This method allows querying a contract.
+    /// interactive-parse should be used to generate the msg.
+    fn query(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows sending a cw20 token with an attached message to a contract.
+    /// interactive-parse should be used to generate the msg.
+    fn cw20_send(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method gets the preprogrammed instantiate msg for the contract.
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>>;
-    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>>;
-    fn migrate_msg(&self) -> Option<Box<dyn Msg>>;
-    fn set_config_msg(&self) -> Option<Box<dyn Msg>>;
-    // TODO: Ideally these could be any generic request type
-    fn set_up_msgs(&self) -> Vec<Box<dyn Msg>>;
 
-    /// This should be the path relative to the project root
+    /// This method will instantiate an external contract via code_id alongside a local contract.
+    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>> {
+        vec![]
+    }
+
+    /// This method gets the preprogrammed migrate msg for the contract.
+    fn migrate_msg(&self) -> Option<Box<dyn Msg>> {
+        None
+    }
+
+    /// This method gets the preprogrammed set config msg for the contract.
+    fn set_config_msg(&self) -> Option<Box<dyn Msg>> {
+        None
+    }
+
+    /// This method gets the preprogrammed set up for the contract.
+    fn set_up_msgs(&self) -> Vec<Box<dyn Msg>> {
+        vec![]
+    }
+
+    /// This method allows for customizing the path to the contract.
+    /// This should be the path relative to the project root.
     fn path(&self) -> PathBuf {
         PathBuf::from(format!("contracts/{}", self.name()))
     }
@@ -84,7 +117,7 @@ where
 pub async fn cw20_send(
     settings: &WorkspaceSettings,
     contract: &impl Contract,
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     println!("Executing cw20 send");
     let mut config = Config::load(settings)?;
     let key = config.get_active_key().await?;
@@ -134,7 +167,7 @@ pub async fn cw20_send(
     Ok(())
 }
 
-pub async fn cw20_execute(settings: &WorkspaceSettings) -> Result<(), DeployError> {
+pub async fn cw20_execute(settings: &WorkspaceSettings) -> anyhow::Result<()> {
     println!("Executing cw20 transfer");
     let mut config = Config::load(settings)?;
     let key = config.get_active_key().await?;
@@ -175,7 +208,7 @@ pub async fn cw20_execute(settings: &WorkspaceSettings) -> Result<(), DeployErro
     Ok(())
 }
 
-pub async fn cw20_instantiate(settings: &WorkspaceSettings) -> Result<(), DeployError> {
+pub async fn cw20_instantiate(settings: &WorkspaceSettings) -> anyhow::Result<()> {
     println!("Executing cw20 instantiate");
     let mut config = Config::load(settings)?;
     let key = config.get_active_key().await?;

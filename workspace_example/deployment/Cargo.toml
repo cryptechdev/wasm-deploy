@@ -8,6 +8,7 @@ edition = "2021"
 # In this case it's the cw20 contract as an example
 cw20 = { path = "../packages/cw20", version = "1" }
 cw20-base = { path = "../contracts/cw20_base", version = "1" }
+anyhow = "1"
 serde = "1"
 schemars = "0.8"
 cosmwasm-std = "1"

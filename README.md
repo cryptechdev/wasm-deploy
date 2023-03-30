@@ -91,7 +91,7 @@ In my opinion, the most powerful cosmwasm deployment software ever built. It is 
 
 ## What Not To Expect
 
-A bug free experience, and seemless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
+A bug free experience, and seamless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
 
 ## Project Structure
 

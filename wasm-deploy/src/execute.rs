@@ -15,7 +15,7 @@ use std::str::FromStr;
 pub async fn execute_contract(
     settings: &WorkspaceSettings,
     contract: &impl Contract,
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     println!("Executing");
     let mut config = Config::load(settings)?;
     let msg = contract.execute()?;
@@ -30,7 +30,7 @@ pub async fn execute(
     addr: impl AsRef<str>,
     msg: impl Serialize,
     funds: Vec<Coin>,
-) -> Result<(), DeployError> {
+) -> anyhow::Result<()> {
     let mut value = serde_json::to_value(msg)?;
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let key = config.get_active_key().await?;

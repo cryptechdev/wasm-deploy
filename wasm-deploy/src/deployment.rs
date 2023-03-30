@@ -12,7 +12,7 @@ use cosm_tome::{
 
 use crate::{
     contract::Contract,
-    error::{DeployError, DeployResult},
+    error::DeployError,
     file::{Config, ContractInfo},
     settings::WorkspaceSettings,
     utils::replace_strings,
@@ -32,14 +32,14 @@ pub async fn execute_deployment(
     contracts: &[impl Contract],
     // TODO: perhaps accept &[DeploymentStage]
     deployment_stage: DeploymentStage,
-) -> DeployResult<()> {
+) -> anyhow::Result<()> {
     let mut config = Config::load(settings)?;
     let chain_info = config.get_active_chain_info()?;
     let key = config.get_active_key().await?;
 
     // TODO: maybe impl http here, maybe not required
     let Some(rpc_endpoint) = chain_info.rpc_endpoint.clone() else {
-        return Err(DeployError::MissingRpc);
+        return Err(DeployError::MissingRpc.into());
     };
 
     let client = TendermintRPC::new(&rpc_endpoint)?;

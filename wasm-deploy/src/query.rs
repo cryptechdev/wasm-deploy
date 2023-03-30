@@ -22,7 +22,7 @@ use crate::{
 pub async fn query_contract(
     settings: &WorkspaceSettings,
     contract: &impl Contract,
-) -> Result<Value, DeployError> {
+) -> anyhow::Result<Value> {
     println!("Querying");
     let mut config = Config::load(settings)?;
     let msg = contract.query()?;
@@ -37,7 +37,7 @@ pub async fn query(
     config: &mut Config,
     mut addr: impl AsRef<str> + Serialize + DeserializeOwned + Clone,
     msg: impl Serialize,
-) -> Result<Value, DeployError> {
+) -> anyhow::Result<Value> {
     let mut value = serde_json::to_value(msg)?;
     replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     replace_strings_any(&mut addr, &config.get_active_env()?.contracts)?;
@@ -56,7 +56,7 @@ pub async fn query(
     Ok(serde_json::from_str::<Value>(string.as_str()).unwrap())
 }
 
-pub async fn cw20_query(settings: &WorkspaceSettings) -> Result<Value, DeployError> {
+pub async fn cw20_query(settings: &WorkspaceSettings) -> anyhow::Result<Value> {
     println!("Querying cw20");
     let mut config = Config::load(settings)?;
     let addr = Text::new("Cw20 Contract Address?")

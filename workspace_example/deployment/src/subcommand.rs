@@ -3,12 +3,11 @@ use clap::Subcommand;
 use wasm_deploy::{
     cli::{Cli, Commands},
     contract::Contract,
-    error::DeployError,
 };
 
 // You may need async recursion for your custom subcommand.
 //#[async_recursion(?Send)]
-pub fn execute_custom_args<C>(cli: &Cli<C, CustomSubcommand>) -> Result<(), DeployError>
+pub fn execute_custom_args<C>(cli: &Cli<C, CustomSubcommand>) -> anyhow::Result<()>
 where
     C: Contract + Clone,
 {

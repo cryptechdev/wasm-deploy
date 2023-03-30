@@ -22,18 +22,19 @@ cw20-base = "1"
 clap = { version = "4", features = ["derive", "string"] }
 clap_complete = "4"
 schemars = "0.8"
-serde_json = "1.0"
-lazy_static = "1.4.0"
+serde_json = "1"
+lazy_static = "1"
 inquire = "0.6"
-strum = "0.24.1"
-strum_macros = "0.24.1"
-thiserror = "1.0.37"
-tokio = { version = "1.24.1", default-features = false }
-async-recursion = "1.0.0"
+strum = "0.24"
+strum_macros = "0.24"
+thiserror = "1"
+anyhow = "1"
+tokio = { version = "1.27", default-features = false }
+async-recursion = "1"
 keyring = "2"
 colored = "2"
-colored_json = "3.0.1"
+colored_json = "3"
 interactive-parse = "0.1"
-cosm-tome = { version = "0.2.2", features = ["os_keyring"] }
+cosm-tome = { version = "0.2", features = ["os_keyring"] }
 log = "0.4"
 erased-serde = "0.3"
