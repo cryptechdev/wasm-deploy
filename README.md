@@ -2,6 +2,12 @@
 
 **wasm-deploy is a fully featured deployment suite for complex, multicontract cosmwasm projects**
 
+## Demo
+
+---
+
+https://user-images.githubusercontent.com/8366997/198078221-5fa01e97-a921-4441-b054-f75f4d1ff272.mp4
+
 ---
 
 # Headlining Features that make this Awesome!
