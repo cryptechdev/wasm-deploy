@@ -2,7 +2,7 @@
 /target/
 
 # Deployment files
-/deployment/.wasm-deploy/
+/.wasm-deploy/
 
 # Artifacts
 /artifacts/

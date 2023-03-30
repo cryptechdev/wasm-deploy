@@ -39,12 +39,6 @@ cargo build
 ```
 This will build the deploy binary. You will notice there is a sym link from the root of the workspace to target/debug/deploy. This is so that you can run the deploy binary from the root of the workspace.
 
-Alternatively, you can run
-```bash
-cargo install --path path/to/deployment/dir
-```
-to globally install wasm-deploy.
-
 Then you should be able to run
 ```bash
 ./deploy init
@@ -73,7 +67,6 @@ If you make changes to your contract API or deployment code you will need to upd
 ```bash
 ./deploy u
 ```
-This currently will install the binary globally.
 
 To see a list of commands please run 
 ```bash
@@ -91,7 +84,7 @@ In my opinion, the most powerful cosmwasm deployment software ever built. It is 
 
 ## What Not To Expect
 
-A bug free experience, and seamless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
+A bug free experience, and seemless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
 
 ## Project Structure
 
@@ -136,8 +129,8 @@ workspace-root/
 - [x] Cw20HookMsg
 - [x] Batching messages of the same type
 - [ ] Batching messages of different types
-- [ ] gRPC client
-- [x] HTTP client
+- [x] gRPC client
+- [ ] HTTP client
 - [ ] Automatic wasm-deploy compilation
 - [x] Mnemonic key
 - [x] OS Keyring key

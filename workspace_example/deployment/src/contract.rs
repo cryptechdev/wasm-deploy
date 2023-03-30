@@ -1,135 +1,71 @@
 // This file defines your contract. It's mostly boiler plate.
-use std::str::FromStr;
-
+use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
 use interactive_parse::traits::InteractiveParseObj;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use strum_macros::{Display, EnumIter, EnumString};
-use wasm_deploy::{
-    contract::{Contract, Cw20Hook, Execute, Query},
-    error::{DeployError, DeployResult},
-};
+use wasm_deploy::contract::{Contract, Msg};
+use wasm_deploy::derive::contract;
 
 use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
 
-#[derive(Clone, Debug, Display, EnumIter, EnumString)]
-#[strum(serialize_all = "snake_case")]
-/// This is where you define the list of all contracts you want wasm-depoy to know about
+/// This is where you define the list of all contracts you want wasm-deploy to know about
+#[contract]
 pub enum Contracts {
     Cw20Base,
     // You can add more contracts to this list
 }
 
-impl From<String> for Contracts {
-    fn from(value: String) -> Self { Contracts::from_str(value.as_str()).expect("Error parsing contracts") }
-}
-
+// Take a look at the Contract trait.
+// There are a few default methods that you can override.
+// Generally you'll want to match on the Contracts enum and handle the logic for each contract.
 impl Contract for Contracts {
-    type Cw20HookMsg = Cw20HookCommand;
-    type ExecuteMsg = ExecuteCommand;
-    type QueryMsg = QueryCommand;
-
-    fn name(&self) -> String { self.to_string() }
-
-    fn admin(&self) -> String { ADMIN.to_string() }
-
-    fn instantiate_msg(&self) -> DeployResult<Value> {
+    // This is the name of the contract and represents how it will appear in the cli.
+    fn name(&self) -> String {
         match self {
-            Contracts::Cw20Base { .. } => Ok(serde_json::to_value(CW20_INSTANTIATE.to_owned())?),
+            Contracts::Cw20Base { .. } => self.to_string(),
         }
     }
 
-    fn migrate_msg(&self) -> DeployResult<Option<Value>> {
+    // This is the address of the contract admin. It is required when instantiating.
+    fn admin(&self) -> String {
         match self {
-            Contracts::Cw20Base { .. } => Ok(Some(serde_json::to_value(CW20_INSTANTIATE.to_owned())?)),
+            Contracts::Cw20Base { .. } => ADMIN.to_string(),
         }
     }
 
-    fn config_msg(&self) -> DeployResult<Option<Value>> {
+    // This method allows executing a contract. interactive-parse should be used to generate the msg.
+    fn execute(&self) -> anyhow::Result<Box<dyn Msg>> {
         match self {
-            Contracts::Cw20Base { .. } => Ok(None),
+            Contracts::Cw20Base { .. } => Ok(Box::new(Cw20ExecuteMsg::parse_to_obj()?)),
         }
     }
 
-    fn set_up_msgs(&self) -> Result<Vec<Value>, DeployError> {
+    // This method allows querying a contract. interactive-parse should be used to generate the msg.
+    fn query(&self) -> anyhow::Result<Box<dyn Msg>> {
         match self {
-            Contracts::Cw20Base => Ok(CW20_MINT.iter().map(|x| serde_json::to_value(x).unwrap()).collect()),
+            Contracts::Cw20Base { .. } => Ok(Box::new(Cw20QueryMsg::parse_to_obj()?)),
         }
     }
 
-    fn external_instantiate_msgs(&self) -> Result<Vec<wasm_deploy::contract::ExternalInstantiate>, DeployError> {
+    // This method gets the preprogrammed instantiate msg for the contract.
+    fn instantiate_msg(&self) -> Option<Box<dyn Msg>> {
         match self {
-            Contracts::Cw20Base => Ok(vec![]),
+            Contracts::Cw20Base { .. } => Some(Box::new(CW20_INSTANTIATE.to_owned())),
         }
     }
-}
 
-// Unfortunately ExecuteCommand and QueryCommand must
-// be separated out to get a proper tx and q subcommand
-#[derive(Clone, Serialize, Deserialize, Debug, Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum ExecuteCommand {
-    /// Executes the price oracle contract
-    Cw20Base { execute: cw20_base::msg::ExecuteMsg },
-}
-
-impl Execute for ExecuteCommand {
-    fn execute_msg(&self) -> DeployResult<Value> {
+    // This method gets the preprogrammed migrate msg for the contract.
+    fn migrate_msg(&self) -> Option<Box<dyn Msg>> {
         match self {
-            ExecuteCommand::Cw20Base { execute } => Ok(serde_json::to_value(execute)?),
+            Contracts::Cw20Base { .. } => Some(Box::new(CW20_INSTANTIATE.to_owned())),
         }
     }
 
-    fn parse(contract: &impl Contract) -> DeployResult<Self> {
-        match contract.name().as_str() {
-            "cw20_base" => Ok(Self::Cw20Base { execute: cw20_base::msg::ExecuteMsg::parse_to_obj()? }),
-            _ => panic!("unknown contract"),
-        }
-    }
-}
-
-#[derive(Debug, Display, Serialize, Deserialize)]
-#[strum(serialize_all = "snake_case")]
-pub enum QueryCommand {
-    /// Queries the price oracle contract
-    Cw20Base { query: cw20_base::msg::QueryMsg },
-}
-
-impl Query for QueryCommand {
-    fn query_msg(&self) -> DeployResult<Value> {
+    // This method gets the preprogrammed set up msgs for the contract.
+    fn set_up_msgs(&self) -> Vec<Box<dyn Msg>> {
         match self {
-            QueryCommand::Cw20Base { query } => Ok(serde_json::to_value(query)?),
-        }
-    }
-
-    fn parse(contract: &impl Contract) -> DeployResult<Self> {
-        match contract.name().as_str() {
-            "cw20_base" => Ok(Self::Cw20Base { query: cw20_base::msg::QueryMsg::parse_to_obj()? }),
-            _ => panic!("unknown contract"),
-        }
-    }
-}
-
-/// This is to interacting with your contract if it implements the standard Cw20HookCommand
-/// interface.
-#[derive(Clone, Serialize, Deserialize, Debug, Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum Cw20HookCommand {
-    /// This contract doesn't implement this interface
-    Cw20Base { cw20_hook: () },
-}
-
-impl Cw20Hook for Cw20HookCommand {
-    fn cw20_hook_msg(&self) -> DeployResult<Value> {
-        match self {
-            Cw20HookCommand::Cw20Base { .. } => Ok(serde_json::to_value(())?),
-        }
-    }
-
-    fn parse(contract: &impl Contract) -> DeployResult<Self> {
-        match contract.name().as_str() {
-            "cw20_base" => Ok(Self::Cw20Base { cw20_hook: () }),
-            _ => panic!("unknown contract"),
+            Contracts::Cw20Base => CW20_MINT
+                .iter()
+                .map(|x| Box::new(x.clone()) as Box<dyn Msg>)
+                .collect(),
         }
     }
 }
