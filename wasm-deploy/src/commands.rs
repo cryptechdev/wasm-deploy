@@ -208,6 +208,7 @@ where
 {
     Command::new("cargo")
         .arg("install")
+        .arg("--debug")
         .arg("--path")
         .arg(settings.deployment_dir.clone())
         .spawn()?

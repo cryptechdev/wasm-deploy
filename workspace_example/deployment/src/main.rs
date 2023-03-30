@@ -1,4 +1,3 @@
-#[allow(clippy::large_enum_variant)]
 pub mod contract;
 pub mod defaults;
 pub mod subcommand;

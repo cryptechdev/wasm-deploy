@@ -1,13 +1,21 @@
+[workspace]
+
 [package]
+# This is the name of the generated binary for wasm-deploy.
+# Feel free to change it to suit your project.
 name = "deploy"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Here we link to the api of our contract/s
-# In this case it's the cw20 contract as an example
-cw20 = { path = "../packages/cw20", version = "1" }
-cw20-base = { path = "../contracts/cw20_base", version = "1" }
+# Here we link to the api of our contracts.
+# In this example it's the cw20 contract.
+# You will have to import the required dependencies for your contracts.
+# Feel free to remove these if they are not needed.
+cw20 = "1"
+cw20-base = "1"
+
+# These deps are required to generate the binary.
 anyhow = "1"
 serde = "1"
 schemars = "0.8"
