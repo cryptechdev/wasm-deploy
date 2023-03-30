@@ -27,6 +27,6 @@ clap = { version = "4", features = ["derive"] }
 lazy_static = "1.4"
 strum = "0.24"
 strum_macros = "0.24"
-wasm-deploy = { version = "0.3", path = "../../wasm-deploy" }
+wasm-deploy = { version = "0.3", git  = "https://github.com/cryptechdev/wasm-deploy.git" }
 tokio = "1"
 interactive-parse = "0.1"
