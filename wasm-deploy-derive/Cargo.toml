@@ -2,6 +2,13 @@
 name = "wasm-deploy-derive"
 version = "0.3.0"
 edition = "2021"
+authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
+homepage = "https://cryptech.dev"
+description = "wasm-deploy is a fully featured deployment suite for complex, multicontract cosmwasm projects"
+keywords = ["cosmwasm", "smart-contracts", "cosmos", "deployment", "cli"]
+license = "MIT"
+repository = "https://github.com/cryptechdev/wasm-deploy"
+readme = "README.md"
 
 [lib]
 proc-macro = true
