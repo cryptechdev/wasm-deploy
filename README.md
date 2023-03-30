@@ -33,57 +33,75 @@ wasm-opt --version
 ``` 
 to ensure that it is installed correctly.
 
-cd into the workspace_example directory and run 
+Install cargo generate with
 ```bash
-cargo build
+cargo install cargo-generate
 ```
-This will build the deploy binary. You will notice there is a sym link from the root of the workspace to target/debug/deploy. This is so that you can run the deploy binary from the root of the workspace.
 
-Alternatively, you can run
+generate the example project with 
 ```bash
-cargo install --path path/to/deployment/dir
+cargo generate cryptechdev/wasm-deploy workspace_example
 ```
-to globally install wasm-deploy.
+and name the project whatever you like. We will use `my-contracts` for the rest of this example.
 
+Run `cd my-contracts` and install wasm-deploy globally with 
+```bash
+cargo install --path deployment
+```
+The default binary name is `deploy`, but you can change it to whatever you like.
 Then you should be able to run
 ```bash
-./deploy init
+deploy init
 ```
-This will innitialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional RPC endpoint as it is the only client which is currently fully working.
+This will initialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional RPC endpoint as it is the only client which is currently fully working.
 
 Before you deploy the contracts, please be sure to change the ADMIN constant in deployment/src/defaults.rs to your personal dev address.
 
 Deploy all contracts with
 ```bash
-./deploy d
+deploy d
 ```
 
 Or specific ones with
 ```bash
-./deploy d -c contract_1,contract_2
+deploy d -c contract_1,contract_2
 ```
 
 after deploying them to the chain, you can execute the contract with
 ```bash
-./deploy execute <contract_name>
+deploy execute <contract_name>
 ```
 in this case, use cw20_base in place of contract_name.
 
 If you make changes to your contract API or deployment code you will need to update the wasm-deploy binary by running
 ```bash
-./deploy u
+deploy u
 ```
 This currently will install the binary globally.
 
 To see a list of commands please run 
 ```bash
-./deploy --help
+deploy --help
 ```
 
 Messages sent through wasm deploy are searched for `&<contract_name>` and replaced with the contract address. This allows you to send messages to other contracts without having to manually insert the address.
+
+# Configuring wasm-deploy to work with a preexisting cosmwasm project
+
+First ensure you have cargo-generate and wasm-opt installed as above.
+
+Then cd into your project `cd my-contracts` and run
 ```bash
-./deploy --help
+cargo generate cryptechdev/wasm-deploy workspace_example/deployment
 ```
+and be sure to name the project `deployment`.
+
+Install wasm-deploy globally with 
+```bash
+cargo install --path deployment
+```
+
+Important Note: The generated deployment folder is a template only. You will have to modify BOTH deployment/src/contract.rs deployment/src/defaults.rs to match your project. The template will not work out of the box.
 
 ## What To Expect
 
@@ -91,7 +109,7 @@ In my opinion, the most powerful cosmwasm deployment software ever built. It is 
 
 ## What Not To Expect
 
-A bug free experience, and seamless upgrades to newer versions. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
+Seamless upgrades to newer versions or a super quick initial installation. Since every smart contract workspace requires custom logic for how deployments should proceed, setting up wasm-deploy requires an inherent underlying complexity. This project is made almost entirely in my spare time and is extremely young. I have plans to support it for quite a long while to come, and I should be very responsive to any issues you may have, so please open an issue on github if you run into one. Or better yet, please contribute and submit a PR. This crate is still VERY much in early Alpha stage. This means the entire API is subject to change, Error messages are not likely to be very helpful, and improper use or edge cases are likely to error or cause a panic.
 
 ## Project Structure
 
@@ -142,4 +160,3 @@ workspace-root/
 - [x] Mnemonic key
 - [x] OS Keyring key
 - [ ] Ledger key
-- [ ] Automatic wasm-deploy compilation
