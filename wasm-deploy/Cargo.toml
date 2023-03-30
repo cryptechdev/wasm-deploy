@@ -15,7 +15,7 @@ exclude = ["workspace_example/*"]
 wasm_cli = []
 
 [dependencies]
-wasm-deploy-derive = { version = "0.1.0", path = "../wasm-deploy-derive" }
+wasm-deploy-derive = { version = "0.3.0", path = "../wasm-deploy-derive" }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
 cw20-base = "1"
