@@ -21,13 +21,15 @@ use log::info;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::{cw20_execute, cw20_instantiate, cw20_send, Contract},
+    contract::Contract,
+    cw20::{cw20_execute, cw20_instantiate, cw20_send},
     deployment::{execute_deployment, DeploymentStage},
     error::DeployError,
     execute::execute_contract,
-    file::{get_shell_completion_dir, Config, BIN_NAME},
+    file::{get_shell_completion_dir, Config},
     query::{cw20_query, query_contract},
     settings::WorkspaceSettings,
+    utils::BIN_NAME,
 };
 use std::fmt::Debug;
 
@@ -39,6 +41,7 @@ where
 {
     info!("Executing args: {:#?}", cli);
     std::env::set_current_dir(settings.workspace_root.clone()).unwrap();
+    // *WORKSPACE_SETTINGS.lock().await = Some(settings.clone());
     match &cli.command {
         Commands::Update {} => update::<C, S>(settings)?,
         Commands::Init {} => init(settings).await?,

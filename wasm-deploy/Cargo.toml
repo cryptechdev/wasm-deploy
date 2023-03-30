@@ -30,6 +30,7 @@ strum_macros = "0.24"
 thiserror = "1"
 anyhow = "1"
 tokio = { version = "1.27", default-features = false }
+futures = "0.3"
 async-recursion = "1"
 keyring = "2"
 colored = "2"

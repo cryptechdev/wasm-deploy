@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod commands;
 pub mod contract;
+pub mod cw20;
 pub mod deployment;
 pub mod error;
 pub mod execute;

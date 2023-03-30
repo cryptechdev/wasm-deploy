@@ -7,35 +7,32 @@ use std::{
     path::PathBuf,
 };
 
+#[cfg(feature = "ledger")]
+use crate::ledger::get_ledger_info;
+use crate::{error::DeployError, settings::WorkspaceSettings};
 use cosm_tome::{
     clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
 };
-// use cosmrs::tendermint::chain::Id;
+
 use inquire::{Confirm, CustomType, Select, Text};
 use interactive_parse::traits::InteractiveParseObj;
-use lazy_static::lazy_static;
 #[cfg(feature = "ledger")]
 use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "ledger")]
-use crate::ledger::get_ledger_info;
-use crate::{error::DeployError, settings::WorkspaceSettings};
-
-pub const PROJECT_ROOT_STR: &str = env!("PWD");
-
-lazy_static! {
-    pub static ref BIN_NAME: String = std::env::current_exe()
-        .unwrap()
-        .file_stem()
-        .unwrap()
-        .to_owned()
-        .into_string()
-        .unwrap();
-}
+// lazy_static! {
+//     pub static ref WORKSPACE_SETTINGS: Arc<Mutex<Option<WorkspaceSettings>>> =
+//         Arc::new(Mutex::new(None));
+//     pub static ref CONFIG: Arc<Mutex<Config>> = {
+//         match block_on(WORKSPACE_SETTINGS.lock()).as_ref() {
+//             Some(settings) => Arc::new(Mutex::new(Config::load(settings).unwrap())),
+//             None => panic!("WORKSPACE_SETTINGS not set"),
+//         }
+//     };
+// }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Env {
@@ -87,6 +84,13 @@ pub struct Config {
     pub envs: Vec<Env>,
     pub keys: Vec<SigningKey>,
 }
+
+// impl Drop for Config {
+//     fn drop(&mut self) {
+//         self.save(block_on(WORKSPACE_SETTINGS.lock()).as_ref().unwrap())
+//             .unwrap();
+//     }
+// }
 
 impl Config {
     pub fn init(settings: &WorkspaceSettings) -> anyhow::Result<Config> {
@@ -332,8 +336,8 @@ impl Config {
 // TODO: move this into impl block
 pub fn get_shell_completion_dir(settings: &WorkspaceSettings) -> anyhow::Result<Option<PathBuf>> {
     let mut config = Config::load(settings)?;
-    match config.shell_completion_dir {
-        Some(shell_completion_path) => Ok(Some(shell_completion_path)),
+    match &config.shell_completion_dir {
+        Some(shell_completion_path) => Ok(Some(shell_completion_path.clone())),
         None => {
             let ans =
                 Confirm::new("Shell completion directory not found.\nWould you like to add one?")

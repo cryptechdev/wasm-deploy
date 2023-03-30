@@ -1,7 +1,17 @@
+use crate::{error::DeployError, file::ContractInfo};
+use lazy_static::lazy_static;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
-use crate::{error::DeployError, file::ContractInfo};
+lazy_static! {
+    pub static ref BIN_NAME: String = std::env::current_exe()
+        .unwrap()
+        .file_stem()
+        .unwrap()
+        .to_owned()
+        .into_string()
+        .unwrap();
+}
 
 pub fn replace_strings(value: &mut Value, contracts: &Vec<ContractInfo>) -> anyhow::Result<()> {
     match value {

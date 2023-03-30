@@ -1,7 +1,9 @@
 use std::{ffi::OsStr, path::PathBuf};
 
 use anyhow::bail;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSettings {
     /// must be an absolute path
     pub(crate) workspace_root: PathBuf,

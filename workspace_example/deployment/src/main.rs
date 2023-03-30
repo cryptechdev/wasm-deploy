@@ -25,6 +25,9 @@ async fn main() -> anyhow::Result<()> {
     let args = Cli::<Contracts, CustomSubcommand>::from_arg_matches(&matches)?;
     // You can modify the CLI here
     execute_args(&settings, &args).await?;
+    // These custom args are entirely options
+    // If you don't need them, you can remove this line
+    // as well as the subcommand.rs file
     execute_custom_args(&args)?;
     Ok(())
 }

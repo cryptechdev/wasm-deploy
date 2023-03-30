@@ -3357,6 +3357,7 @@ dependencies = [
  "cw20 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw20-base 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "erased-serde",
+ "futures",
  "inquire 0.6.0",
  "interactive-parse",
  "keyring 2.0.1",
