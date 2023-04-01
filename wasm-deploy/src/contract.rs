@@ -29,6 +29,12 @@ pub trait Contract:
     /// how it will appear in the cli.
     fn name(&self) -> String;
 
+    /// This is the name of the generated binary.
+    /// It defaults to the contract name.
+    fn bin_name(&self) -> String {
+        self.name()
+    }
+
     /// This is the address of the contract admin.
     /// It is required when instantiating.
     fn admin(&self) -> String;

@@ -57,7 +57,7 @@ pub async fn execute_deployment(
                 println!("Storing code for {}", contract.name());
                 let path = settings
                     .artifacts_dir
-                    .join(format!("{}.wasm.gz", contract.name()));
+                    .join(format!("{}.wasm.gz", contract.bin_name()));
                 let wasm_data = std::fs::read(path)?;
                 reqs.push(StoreCodeRequest {
                     wasm_data,

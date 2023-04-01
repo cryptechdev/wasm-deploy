@@ -346,24 +346,23 @@ pub fn schemas(contracts: &[impl Contract]) -> anyhow::Result<()> {
     Ok(())
 }
 
+// TODO: contracts with the same code are reprocessed. This is not optimal.
 pub fn optimize(settings: &WorkspaceSettings, contracts: &[impl Contract]) -> anyhow::Result<()> {
     // Optimize contracts
     let mut handles = vec![];
     for contract in contracts {
         let name = contract.name();
+        let bin_name = contract.bin_name();
         println!("Optimizing {name} contract");
         handles.push(
             Command::new("wasm-opt")
                 .arg("-Oz")
                 .arg("-o")
-                .arg(
-                    settings.artifacts_dir.join(format!("{}.wasm", name)), // .with_file_name(name.clone())
-                                                                           // .with_extension("wasm"),
-                )
+                .arg(settings.artifacts_dir.join(format!("{}.wasm", bin_name)))
                 .arg(
                     settings
                         .target_dir
-                        .join(format!("wasm32-unknown-unknown/release/{name}.wasm")),
+                        .join(format!("wasm32-unknown-unknown/release/{bin_name}.wasm")),
                 )
                 .spawn()?,
         );
@@ -372,12 +371,12 @@ pub fn optimize(settings: &WorkspaceSettings, contracts: &[impl Contract]) -> an
         x.wait().unwrap();
     });
     for contract in contracts {
-        let name = contract.name();
+        let bin_name = contract.bin_name();
         handles.push(
             Command::new("gzip")
                 .arg("-f")
                 .arg("-k")
-                .arg(settings.artifacts_dir.join(format!("{name}.wasm")))
+                .arg(settings.artifacts_dir.join(format!("{bin_name}.wasm")))
                 .spawn()?,
         );
     }
@@ -393,10 +392,10 @@ pub fn set_execute_permissions(
 ) -> anyhow::Result<()> {
     // change mod
     for contract in contracts {
-        let name = contract.name();
+        let bin_name = contract.bin_name();
         Command::new("chmod")
             .arg("+x")
-            .arg(settings.artifacts_dir.join(format!("{name}.wasm")));
+            .arg(settings.artifacts_dir.join(format!("{bin_name}.wasm")));
     }
     Ok(())
 }
