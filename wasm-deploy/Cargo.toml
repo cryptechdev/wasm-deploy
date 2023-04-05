@@ -1,6 +1,6 @@
 [package]
 name = "wasm-deploy"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
 homepage = "https://cryptech.dev"
@@ -15,7 +15,7 @@ exclude = ["workspace_example/*"]
 wasm_cli = []
 
 [dependencies]
-wasm-deploy-derive = { version = "0.3.0", path = "../wasm-deploy-derive" }
+wasm-deploy-derive = { version = "0.4.0", path = "../wasm-deploy-derive" }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
 cw20-base = "1"
