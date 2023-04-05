@@ -13,9 +13,8 @@ use cosm_tome::{
 use crate::{
     contract::Contract,
     error::DeployError,
-    file::{Config, ContractInfo},
+    file::{ContractInfo, CONFIG},
     settings::WorkspaceSettings,
-    utils::replace_strings,
 };
 
 pub enum DeploymentStage {
@@ -33,14 +32,13 @@ pub async fn execute_deployment(
     // TODO: perhaps accept &[DeploymentStage]
     deployment_stage: DeploymentStage,
 ) -> anyhow::Result<()> {
-    let mut config = Config::load(settings)?;
-    let chain_info = config.get_active_chain_info()?;
+    let config = CONFIG.read().await;
+    let chain_info = config.get_active_chain_config()?.clone();
     let key = config.get_active_key().await?;
-
-    // TODO: maybe impl http here, maybe not required
     let Some(rpc_endpoint) = chain_info.rpc_endpoint.clone() else {
         return Err(DeployError::MissingRpc.into());
     };
+    drop(config);
 
     let client = TendermintRPC::new(&rpc_endpoint)?;
     let cosm_tome = CosmTome::new(chain_info, client);
@@ -67,8 +65,9 @@ pub async fn execute_deployment(
 
             let response = cosm_tome.wasm_store_batch(reqs, &key, &tx_options).await?;
 
+            let mut config = CONFIG.write().await;
             for (i, contract) in contracts.iter().enumerate() {
-                match config.get_contract(&contract.to_string()) {
+                match config.get_contract_mut(&contract.to_string()) {
                     Ok(contract_info) => contract_info.code_id = Some(response.code_ids[i]),
                     Err(_) => {
                         config.add_contract_from(ContractInfo {
@@ -84,6 +83,7 @@ pub async fn execute_deployment(
         }
         DeploymentStage::Instantiate => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             let tx_options = TxOptions {
                 timeout_height: None,
                 fee: None,
@@ -92,13 +92,11 @@ pub async fn execute_deployment(
             for contract in contracts {
                 if let Some(msg) = contract.instantiate_msg() {
                     println!("Instantiating {}", contract.name());
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(InstantiateRequest {
                         code_id,
-                        msg: value,
+                        msg,
                         label: contract.name(),
                         admin: Some(Address::from_str(&contract.admin()).unwrap()),
                         funds: vec![],
@@ -108,8 +106,10 @@ pub async fn execute_deployment(
             let response = cosm_tome
                 .wasm_instantiate_batch(reqs, &key, &tx_options)
                 .await?;
+            drop(config);
+            let mut config = CONFIG.write().await;
             for (index, contract) in contracts.iter().enumerate() {
-                let contract_info = config.get_contract(&contract.to_string())?;
+                let contract_info = config.get_contract_mut(&contract.to_string())?;
                 contract_info.addr = Some(response.addresses[index].to_string());
             }
             config.save(settings)?;
@@ -117,6 +117,7 @@ pub async fn execute_deployment(
         }
         DeploymentStage::ExternalInstantiate => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             let tx_options = TxOptions {
                 timeout_height: None,
                 fee: None,
@@ -125,17 +126,16 @@ pub async fn execute_deployment(
             for contract in contracts {
                 for external in contract.external_instantiate_msgs() {
                     println!("Instantiating {}", external.name);
-                    let mut value = serde_json::to_value(external.msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     reqs.push(InstantiateRequest {
                         code_id: external.code_id,
-                        msg: value,
+                        msg: external.msg,
                         label: external.name.clone(),
                         admin: Some(Address::from_str(&contract.admin()).unwrap()),
                         funds: vec![],
                     });
                 }
             }
+            drop(config);
             if reqs.is_empty() {
                 None
             } else {
@@ -145,6 +145,7 @@ pub async fn execute_deployment(
                 let mut index = 0;
                 for contract in contracts {
                     for external in contract.external_instantiate_msgs() {
+                        let mut config = CONFIG.write().await;
                         config.add_contract_from(ContractInfo {
                             name: external.name,
                             addr: Some(response.addresses[index].to_string()),
@@ -153,21 +154,20 @@ pub async fn execute_deployment(
                         index += 1;
                     }
                 }
+                let config = CONFIG.read().await;
                 config.save(settings)?;
                 Some(response.res)
             }
         }
         DeploymentStage::SetConfig => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             for contract in contracts {
                 if let Some(msg) = contract.set_config_msg() {
                     println!("Setting config for {}", contract.name());
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
-                    let contract_addr =
-                        config.get_contract_addr_mut(&contract.to_string())?.clone();
+                    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
-                        msg: value,
+                        msg,
                         funds: vec![],
                         address: Address::from_str(&contract_addr).unwrap(),
                     });
@@ -184,17 +184,15 @@ pub async fn execute_deployment(
         }
         DeploymentStage::SetUp => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             for contract in contracts {
                 for (i, msg) in contract.set_up_msgs().into_iter().enumerate() {
                     if i == 0 {
                         println!("Executing Set Up for {}", contract.name());
                     }
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
-                    let contract_addr =
-                        config.get_contract_addr_mut(&contract.to_string())?.clone();
+                    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
-                        msg: value,
+                        msg,
                         funds: vec![],
                         address: Address::from_str(&contract_addr).unwrap(),
                     });
@@ -211,11 +209,10 @@ pub async fn execute_deployment(
         }
         DeploymentStage::Migrate => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             for contract in contracts {
                 if let Some(msg) = contract.migrate_msg() {
                     println!("Migrating {}", contract.name());
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let contract_addr =
                         contract_info
@@ -226,7 +223,7 @@ pub async fn execute_deployment(
                             })?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(MigrateRequest {
-                        msg: value,
+                        msg,
                         address: Address::from_str(&contract_addr).unwrap(),
                         new_code_id: code_id,
                     });

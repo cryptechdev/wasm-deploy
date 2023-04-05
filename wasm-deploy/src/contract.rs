@@ -31,6 +31,8 @@ pub trait Contract:
 
     /// This is the name of the generated binary.
     /// It defaults to the contract name.
+    /// If you have multiple contracts that share the same code
+    /// then you can use this, in conjunction with the path method.
     fn bin_name(&self) -> String {
         self.name()
     }

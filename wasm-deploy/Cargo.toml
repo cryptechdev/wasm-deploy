@@ -8,7 +8,7 @@ description = "wasm-deploy is a fully featured deployment suite for complex, mul
 keywords = ["cosmwasm", "smart-contracts", "cosmos", "deployment", "cli"]
 license = "MIT"
 repository = "https://github.com/cryptechdev/wasm-deploy"
-readme = "README.md"
+readme = "../README.md"
 exclude = ["workspace_example/*"]
 
 [features]

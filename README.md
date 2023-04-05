@@ -90,7 +90,7 @@ To see a list of commands please run
 deploy --help
 ```
 
-Messages sent through wasm deploy are searched for `&<contract_name>` and replaced with the contract address. This allows you to send messages to other contracts without having to manually insert the address.
+Code Ids and addresses of local contracts can be fetched using `get_code_id(contract_name: &str)` and `get_addr(contract_name: &str)`. This allows you to send messages to other contracts without having to manually insert the address.
 
 # Configuring wasm-deploy to work with a preexisting cosmwasm project
 

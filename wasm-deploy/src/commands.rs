@@ -1,4 +1,4 @@
-use std::{env, process::Command, str::FromStr};
+use std::{env, process::Command, str::FromStr, sync::Arc};
 
 use async_recursion::async_recursion;
 use clap::{CommandFactory, Subcommand};
@@ -26,7 +26,7 @@ use crate::{
     deployment::{execute_deployment, DeploymentStage},
     error::DeployError,
     execute::execute_contract,
-    file::{get_shell_completion_dir, Config},
+    file::{Config, CONFIG, WORKSPACE_SETTINGS},
     query::{cw20_query, query_contract},
     settings::WorkspaceSettings,
     utils::BIN_NAME,
@@ -41,14 +41,14 @@ where
 {
     info!("Executing args: {:#?}", cli);
     std::env::set_current_dir(settings.workspace_root.clone()).unwrap();
-    // *WORKSPACE_SETTINGS.lock().await = Some(settings.clone());
+    *WORKSPACE_SETTINGS.write().await = Some(Arc::new(settings.clone()));
     match &cli.command {
-        Commands::Update {} => update::<C, S>(settings)?,
+        Commands::Update {} => update::<C, S>(settings).await?,
         Commands::Init {} => init(settings).await?,
         Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args)?,
-        Commands::Chain { add, delete } => chain(settings, add, delete)?,
+        Commands::Chain { add, delete } => chain(settings, add, delete).await?,
         Commands::Key { add, delete } => key(settings, add, delete).await?,
-        Commands::Contract { add, delete } => contract(settings, add, delete)?,
+        Commands::Contract { add, delete } => contract(settings, add, delete).await?,
         Commands::Deploy {
             contracts,
             no_build,
@@ -58,24 +58,22 @@ where
             delete,
             select,
             id,
-        } => execute_env(settings, add, delete, select, id)?,
+        } => execute_env(settings, add, delete, select, id).await?,
         Commands::Schema { contracts } => schemas(contracts)?,
         Commands::StoreCode { contracts } => store_code(settings, contracts).await?,
         Commands::Instantiate { contracts } => instantiate(settings, contracts).await?,
         Commands::Migrate { contracts } => migrate(settings, contracts, &cli.cargo_args).await?,
-        Commands::Execute { contract } => execute_contract(settings, contract).await?,
-        Commands::Cw20Send { contract } => cw20_send(settings, contract).await?,
-        Commands::Cw20Execute {} => cw20_execute(settings).await?,
+        Commands::Execute { contract } => execute_contract(contract).await?,
+        Commands::Cw20Send { contract } => cw20_send(contract).await?,
+        Commands::Cw20Execute {} => cw20_execute().await?,
         Commands::Cw20Query {} => {
-            cw20_query(settings).await?;
+            cw20_query().await?;
         }
-        Commands::Cw20Instantiate {} => cw20_instantiate(settings).await?,
-        Commands::ExecutePayload { contract, payload } => {
-            custom_execute(settings, contract, payload).await?
-        }
+        Commands::Cw20Instantiate {} => cw20_instantiate().await?,
+        Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await?,
         Commands::SetConfig { contracts } => set_config(settings, contracts).await?,
         Commands::Query { contract } => {
-            query_contract(settings, contract).await?;
+            query_contract(contract).await?;
         }
         Commands::SetUp { contracts } => set_up(settings, contracts).await?,
         Commands::Custom(..) => {}
@@ -93,8 +91,8 @@ pub async fn init(settings: &WorkspaceSettings) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
-    let mut config = Config::load(settings)?;
+pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
+    let mut config = CONFIG.write().await;
     if *add {
         config.add_chain()?;
     } else if *delete {
@@ -116,7 +114,7 @@ pub fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow:
 }
 
 pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
-    let mut config = Config::load(settings)?;
+    let mut config = CONFIG.write().await;
     if *add {
         config.add_key().await?;
     } else if *delete {
@@ -134,8 +132,12 @@ pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> any
     Ok(())
 }
 
-pub fn contract(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
-    let mut config = Config::load(settings)?;
+pub async fn contract(
+    settings: &WorkspaceSettings,
+    add: &bool,
+    delete: &bool,
+) -> anyhow::Result<()> {
+    let mut config = CONFIG.write().await;
     if *add {
         config.add_contract()?;
     } else if *delete {
@@ -151,14 +153,14 @@ pub fn contract(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyh
     Ok(())
 }
 
-pub fn execute_env(
+pub async fn execute_env(
     settings: &WorkspaceSettings,
     add: &bool,
     delete: &bool,
     select: &bool,
     id: &bool,
 ) -> anyhow::Result<()> {
-    let mut config = Config::load(settings)?;
+    let mut config = CONFIG.write().await;
     if *add {
         config.add_env()?;
         config.save(settings)?;
@@ -201,7 +203,7 @@ pub async fn deploy(
     Ok(())
 }
 
-pub fn update<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
+pub async fn update<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
 where
     C: Contract + Clone,
     S: Subcommand + Clone + Debug,
@@ -214,20 +216,26 @@ where
         .spawn()?
         .wait()?;
 
-    generate_completions::<C, S>(settings)?;
+    generate_completions::<C, S>(settings).await?;
 
     Ok(())
 }
 
-pub fn generate_completions<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
+pub async fn generate_completions<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
 where
     C: Contract + Clone,
     S: Subcommand + Clone + Debug,
 {
-    let shell_completion_dir = match get_shell_completion_dir(settings)? {
+    let mut config = CONFIG.write().await;
+
+    let shell_completion_dir = match config.get_shell_completion_dir() {
         Some(shell_completion_dir) => shell_completion_dir,
-        None => return Ok(()),
+        None => match config.set_shell_completion_dir(settings)? {
+            Some(shell_completion_dir) => shell_completion_dir,
+            None => return Ok(()),
+        },
     };
+
     let string = env::var_os("SHELL")
         .expect("Failed parsing SHELL string")
         .into_string()
@@ -404,7 +412,7 @@ pub async fn store_code(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
 ) -> anyhow::Result<()> {
-    let chunk_size = Config::load(settings)?.settings.store_code_chunk_size;
+    let chunk_size = CONFIG.read().await.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
         execute_deployment(settings, chunk, DeploymentStage::StoreCode).await?;
@@ -448,20 +456,16 @@ pub async fn set_up(
     Ok(())
 }
 
-pub async fn custom_execute<C: Contract>(
-    settings: &WorkspaceSettings,
-    contract: &C,
-    string: &str,
-) -> anyhow::Result<()> {
+pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> anyhow::Result<()> {
     println!("Executing {}", contract.name());
-    let mut config = Config::load(settings)?;
+    let config = CONFIG.read().await;
     let value: serde_json::Value = serde_json::from_str(string)?;
     let color = to_colored_json_auto(&value)?;
     println!("{color}");
     let msg = serde_json::to_vec(&value)?;
     let key = config.get_active_key().await?;
 
-    let chain_info = config.get_active_chain_info()?;
+    let chain_info = config.get_active_chain_config()?.clone();
     let client = TendermintRPC::new(
         &chain_info
             .rpc_endpoint
@@ -469,7 +473,7 @@ pub async fn custom_execute<C: Contract>(
             .ok_or(DeployError::MissingRpc)?,
     )?;
     let cosm_tome = CosmTome::new(chain_info, client);
-    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
     let tx_options = TxOptions {
         timeout_height: None,

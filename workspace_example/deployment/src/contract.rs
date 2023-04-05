@@ -9,6 +9,8 @@ use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
 /// This is where you define the list of all contracts you want wasm-deploy to know about
 #[contract]
 pub enum Contracts {
+    // Cw20Base is just an example.
+    // You should replace it with your own contract.
     Cw20Base,
     // You can add more contracts to this list
 }

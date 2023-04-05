@@ -1,4 +1,4 @@
-// You can leave this file empty or unchanged if you dont want custom functionality.
+// You can leave this file empty or unchanged if you don't want custom functionality.
 use clap::Subcommand;
 use wasm_deploy::{
     cli::{Cli, Commands},
@@ -19,6 +19,7 @@ where
 
     Ok(())
 }
+
 // A custom subcommand for user defined functionality.
 #[derive(Clone, Debug, Subcommand)]
 #[clap(rename_all = "snake_case")]

@@ -1,6 +1,7 @@
 use crate::{
-    contract::Contract, error::DeployError, file::Config, settings::WorkspaceSettings,
-    utils::replace_strings,
+    contract::Contract,
+    error::DeployError,
+    file::{Config, CONFIG},
 };
 use colored::Colorize;
 use cosm_tome::{
@@ -12,29 +13,24 @@ use interactive_parse::traits::InteractiveParseObj;
 use serde::Serialize;
 use std::str::FromStr;
 
-pub async fn execute_contract(
-    settings: &WorkspaceSettings,
-    contract: &impl Contract,
-) -> anyhow::Result<()> {
+pub async fn execute_contract(contract: &impl Contract) -> anyhow::Result<()> {
     println!("Executing");
-    let mut config = Config::load(settings)?;
+    let config = CONFIG.read().await;
     let msg = contract.execute()?;
-    let contract_addr = config.get_contract_addr_mut(&contract.to_string())?.clone();
+    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
-    execute(&mut config, contract_addr, msg, funds).await?;
+    execute(&config, contract_addr, msg, funds).await?;
     Ok(())
 }
 
 pub async fn execute(
-    config: &mut Config,
+    config: &Config,
     addr: impl AsRef<str>,
     msg: impl Serialize,
     funds: Vec<Coin>,
 ) -> anyhow::Result<()> {
-    let mut value = serde_json::to_value(msg)?;
-    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
     let key = config.get_active_key().await?;
-    let chain_info = config.get_active_chain_info()?;
+    let chain_info = config.get_active_chain_config()?.clone();
     let client = TendermintRPC::new(
         &chain_info
             .rpc_endpoint
@@ -48,7 +44,7 @@ pub async fn execute(
         memo: "wasm_deploy".into(),
     };
     let req = ExecRequest {
-        msg: value,
+        msg,
         funds,
         address: Address::from_str(addr.as_ref()).unwrap(),
     };
