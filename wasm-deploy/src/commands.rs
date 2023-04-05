@@ -38,6 +38,8 @@ use crate::{
     utils::BIN_NAME,
 };
 use std::fmt::Debug;
+use std::fs::create_dir;
+use std::path::Path;
 
 #[async_recursion(?Send)]
 pub async fn execute_args<C, S>(settings: &WorkspaceSettings, cli: &Cli<C, S>) -> anyhow::Result<()>
@@ -329,11 +331,9 @@ pub async fn build(
             .wait()?;
     }
 
-    Command::new("mkdir")
-        .arg("-p")
-        .arg(settings.artifacts_dir.clone())
-        .spawn()?
-        .wait()?;
+    if !Path::exists(Path::new(settings.artifacts_dir.as_path())) {
+        create_dir(settings.artifacts_dir.as_path())?;
+    }
 
     optimize(settings, contracts).await?;
     set_execute_permissions(settings, contracts)?;
