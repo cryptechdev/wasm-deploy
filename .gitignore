@@ -1,3 +1,7 @@
 /target
 /Cargo.lock
+
+# Exclude editor files
+.idea
+.vscode
 /wasm-deploy/.vscode
