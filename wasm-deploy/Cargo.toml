@@ -9,7 +9,6 @@ keywords = ["cosmwasm", "smart-contracts", "cosmos", "deployment", "cli"]
 license = "MIT"
 repository = "https://github.com/cryptechdev/wasm-deploy"
 readme = "../README.md"
-exclude = ["workspace_example/*"]
 
 [features]
 wasm_cli = []
