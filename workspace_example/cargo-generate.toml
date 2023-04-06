@@ -1,0 +1,16 @@
+[placeholders.deploy_name]
+type = "string"
+prompt = "Pick a custom name for the deployment package executable:"
+default = "deploy"
+
+[conditional.'is_init']
+ignore = [
+    "contracts",
+    "packages",
+    "target",
+    ".gitignore",
+    "cargo-generate.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    ".DS_Store"
+]

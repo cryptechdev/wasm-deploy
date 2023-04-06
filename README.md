@@ -48,13 +48,12 @@ generate the example project with
 ```bash
 cargo generate cryptechdev/wasm-deploy workspace_example
 ```
-and name the project whatever you like. We will use `my-contracts` for the rest of this example.
+and name the project whatever you like. We will use `my-contracts` for the rest of this example. During this step you can also pick the name for the binary. The default binary name is `deploy` which we will use in the rest of this example.
 
 Run `cd my-contracts` and install wasm-deploy globally with 
 ```bash
 cargo install --path deployment
 ```
-The default binary name is `deploy`, but you can change it to whatever you like.
 Then you should be able to run
 ```bash
 deploy init
@@ -98,9 +97,9 @@ First ensure you have cargo-generate and wasm-opt installed as above.
 
 Then cd into your project `cd my-contracts` and run
 ```bash
-cargo generate cryptechdev/wasm-deploy workspace_example/deployment
+cargo generate --init cryptechdev/wasm-deploy workspace_example
 ```
-and be sure to name the project `deployment`.
+and be sure to name the project after your folder, and pick a custom name for the binary/executable, such as `projd`, that will replace the `deploy` name.
 
 Install wasm-deploy globally with 
 ```bash
