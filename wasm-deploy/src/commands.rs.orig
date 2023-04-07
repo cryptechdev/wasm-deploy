@@ -365,10 +365,14 @@ pub fn schemas(contracts: &[impl Contract]) -> anyhow::Result<()> {
 }
 
 // TODO: contracts with the same code are reprocessed. This is not optimal.
+<<<<<<< HEAD
 pub async fn optimize(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
 ) -> anyhow::Result<()> {
+=======
+pub async fn optimize(settings: &WorkspaceSettings, contracts: &[impl Contract]) -> anyhow::Result<()> {
+>>>>>>> 624bae3 (Replaced call to gzip with flate2)
     // Optimize contracts
     let mut handles = vec![];
     for contract in contracts {
@@ -416,8 +420,12 @@ pub async fn optimize(
     handles.iter_mut().for_each(|x| {
         x.wait().unwrap();
     });
+<<<<<<< HEAD
+    let mut handles = vec![];
+=======
 
     let mut task_handles = vec![];
+>>>>>>> 624bae3 (Replaced call to gzip with flate2)
     for contract in contracts {
         let bin_name = contract.bin_name();
         let bin_pathbuf = settings.artifacts_dir.join(format!("{bin_name}.wasm"));
