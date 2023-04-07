@@ -40,7 +40,7 @@ where
     S: Subcommand + Clone + Debug,
 {
     info!("Executing args: {:#?}", cli);
-    std::env::set_current_dir(settings.workspace_root.clone()).unwrap();
+    std::env::set_current_dir(settings.workspace_root.clone())?;
     *WORKSPACE_SETTINGS.write().await = Some(Arc::new(settings.clone()));
     match &cli.command {
         Commands::Update {} => update::<C, S>(settings).await?,
@@ -483,7 +483,7 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> anyhow::
     let req = ExecRequest {
         msg,
         funds,
-        address: Address::from_str(&contract_addr).unwrap(),
+        address: Address::from_str(&contract_addr)?,
     };
 
     let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;

@@ -44,7 +44,7 @@ pub async fn cw20_send(contract: &impl Contract) -> anyhow::Result<()> {
     let req = ExecRequest {
         msg,
         funds,
-        address: Address::from_str(&cw20_contract_addr).unwrap(),
+        address: Address::from_str(&cw20_contract_addr)?,
     };
     let tx_options = TxOptions {
         timeout_height: None,
@@ -87,7 +87,7 @@ pub async fn cw20_execute() -> anyhow::Result<()> {
     let req = ExecRequest {
         msg,
         funds: vec![],
-        address: Address::from_str(&cw20_contract_addr).unwrap(),
+        address: Address::from_str(&cw20_contract_addr)?,
     };
     let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
 

@@ -44,10 +44,10 @@ pub async fn query(
     )?;
     let cosm_tome = CosmTome::new(chain_info, client);
     let response = cosm_tome
-        .wasm_query(Address::from_str(addr.as_ref()).unwrap(), &msg)
+        .wasm_query(Address::from_str(addr.as_ref())?, &msg)
         .await?;
-    let string = String::from_utf8(response.res.data.unwrap()).unwrap();
-    Ok(serde_json::from_str::<Value>(string.as_str()).unwrap())
+    let string = String::from_utf8(response.res.data.ok_or(DeployError::EmptyResponse)?)?;
+    Ok(serde_json::from_str::<Value>(string.as_str())?)
 }
 
 pub async fn cw20_query() -> anyhow::Result<Value> {

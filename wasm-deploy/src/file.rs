@@ -89,7 +89,7 @@ pub struct Config {
 
 impl Config {
     pub fn init(settings: &WorkspaceSettings) -> anyhow::Result<Config> {
-        create_dir_all(settings.config_path.parent().expect("Invalid CONFIG_PATH")).unwrap();
+        create_dir_all(settings.config_path.parent().expect("Invalid CONFIG_PATH"))?;
         let config = Config::default();
         Ok(config)
     }
@@ -116,14 +116,14 @@ impl Config {
 
     pub fn get_active_env(&self) -> Result<&Env, DeployError> {
         match self.envs.iter().position(|x| x.is_active) {
-            Some(index) => Ok(self.envs.get(index).unwrap()),
+            Some(index) => Ok(self.envs.get(index).ok_or(DeployError::EnvNotFound)?),
             None => Err(DeployError::EnvNotFound),
         }
     }
 
     pub fn get_active_env_mut(&mut self) -> anyhow::Result<&mut Env> {
         match self.envs.iter().position(|x| x.is_active) {
-            Some(index) => Ok(self.envs.get_mut(index).unwrap()),
+            Some(index) => Ok(self.envs.get_mut(index).ok_or(DeployError::EnvNotFound)?),
             None => Err(DeployError::EnvNotFound.into()),
         }
     }

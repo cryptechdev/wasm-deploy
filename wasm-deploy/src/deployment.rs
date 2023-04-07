@@ -98,7 +98,7 @@ pub async fn execute_deployment(
                         code_id,
                         msg,
                         label: contract.name(),
-                        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+                        admin: Some(Address::from_str(&contract.admin())?),
                         funds: vec![],
                     });
                 }
@@ -130,7 +130,7 @@ pub async fn execute_deployment(
                         code_id: external.code_id,
                         msg: external.msg,
                         label: external.name.clone(),
-                        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+                        admin: Some(Address::from_str(&contract.admin())?),
                         funds: vec![],
                     });
                 }
@@ -169,7 +169,7 @@ pub async fn execute_deployment(
                     reqs.push(ExecRequest {
                         msg,
                         funds: vec![],
-                        address: Address::from_str(&contract_addr).unwrap(),
+                        address: Address::from_str(&contract_addr)?,
                     });
                 };
             }
@@ -194,7 +194,7 @@ pub async fn execute_deployment(
                     reqs.push(ExecRequest {
                         msg,
                         funds: vec![],
-                        address: Address::from_str(&contract_addr).unwrap(),
+                        address: Address::from_str(&contract_addr)?,
                     });
                 }
             }
@@ -224,7 +224,7 @@ pub async fn execute_deployment(
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(MigrateRequest {
                         msg,
-                        address: Address::from_str(&contract_addr).unwrap(),
+                        address: Address::from_str(&contract_addr)?,
                         new_code_id: code_id,
                     });
                 }

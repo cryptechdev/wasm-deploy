@@ -46,7 +46,7 @@ pub async fn execute(
     let req = ExecRequest {
         msg,
         funds,
-        address: Address::from_str(addr.as_ref()).unwrap(),
+        address: Address::from_str(addr.as_ref())?,
     };
     let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
     println!(

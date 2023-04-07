@@ -77,6 +77,9 @@ pub enum DeployError {
 
     #[error("WorkspaceSettings are not initialized")]
     SettingsUninitialized,
+
+    #[error("Response received from client was empty")]
+    EmptyResponse,
 }
 
 #[cfg(test)]
