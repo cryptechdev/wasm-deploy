@@ -37,7 +37,11 @@ The first step is installing wasm-opt and ensuring that it is in your path. Run
 ```bash
 wasm-opt --version  
 ``` 
-to ensure that it is installed correctly.
+
+Alternatively you can use the experimental `wasm-opt` feature within wasm-deploy. Simply change the line in your toml file to
+```toml
+wasm-deploy = { version = "0.4", features = ["wasm-opt"] }
+```
 
 Install cargo generate with
 ```bash

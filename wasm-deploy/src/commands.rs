@@ -13,9 +13,15 @@ use cosm_tome::{
     clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
+#[cfg(feature = "wasm_opt")]
+use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::traits::InteractiveParseObj;
 use log::info;
+#[cfg(feature = "wasm_opt")]
+use tokio::task::spawn_blocking;
+#[cfg(feature = "wasm_opt")]
+use wasm_opt::integration::run_from_command_args;
 
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
@@ -45,7 +51,7 @@ where
     match &cli.command {
         Commands::Update {} => update::<C, S>(settings).await?,
         Commands::Init {} => init(settings).await?,
-        Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args)?,
+        Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args).await?,
         Commands::Chain { add, delete } => chain(settings, add, delete).await?,
         Commands::Key { add, delete } => key(settings, add, delete).await?,
         Commands::Contract { add, delete } => contract(settings, add, delete).await?,
@@ -194,7 +200,7 @@ pub async fn deploy(
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     if !no_build {
-        build(settings, contracts, cargo_args)?;
+        build(settings, contracts, cargo_args).await?;
     }
     store_code(settings, contracts).await?;
     instantiate(settings, contracts).await?;
@@ -210,7 +216,7 @@ where
 {
     Command::new("cargo")
         .arg("install")
-        .arg("--debug")
+        // .arg("--debug")
         .arg("--path")
         .arg(settings.deployment_dir.clone())
         .spawn()?
@@ -304,7 +310,7 @@ where
     Ok(())
 }
 
-pub fn build(
+pub async fn build(
     settings: &WorkspaceSettings,
     contracts: &[impl Contract],
     cargo_args: &[String],
@@ -329,7 +335,7 @@ pub fn build(
         .spawn()?
         .wait()?;
 
-    optimize(settings, contracts)?;
+    optimize(settings, contracts).await?;
     set_execute_permissions(settings, contracts)?;
 
     Ok(())
@@ -355,15 +361,20 @@ pub fn schemas(contracts: &[impl Contract]) -> anyhow::Result<()> {
 }
 
 // TODO: contracts with the same code are reprocessed. This is not optimal.
-pub fn optimize(settings: &WorkspaceSettings, contracts: &[impl Contract]) -> anyhow::Result<()> {
+pub async fn optimize(
+    settings: &WorkspaceSettings,
+    contracts: &[impl Contract],
+) -> anyhow::Result<()> {
     // Optimize contracts
     let mut handles = vec![];
     for contract in contracts {
         let name = contract.name();
         let bin_name = contract.bin_name();
         println!("Optimizing {name} contract");
-        handles.push(
-            Command::new("wasm-opt")
+        #[cfg(feature = "wasm_opt")]
+        {
+            let mut command = wasm_opt::integration::Command::new("wasm-opt");
+            command
                 .arg("-Oz")
                 .arg("-o")
                 .arg(settings.artifacts_dir.join(format!("{}.wasm", bin_name)))
@@ -371,13 +382,37 @@ pub fn optimize(settings: &WorkspaceSettings, contracts: &[impl Contract]) -> an
                     settings
                         .target_dir
                         .join(format!("wasm32-unknown-unknown/release/{bin_name}.wasm")),
-                )
-                .spawn()?,
-        );
+                );
+            handles.push({
+                spawn_blocking(move || {
+                    run_from_command_args(command).unwrap();
+                })
+            })
+        }
+        #[cfg(not(feature = "wasm_opt"))]
+        {
+            let mut command = Command::new("wasm-opt");
+            handles.push(
+                command
+                    .arg("-Oz")
+                    .arg("-o")
+                    .arg(settings.artifacts_dir.join(format!("{}.wasm", bin_name)))
+                    .arg(
+                        settings
+                            .target_dir
+                            .join(format!("wasm32-unknown-unknown/release/{bin_name}.wasm")),
+                    )
+                    .spawn()?,
+            );
+        }
     }
+    #[cfg(feature = "wasm_opt")]
+    join_all(handles).await;
+    #[cfg(not(feature = "wasm_opt"))]
     handles.iter_mut().for_each(|x| {
         x.wait().unwrap();
     });
+    let mut handles = vec![];
     for contract in contracts {
         let bin_name = contract.bin_name();
         handles.push(
@@ -434,7 +469,7 @@ pub async fn migrate(
     contracts: &[impl Contract],
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
-    build(settings, contracts, cargo_args)?;
+    build(settings, contracts, cargo_args).await?;
     store_code(settings, contracts).await?;
     execute_deployment(settings, contracts, DeploymentStage::Migrate).await?;
     Ok(())
