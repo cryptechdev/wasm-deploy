@@ -34,6 +34,7 @@ impl WorkspaceSettings {
         })
     }
 
+    /// Default path is `.wasm-deploy/config.json`
     pub fn set_config_path<T: ?Sized + AsRef<OsStr>>(
         mut self,
         config_path: &T,
@@ -46,6 +47,7 @@ impl WorkspaceSettings {
         Ok(self)
     }
 
+    /// Default path is `target`
     pub fn set_build_dir<T: ?Sized + AsRef<OsStr>>(
         mut self,
         target_dir: &T,
@@ -58,6 +60,7 @@ impl WorkspaceSettings {
         Ok(self)
     }
 
+    /// Default path is `deployment`
     pub fn set_deployment_dir<T: ?Sized + AsRef<OsStr>>(
         mut self,
         deployment_dir: &T,
@@ -70,6 +73,7 @@ impl WorkspaceSettings {
         Ok(self)
     }
 
+    /// Default path is `artifacts`
     pub fn set_artifacts_dir<T: ?Sized + AsRef<OsStr>>(
         mut self,
         artifacts_dir: &T,
