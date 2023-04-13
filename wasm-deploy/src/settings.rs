@@ -38,9 +38,9 @@ impl WorkspaceSettings {
         mut self,
         config_path: &T,
     ) -> anyhow::Result<Self> {
-        let config_path = PathBuf::from(config_path);
-        if !config_path.is_file() {
-            bail!("config path must be a file")
+        let mut config_path = PathBuf::from(config_path);
+        if config_path.is_dir() {
+            config_path = config_path.join("config.json");
         }
         self.config_path = config_path;
         Ok(self)
