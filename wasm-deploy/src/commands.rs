@@ -319,6 +319,7 @@ pub async fn build(
     for contract in contracts {
         Command::new("cargo")
             .env("RUSTFLAGS", "-C link-arg=-s")
+            .arg("+stable")
             .arg("build")
             .arg("--release")
             .arg("--lib")
