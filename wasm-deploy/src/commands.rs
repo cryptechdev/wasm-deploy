@@ -1,5 +1,5 @@
-use std::{env, process::Command, str::FromStr, sync::Arc};
 use std::ffi::OsString;
+use std::{env, process::Command, str::FromStr, sync::Arc};
 
 use async_recursion::async_recursion;
 use clap::{CommandFactory, Subcommand};
@@ -38,12 +38,12 @@ use crate::{
     settings::WorkspaceSettings,
     utils::BIN_NAME,
 };
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use std::fmt::Debug;
-use std::fs::{create_dir, File, remove_file};
+use std::fs::{create_dir, remove_file, File};
 use std::io::{copy, BufReader};
 use std::path::{Path, PathBuf};
-use flate2::Compression;
-use flate2::write::GzEncoder;
 
 #[async_recursion(?Send)]
 pub async fn execute_args<C, S>(settings: &WorkspaceSettings, cli: &Cli<C, S>) -> anyhow::Result<()>
@@ -422,20 +422,17 @@ pub async fn optimize(
     for contract in contracts {
         let bin_name = contract.bin_name();
         let bin_pathbuf = settings.artifacts_dir.join(format!("{bin_name}.wasm"));
-        task_handles.push(
-        gzip_file(bin_pathbuf)
-        );
+        task_handles.push(gzip_file(bin_pathbuf));
     }
 
     for handle in task_handles {
         handle.await?;
-    };
+    }
 
     Ok(())
 }
 
 pub async fn gzip_file(src: PathBuf) -> anyhow::Result<File> {
-
     let src_path: &Path = src.as_path();
     let mut new_extension = OsString::from(src_path.extension().unwrap());
     new_extension.push(".gz");
