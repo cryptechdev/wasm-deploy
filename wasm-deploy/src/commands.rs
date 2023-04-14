@@ -1,4 +1,5 @@
 use std::{env, process::Command, str::FromStr, sync::Arc};
+use std::ffi::OsString;
 
 use async_recursion::async_recursion;
 use clap::{CommandFactory, Subcommand};
@@ -38,6 +39,11 @@ use crate::{
     utils::BIN_NAME,
 };
 use std::fmt::Debug;
+use std::fs::{create_dir, File, remove_file};
+use std::io::{copy, BufReader};
+use std::path::{Path, PathBuf};
+use flate2::Compression;
+use flate2::write::GzEncoder;
 
 #[async_recursion(?Send)]
 pub async fn execute_args<C, S>(settings: &WorkspaceSettings, cli: &Cli<C, S>) -> anyhow::Result<()>
@@ -330,11 +336,9 @@ pub async fn build(
             .wait()?;
     }
 
-    Command::new("mkdir")
-        .arg("-p")
-        .arg(settings.artifacts_dir.clone())
-        .spawn()?
-        .wait()?;
+    if !Path::exists(Path::new(settings.artifacts_dir.as_path())) {
+        create_dir(settings.artifacts_dir.as_path())?;
+    }
 
     optimize(settings, contracts).await?;
     set_execute_permissions(settings, contracts)?;
@@ -413,21 +417,40 @@ pub async fn optimize(
     handles.iter_mut().for_each(|x| {
         x.wait().unwrap();
     });
-    let mut handles = vec![];
+
+    let mut task_handles = vec![];
     for contract in contracts {
         let bin_name = contract.bin_name();
-        handles.push(
-            Command::new("gzip")
-                .arg("-f")
-                .arg("-k")
-                .arg(settings.artifacts_dir.join(format!("{bin_name}.wasm")))
-                .spawn()?,
+        let bin_pathbuf = settings.artifacts_dir.join(format!("{bin_name}.wasm"));
+        task_handles.push(
+        gzip_file(bin_pathbuf)
         );
     }
-    handles.iter_mut().for_each(|x| {
-        x.wait().unwrap();
-    });
+
+    for handle in task_handles {
+        handle.await?;
+    };
+
     Ok(())
+}
+
+pub async fn gzip_file(src: PathBuf) -> anyhow::Result<File> {
+
+    let src_path: &Path = src.as_path();
+    let mut new_extension = OsString::from(src_path.extension().unwrap());
+    new_extension.push(".gz");
+    let dst_pathbuf = src_path.with_extension(new_extension);
+    let dst = dst_pathbuf.as_path();
+
+    let mut input = BufReader::new(File::open(src_path)?);
+    if Path::exists(dst) {
+        remove_file(dst)?;
+    }
+
+    let output = File::create(dst)?;
+    let mut encoder = GzEncoder::new(output, Compression::default());
+    copy(&mut input, &mut encoder)?;
+    Ok(encoder.finish()?)
 }
 
 pub fn set_execute_permissions(

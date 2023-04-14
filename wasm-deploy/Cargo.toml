@@ -39,3 +39,4 @@ interactive-parse = "0.1"
 cosm-tome = { version = "0.2", features = ["os_keyring"] }
 log = "0.4"
 erased-serde = "0.3"
+flate2 = "1"
