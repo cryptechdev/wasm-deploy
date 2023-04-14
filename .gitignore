@@ -4,4 +4,3 @@
 # Exclude editor files
 .idea
 .vscode
-/wasm-deploy/.vscode
