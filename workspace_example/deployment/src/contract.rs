@@ -1,6 +1,6 @@
 // This file defines your contract. It's mostly boiler plate.
 use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
-use interactive_parse::traits::InteractiveParseObj;
+use interactive_parse::InteractiveParseObj;
 use wasm_deploy::contract::{Contract, Msg};
 use wasm_deploy::derive::contract;
 

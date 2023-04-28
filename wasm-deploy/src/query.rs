@@ -7,7 +7,7 @@ use cosm_tome::{
 };
 use cw20::Cw20QueryMsg;
 use inquire::Text;
-use interactive_parse::traits::InteractiveParseObj;
+use interactive_parse::InteractiveParseObj;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 

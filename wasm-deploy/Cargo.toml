@@ -35,7 +35,7 @@ async-recursion = "1"
 keyring = "2"
 colored = "2"
 colored_json = "3"
-interactive-parse = "0.1"
+interactive-parse = "0.1.5"
 cosm-tome = { version = "0.2", features = ["os_keyring"] }
 log = "0.4"
 erased-serde = "0.3"

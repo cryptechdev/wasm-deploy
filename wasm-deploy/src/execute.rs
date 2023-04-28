@@ -9,7 +9,7 @@ use cosm_tome::{
     clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
-use interactive_parse::traits::InteractiveParseObj;
+use interactive_parse::InteractiveParseObj;
 use serde::Serialize;
 use std::str::FromStr;
 

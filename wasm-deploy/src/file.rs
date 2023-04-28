@@ -18,7 +18,7 @@ use cosm_tome::{
 };
 use futures::executor::block_on;
 use inquire::{Confirm, CustomType, Select, Text};
-use interactive_parse::traits::InteractiveParseObj;
+use interactive_parse::InteractiveParseObj;
 use lazy_static::lazy_static;
 #[cfg(feature = "ledger")]
 use ledger_utility::Connection;

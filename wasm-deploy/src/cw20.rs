@@ -12,7 +12,7 @@ use cosm_tome::{
 };
 use cw20::Cw20ExecuteMsg;
 use inquire::{CustomType, Text};
-use interactive_parse::traits::InteractiveParseObj;
+use interactive_parse::InteractiveParseObj;
 
 pub async fn cw20_send(contract: &impl Contract) -> anyhow::Result<()> {
     println!("Executing cw20 send");

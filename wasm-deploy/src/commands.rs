@@ -17,7 +17,7 @@ use cosm_tome::{
 #[cfg(feature = "wasm_opt")]
 use futures::future::join_all;
 use inquire::{MultiSelect, Select};
-use interactive_parse::traits::InteractiveParseObj;
+use interactive_parse::InteractiveParseObj;
 use log::info;
 #[cfg(feature = "wasm_opt")]
 use tokio::task::spawn_blocking;
