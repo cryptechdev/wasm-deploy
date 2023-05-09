@@ -15,6 +15,8 @@ wasm_cli = []
 
 [dependencies]
 wasm-deploy-derive = { version = "0.4.0", path = "../wasm-deploy-derive" }
+cosm-utils = { git = "https://github.com/cryptechdev/cosm-utils.git", branch = "develop", features = ["keyring"] }
+tendermint-rpc = "0.32"
 wasm-opt = { version = "=0.110.2", optional = true }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 cw20 = "1"
@@ -36,7 +38,6 @@ keyring = "2"
 colored = "2"
 colored_json = "3"
 interactive-parse = "0.1.5"
-cosm-tome = { version = "0.2", features = ["os_keyring"] }
 log = "0.4"
 erased-serde = "0.3"
 flate2 = "1"

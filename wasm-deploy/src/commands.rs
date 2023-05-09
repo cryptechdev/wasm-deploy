@@ -9,9 +9,9 @@ use clap_complete::{
 };
 use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
-use cosm_tome::{
+use cosm_utils::prelude::Cosmwasm;
+use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
-    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
 #[cfg(feature = "wasm_opt")]
@@ -19,6 +19,7 @@ use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::InteractiveParseObj;
 use log::info;
+use tendermint_rpc::HttpClient;
 #[cfg(feature = "wasm_opt")]
 use tokio::task::spawn_blocking;
 #[cfg(feature = "wasm_opt")]
@@ -113,12 +114,12 @@ pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> a
             "Select which chains to delete",
             all_chains
                 .iter()
-                .map(|x| x.chain_id.clone())
+                .map(|x| x.cfg.chain_id.clone())
                 .collect::<Vec<_>>(),
         )
         .prompt()?;
         for chain in chains_to_remove {
-            all_chains.retain(|x| x.chain_id != chain);
+            all_chains.retain(|x| x.cfg.chain_id != chain);
         }
     }
     config.save(settings)?;
@@ -521,35 +522,26 @@ pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> anyhow::
     let msg = serde_json::to_vec(&value)?;
     let key = config.get_active_key().await?;
 
-    let chain_info = config.get_active_chain_config()?.clone();
-    let client = TendermintRPC::new(
-        &chain_info
-            .rpc_endpoint
-            .clone()
-            .ok_or(DeployError::MissingRpc)?,
-    )?;
-    let cosm_tome = CosmTome::new(chain_info, client);
+    let chain_info = config.get_active_chain_info()?.clone();
+    let client = HttpClient::new(chain_info.rpc_endpoint.as_str())?;
     let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
-    let tx_options = TxOptions {
-        timeout_height: None,
-        fee: None,
-        memo: "wasm_deploy".into(),
-    };
     let req = ExecRequest {
         msg,
         funds,
         address: Address::from_str(&contract_addr)?,
     };
 
-    let response = cosm_tome.wasm_execute(req, &key, &tx_options).await?;
+    let response = client
+        .wasm_execute_commit(&chain_info.cfg, req, &key, &TxOptions::default())
+        .await?;
 
     println!(
         "gas wanted: {}, gas used: {}",
-        response.res.gas_wanted.to_string().green(),
-        response.res.gas_used.to_string().green()
+        response.deliver_tx.gas_wanted.to_string().green(),
+        response.deliver_tx.gas_used.to_string().green()
     );
-    println!("tx hash: {}", response.res.tx_hash.purple());
+    println!("tx hash: {}", response.hash.to_string().purple());
 
     Ok(())
 }

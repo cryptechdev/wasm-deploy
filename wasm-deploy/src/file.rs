@@ -11,8 +11,7 @@ use std::{
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
 use crate::{error::DeployError, settings::WorkspaceSettings};
-use cosm_tome::{
-    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+use cosm_utils::{
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
 };
@@ -24,6 +23,7 @@ use lazy_static::lazy_static;
 use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use tendermint_rpc::HttpClient;
 use tokio::sync::RwLock;
 
 lazy_static! {
@@ -82,9 +82,15 @@ pub struct Config {
     #[serde(default)]
     pub settings: UserSettings,
     pub shell_completion_dir: Option<PathBuf>,
-    pub chains: Vec<ChainConfig>,
+    pub chains: Vec<ChainInfo>,
     pub envs: Vec<Env>,
     pub keys: Vec<SigningKey>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
+pub struct ChainInfo {
+    pub cfg: ChainConfig,
+    pub rpc_endpoint: String,
 }
 
 impl Config {
@@ -128,9 +134,9 @@ impl Config {
         }
     }
 
-    pub fn get_active_chain_config(&self) -> anyhow::Result<&ChainConfig> {
+    pub fn get_active_chain_info(&self) -> anyhow::Result<&ChainInfo> {
         let env = self.get_active_env()?;
-        match self.chains.iter().find(|x| x.chain_id == env.chain_id) {
+        match self.chains.iter().find(|x| x.cfg.chain_id == env.chain_id) {
             Some(chain_info) => Ok(chain_info),
             None => Err(DeployError::ChainConfigNotFound.into()),
         }
@@ -154,11 +160,11 @@ impl Config {
         Ok(key)
     }
 
-    pub fn add_chain_from(&mut self, chain_info: ChainConfig) -> Result<ChainConfig, DeployError> {
+    pub fn add_chain_from(&mut self, chain_info: ChainInfo) -> Result<ChainInfo, DeployError> {
         match self
             .chains
             .iter()
-            .any(|x| x.chain_id == chain_info.chain_id)
+            .any(|x| x.cfg.chain_id == chain_info.cfg.chain_id)
         {
             true => Err(DeployError::ChainAlreadyExists),
             false => {
@@ -168,8 +174,8 @@ impl Config {
         }
     }
 
-    pub fn add_chain(&mut self) -> anyhow::Result<ChainConfig> {
-        let chain_info = ChainConfig::parse_to_obj()?;
+    pub fn add_chain(&mut self) -> anyhow::Result<ChainInfo> {
+        let chain_info = ChainInfo::parse_to_obj()?;
         self.add_chain_from(chain_info.clone())?;
         Ok(chain_info)
     }
@@ -256,14 +262,7 @@ impl Config {
             _ => panic!("should not happen"),
         };
         let name = Text::new("Key Name?").prompt()?;
-        let derivation_path = Text::new("Derivation Path?")
-            .with_help_message("\"m/44'/118'/0'/0/0\"")
-            .prompt()?;
-        Ok(self.add_key_from(SigningKey {
-            name,
-            key,
-            derivation_path,
-        })?)
+        Ok(self.add_key_from(SigningKey { name, key })?)
     }
 
     pub fn add_env(&mut self) -> anyhow::Result<&mut Env> {
@@ -278,7 +277,7 @@ impl Config {
             "Select which chain to activate",
             self.chains
                 .iter()
-                .map(|x| x.chain_id.clone())
+                .map(|x| x.cfg.chain_id.clone())
                 .collect::<Vec<_>>(),
         )
         .with_help_message("\"dev\", \"prod\", \"other\"")
@@ -309,15 +308,10 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_rpc_client(&mut self) -> anyhow::Result<CosmTome<TendermintRPC>> {
-        let chain_info = self.get_active_chain_config()?;
-        let client = TendermintRPC::new(
-            &chain_info
-                .rpc_endpoint
-                .clone()
-                .ok_or(DeployError::MissingRpc)?,
-        )?;
-        Ok(CosmTome::new(chain_info.clone(), client))
+    pub fn get_rpc_client(&mut self) -> anyhow::Result<HttpClient> {
+        let chain_info = self.get_active_chain_info()?;
+        let client = HttpClient::new(chain_info.rpc_endpoint.as_str())?;
+        Ok(client)
     }
 
     pub fn get_shell_completion_dir(&self) -> Option<&PathBuf> {

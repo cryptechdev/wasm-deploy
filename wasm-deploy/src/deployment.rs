@@ -1,14 +1,15 @@
 use std::str::FromStr;
 
 use colored::Colorize;
-use cosm_tome::{
-    chain::{request::TxOptions, response::ChainTxResponse},
-    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+use cosm_utils::{
+    chain::request::TxOptions,
     modules::{
         auth::model::Address,
         cosmwasm::model::{ExecRequest, InstantiateRequest, MigrateRequest, StoreCodeRequest},
     },
+    prelude::Cosmwasm,
 };
+use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 
 use crate::{
     contract::Contract,
@@ -33,22 +34,14 @@ pub async fn execute_deployment(
     deployment_stage: DeploymentStage,
 ) -> anyhow::Result<()> {
     let config = CONFIG.read().await;
-    let chain_info = config.get_active_chain_config()?.clone();
+    let chain_info = config.get_active_chain_info()?.clone();
     let key = config.get_active_key().await?;
-    let Some(rpc_endpoint) = chain_info.rpc_endpoint.clone() else {
-        return Err(DeployError::MissingRpc.into());
-    };
+    let rpc_endpoint = chain_info.rpc_endpoint.clone();
     drop(config);
 
-    let client = TendermintRPC::new(&rpc_endpoint)?;
-    let cosm_tome = CosmTome::new(chain_info, client);
-    let tx_options = TxOptions {
-        timeout_height: None,
-        fee: None,
-        memo: "wasm_deploy".into(),
-    };
+    let client = HttpClient::new(rpc_endpoint.as_str())?;
 
-    let response: Option<ChainTxResponse> = match deployment_stage {
+    let response: Option<tx_commit::Response> = match deployment_stage {
         DeploymentStage::StoreCode => {
             let mut reqs = vec![];
             for contract in contracts {
@@ -63,7 +56,9 @@ pub async fn execute_deployment(
                 });
             }
 
-            let response = cosm_tome.wasm_store_batch(reqs, &key, &tx_options).await?;
+            let response = client
+                .wasm_store_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
+                .await?;
 
             let mut config = CONFIG.write().await;
             for (i, contract) in contracts.iter().enumerate() {
@@ -84,11 +79,6 @@ pub async fn execute_deployment(
         DeploymentStage::Instantiate => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
-            let tx_options = TxOptions {
-                timeout_height: None,
-                fee: None,
-                memo: "wasm_deploy".into(),
-            };
             for contract in contracts {
                 if let Some(msg) = contract.instantiate_msg() {
                     println!("Instantiating {}", contract.name());
@@ -103,8 +93,8 @@ pub async fn execute_deployment(
                     });
                 }
             }
-            let response = cosm_tome
-                .wasm_instantiate_batch(reqs, &key, &tx_options)
+            let response = client
+                .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
             drop(config);
             let mut config = CONFIG.write().await;
@@ -118,11 +108,6 @@ pub async fn execute_deployment(
         DeploymentStage::ExternalInstantiate => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
-            let tx_options = TxOptions {
-                timeout_height: None,
-                fee: None,
-                memo: "wasm_deploy".into(),
-            };
             for contract in contracts {
                 for external in contract.external_instantiate_msgs() {
                     println!("Instantiating {}", external.name);
@@ -139,8 +124,13 @@ pub async fn execute_deployment(
             if reqs.is_empty() {
                 None
             } else {
-                let response = cosm_tome
-                    .wasm_instantiate_batch(reqs, &key, &tx_options)
+                let response = client
+                    .wasm_instantiate_batch_commit(
+                        &chain_info.cfg,
+                        reqs,
+                        &key,
+                        &TxOptions::default(),
+                    )
                     .await?;
                 let mut index = 0;
                 for contract in contracts {
@@ -176,10 +166,10 @@ pub async fn execute_deployment(
             if reqs.is_empty() {
                 None
             } else {
-                let response = cosm_tome
-                    .wasm_execute_batch(reqs, &key, &tx_options)
+                let response = client
+                    .wasm_execute_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                     .await?;
-                Some(response.res)
+                Some(response)
             }
         }
         DeploymentStage::SetUp => {
@@ -201,10 +191,10 @@ pub async fn execute_deployment(
             if reqs.is_empty() {
                 None
             } else {
-                let response = cosm_tome
-                    .wasm_execute_batch(reqs, &key, &tx_options)
+                let response = client
+                    .wasm_execute_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                     .await?;
-                Some(response.res)
+                Some(response)
             }
         }
         DeploymentStage::Migrate => {
@@ -229,19 +219,19 @@ pub async fn execute_deployment(
                     });
                 }
             }
-            let response = cosm_tome
-                .wasm_migrate_batch(reqs, &key, &tx_options)
+            let response = client
+                .wasm_migrate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
-            Some(response.res)
+            Some(response)
         }
     };
     if let Some(res) = response {
         println!(
             "gas wanted: {}, gas used: {}",
-            res.gas_wanted.to_string().green(),
-            res.gas_used.to_string().green()
+            res.deliver_tx.gas_wanted.to_string().green(),
+            res.deliver_tx.gas_used.to_string().green()
         );
-        println!("tx hash: {}", res.tx_hash.purple());
+        println!("tx hash: {}", res.hash.to_string().purple());
     }
 
     Ok(())
