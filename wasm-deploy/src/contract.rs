@@ -27,7 +27,9 @@ pub trait Contract:
 {
     /// This is the name of the contract and represents
     /// how it will appear in the cli.
-    fn name(&self) -> String;
+    fn name(&self) -> String {
+        self.to_string()
+    }
 
     /// This is the name of the generated binary.
     /// It defaults to the contract name.
