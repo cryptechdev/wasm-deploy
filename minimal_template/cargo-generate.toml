@@ -1,0 +1,19 @@
+[placeholders.deploy_name]
+type = "string"
+prompt = "Pick a custom name for the deployment package executable:"
+default = "deploy"
+
+[placeholders.admin]
+type = "string"
+prompt = "Enter the admin account address to use for instantiation:"
+
+[conditional.'is_init']
+ignore = [
+    "contracts",
+    "packages",
+    "target",
+    "cargo-generate.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    ".DS_Store"
+]

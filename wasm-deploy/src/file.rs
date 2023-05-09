@@ -16,6 +16,7 @@ use cosm_utils::{
     signing_key::key::{Key, KeyringParams, SigningKey},
 };
 use futures::executor::block_on;
+use ibc_chain_registry::{chain::ChainData, constants::ALL_CHAINS, fetchable::Fetchable};
 use inquire::{Confirm, CustomType, Select, Text};
 use interactive_parse::InteractiveParseObj;
 use lazy_static::lazy_static;
@@ -175,8 +176,64 @@ impl Config {
         }
     }
 
-    pub fn add_chain(&mut self) -> anyhow::Result<ChainInfo> {
-        let chain_info = ChainInfo::parse_to_obj()?;
+    pub async fn add_chain(&mut self) -> anyhow::Result<ChainInfo> {
+        let res = Select::new(
+            "How would you like to input your chain information?",
+            vec!["Add chain manually", "Add chain from cosmos chain registry"],
+        )
+        .prompt()?;
+        let chain_info = match res {
+            "Add chain manually" => ChainInfo::parse_to_obj()?,
+            "Add chain from cosmos chain registry (mainnets only)" => {
+                let chain_name = Select::new("Select chain", ALL_CHAINS.to_vec())
+                    .prompt()?
+                    .to_string();
+                let chain_data = ChainData::fetch(chain_name.clone(), None).await?;
+                let fee_token = if chain_data.fees.fee_tokens.len() == 1 {
+                    chain_data.fees.fee_tokens[0].clone()
+                } else {
+                    let message = "Select fee token";
+                    let options = chain_data
+                        .fees
+                        .fee_tokens
+                        .iter()
+                        .map(|x| x.denom.clone())
+                        .collect();
+                    let token_denom = Select::new(message, options).prompt()?;
+                    chain_data
+                        .fees
+                        .fee_tokens
+                        .iter()
+                        .find(|x| x.denom == token_denom)
+                        .unwrap()
+                        .clone()
+                };
+                let rpc_endpoint = if chain_data.apis.rpc.len() == 1 {
+                    chain_data.apis.rpc[0].clone().address
+                } else {
+                    let message = "Select RPC endpoint";
+                    let options = chain_data
+                        .apis
+                        .rpc
+                        .iter()
+                        .map(|x| x.address.clone())
+                        .collect();
+                    Select::new(message, options).prompt()?
+                };
+                let derivation_path = format!("m/44'/{}'/0'/0/0", chain_data.slip44);
+                let cfg = ChainConfig {
+                    denom: fee_token.denom,
+                    prefix: chain_data.bech32_prefix,
+                    chain_id: chain_data.chain_id.to_string(),
+                    derivation_path,
+                    gas_price: fee_token.average_gas_price,
+                    gas_adjustment: 1.3,
+                };
+                ChainInfo { cfg, rpc_endpoint }
+            }
+            _ => unreachable!(),
+        };
+
         self.add_chain_from(chain_info.clone())?;
         Ok(chain_info)
     }

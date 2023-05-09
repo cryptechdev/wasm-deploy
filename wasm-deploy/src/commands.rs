@@ -97,8 +97,8 @@ where
 pub async fn init(settings: &WorkspaceSettings) -> anyhow::Result<()> {
     info!("Initializing wasm-deploy");
     let mut config = Config::init(settings)?;
+    config.add_chain().await?;
     config.add_key().await?;
-    config.add_chain()?;
     config.add_env()?;
     config.save(settings)?;
     Ok(())
@@ -107,7 +107,7 @@ pub async fn init(settings: &WorkspaceSettings) -> anyhow::Result<()> {
 pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
     let mut config = CONFIG.write().await;
     if *add {
-        config.add_chain()?;
+        config.add_chain().await?;
     } else if *delete {
         let all_chains = &mut config.chains;
         let chains_to_remove = MultiSelect::new(

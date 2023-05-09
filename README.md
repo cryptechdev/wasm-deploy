@@ -62,8 +62,7 @@ Then you should be able to run
 ```bash
 deploy init
 ```
-This will initialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional RPC endpoint as it is the only client which is currently fully working.
-
+This will initialize the deployment config and will prompt you for a bunch of important information.
 Before you deploy the contracts, please be sure to change the ADMIN constant in deployment/src/defaults.rs to your personal dev address.
 
 Deploy all contracts with
@@ -152,6 +151,7 @@ workspace-root/
 
 ## Feature List
 
+- [x] Support for tendermint 0.37
 - [x] Full deployment automation
 - [x] Interactive parsing of all jsonschema types
 - [x] Automatic contract address insertion.
@@ -163,7 +163,6 @@ workspace-root/
 - [x] Cw20HookMsg
 - [x] Batching messages of the same type
 - [ ] Batching messages of different types
-- [ ] gRPC client
 - [x] HTTP client
 - [ ] Automatic wasm-deploy compilation
 - [x] Mnemonic key
