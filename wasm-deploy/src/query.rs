@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use colored_json::to_colored_json_auto;
-use cosm_utils::{modules::auth::model::Address, prelude::Cosmwasm};
+use cosm_utils::{modules::auth::model::Address, prelude::*};
 use cw20::Cw20QueryMsg;
 use inquire::Text;
 use interactive_parse::InteractiveParseObj;

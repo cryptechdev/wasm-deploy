@@ -6,7 +6,7 @@ use colored::Colorize;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
-    prelude::Cosmwasm,
+    prelude::*,
 };
 use interactive_parse::InteractiveParseObj;
 use serde::Serialize;

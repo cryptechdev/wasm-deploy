@@ -9,7 +9,7 @@ use clap_complete::{
 };
 use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
-use cosm_utils::prelude::Cosmwasm;
+use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},

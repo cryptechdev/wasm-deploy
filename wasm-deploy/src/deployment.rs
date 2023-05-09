@@ -7,7 +7,7 @@ use cosm_utils::{
         auth::model::Address,
         cosmwasm::model::{ExecRequest, InstantiateRequest, MigrateRequest, StoreCodeRequest},
     },
-    prelude::Cosmwasm,
+    prelude::*,
 };
 use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 

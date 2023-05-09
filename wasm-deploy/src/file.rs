@@ -89,6 +89,7 @@ pub struct Config {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
 pub struct ChainInfo {
+    #[serde(flatten)]
     pub cfg: ChainConfig,
     pub rpc_endpoint: String,
 }

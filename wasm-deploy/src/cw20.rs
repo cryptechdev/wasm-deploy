@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::{contract::Contract, file::CONFIG};
 use colored::Colorize;
-use cosm_utils::prelude::Cosmwasm;
+use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
     modules::{
