@@ -2,9 +2,9 @@ pub mod contract;
 pub mod defaults;
 pub mod subcommand;
 
-use std::path::PathBuf;
 use clap::{CommandFactory, FromArgMatches};
 use contract::Contracts;
+use std::path::PathBuf;
 use subcommand::{execute_custom_args, CustomSubcommand};
 use wasm_deploy::{cli::Cli, commands::execute_args, settings::WorkspaceSettings};
 

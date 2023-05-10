@@ -1,3 +1,4 @@
+#![feature(log_syntax)]
 use contracts::{generate_impl, get_contracts};
 use quote::ToTokens;
 use syn::{parse_macro_input, parse_quote, DeriveInput, ItemEnum};

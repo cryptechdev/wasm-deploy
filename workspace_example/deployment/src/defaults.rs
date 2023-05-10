@@ -2,7 +2,7 @@
 use cw20::MinterResponse;
 use lazy_static::lazy_static;
 use wasm_deploy::{
-    contract::{Contract, ExternalInstantiate},
+    contract::{ContractInteractive, ExternalInstantiate},
     utils::{get_addr, get_code_id},
 };
 

@@ -1,51 +1,13 @@
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Display, Formatter},
-};
+use std::collections::BTreeMap;
 
 use convert_case::{Case, Casing};
-use quote::{
-    ToTokens,
-    __private::{Span, TokenStream},
-};
 
 use syn::{
     parse::{Parse, ParseStream},
     parse_quote,
     token::Brace,
-    Expr, ExprMatch, Ident, ItemEnum, ItemImpl, LitStr, Path, Token,
+    Expr, ExprMatch, Ident, ItemEnum, ItemImpl, Path, Token,
 };
-pub fn generate_match<F>(enum_ident: &Ident, contracts: &[Contract], f: F) -> ExprMatch
-where
-    F: Fn(&Contract) -> Expr,
-{
-    let match_statement_base = ExprMatch {
-        attrs: vec![],
-        match_token: parse_quote!(match),
-        expr: parse_quote!(&self),
-        brace_token: Brace::default(),
-        arms: contracts
-            .iter()
-            .map(|contract| {
-                let ident = Ident::new(
-                    contract.name.to_case(Case::UpperCamel).as_str(),
-                    Span::call_site(),
-                );
-                let expr = f(contract);
-
-                parse_quote!(
-                   #enum_ident::#ident => {
-                       #expr
-                   }
-                )
-            })
-            .collect(),
-    };
-
-    parse_quote! {
-        #match_statement_base
-    }
-}
 
 pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
     item_enum
@@ -60,10 +22,18 @@ pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
 
             let options: Options = attr.parse_args().unwrap();
 
-            let name = variant.ident.to_string();
+            let name = if let Some(rename) = options.rename {
+                rename
+            } else {
+                let string = variant.ident.to_string().to_case(Case::Snake);
+                parse_quote!(#string)
+            };
 
             Contract {
                 name,
+                bin_name: options.bin_name,
+                variant_name: variant.ident,
+                path: options.path,
                 admin: options.admin,
                 instantiate: options.instantiate,
                 execute: options.execute,
@@ -75,7 +45,55 @@ pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
         .collect()
 }
 
+pub fn generate_match<F>(enum_ident: &Ident, contracts: &[Contract], f: F) -> ExprMatch
+where
+    F: Fn(&Contract) -> Expr,
+{
+    let match_statement_base = ExprMatch {
+        attrs: vec![],
+        match_token: parse_quote!(match),
+        expr: parse_quote!(&self),
+        brace_token: Brace::default(),
+        arms: contracts
+            .iter()
+            .map(|contract| {
+                let variant_ident = contract.variant_name.clone();
+                let expr = f(contract);
+
+                parse_quote!(
+                   #enum_ident::#variant_ident => {
+                       #expr
+                   }
+                )
+            })
+            .collect(),
+    };
+
+    parse_quote! {
+        #match_statement_base
+    }
+}
+
 pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
+    let name_match = generate_match(enum_ident, contracts, |contract| {
+        let path = &contract.name;
+        parse_quote!(#path.to_string())
+    });
+
+    let bin_name_match =
+        generate_match(enum_ident, contracts, |contract| match &contract.bin_name {
+            Some(bin_name) => parse_quote!(#bin_name.to_string()),
+            None => parse_quote!(self.name()),
+        });
+
+    let path_match = generate_match(enum_ident, contracts, |contract| match &contract.path {
+        Some(path) => parse_quote!(#path.into()),
+        None => parse_quote!(::std::path::PathBuf::from(format!(
+            "contracts/{}",
+            self.name()
+        ))),
+    });
+
     let admin_match = generate_match(enum_ident, contracts, |contract| {
         let path = &contract.admin;
         parse_quote!(#path.to_string())
@@ -132,6 +150,15 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
 
     parse_quote! {
         impl ::wasm_deploy::contract::ContractInteractive for #enum_ident {
+            fn name(&self) -> String {
+                #name_match
+            }
+            fn bin_name(&self) -> String {
+                #bin_name_match
+            }
+            fn path(&self) -> ::std::path::PathBuf {
+                #path_match
+            }
             fn admin(&self) -> String {
                 #admin_match
             }
@@ -155,52 +182,24 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
 }
 
 enum Value {
-    Type(syn::Path),
-    Str(syn::LitStr),
+    Path(syn::Path),
+    Expr(syn::Expr),
 }
 
 impl Value {
     fn unwrap_type(self) -> syn::Path {
-        if let Self::Type(p) = self {
+        if let Self::Path(p) = self {
             p
         } else {
             panic!("expected a type");
         }
     }
 
-    fn unwrap_str(self) -> syn::LitStr {
-        if let Self::Str(s) = self {
-            s
+    fn unwrap_expr(self) -> syn::Expr {
+        if let Self::Expr(e) = self {
+            e
         } else {
-            panic!("expected a string literal");
-        }
-    }
-}
-
-// impl Display for Value {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         match self {
-//             Self::Type(p) => p.get_ident().unwrap().fmt(f),
-//             Self::Str(s) => s.value().fmt(f),
-//         }
-//     }
-// }
-
-impl ToTokens for Value {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Type(p) => p.to_tokens(tokens),
-            Self::Str(s) => s.to_tokens(tokens),
-        }
-    }
-}
-
-impl Parse for Value {
-    fn parse(input: ParseStream) -> syn::parse::Result<Self> {
-        if let Ok(p) = input.parse::<syn::Path>() {
-            Ok(Self::Type(p))
-        } else {
-            Ok(Self::Str(input.parse::<syn::LitStr>()?))
+            panic!("expected an expression");
         }
     }
 }
@@ -211,15 +210,28 @@ impl Parse for Pair {
     fn parse(input: ParseStream) -> syn::parse::Result<Self> {
         let k = input.parse::<syn::Ident>()?;
         input.parse::<Token![=]>()?;
-        let v = input.parse::<Value>()?;
+        let v = match k.to_string().as_str() {
+            // "rename" => Value::Str(input.parse::<LitStr>()?),
+            "admin" | "rename" | "bin_name" | "path" => Value::Expr(input.parse::<Expr>()?),
+            "instantiate" | "execute" | "query" | "migrate" | "cw20_send" => {
+                Value::Path(input.parse::<Path>()?)
+            }
+            _ => return Err(syn::Error::new(
+                k.span(),
+                "expected one of: rename, admin, instantiate, execute, query, migrate, cw20_send",
+            )),
+        };
 
         Ok(Self((k, v)))
     }
 }
 
 pub struct Contract {
-    name: String,
-    admin: Value,
+    name: Expr,
+    bin_name: Option<Expr>,
+    path: Option<Expr>,
+    variant_name: Ident,
+    admin: Expr,
     instantiate: Path,
     execute: Option<Path>,
     query: Option<Path>,
@@ -228,8 +240,10 @@ pub struct Contract {
 }
 
 pub struct Options {
-    name: Option<LitStr>,
-    admin: Value,
+    rename: Option<Expr>,
+    bin_name: Option<Expr>,
+    path: Option<Expr>,
+    admin: Expr,
     instantiate: Path,
     execute: Option<Path>,
     query: Option<Path>,
@@ -240,11 +254,16 @@ pub struct Options {
 impl Parse for Options {
     fn parse(input: ParseStream) -> syn::parse::Result<Self> {
         let pairs = input.parse_terminated(Pair::parse, Token![,])?;
+
         let mut map: BTreeMap<_, _> = pairs.into_iter().map(|p| p.0).collect();
 
-        let name = map.remove(&parse_quote!(name)).map(|x| x.unwrap_str());
+        let rename = map.remove(&parse_quote!(rename)).map(|x| x.unwrap_expr());
 
-        let admin = map.remove(&parse_quote!(admin)).unwrap();
+        let bin_name = map.remove(&parse_quote!(bin_name)).map(|x| x.unwrap_expr());
+
+        let path = map.remove(&parse_quote!(path)).map(|x| x.unwrap_expr());
+
+        let admin = map.remove(&parse_quote!(admin)).unwrap().unwrap_expr();
 
         let instantiate = map
             .remove(&parse_quote!(instantiate))
@@ -265,16 +284,14 @@ impl Parse for Options {
             .remove(&parse_quote!(cw20_send))
             .map(|ty| ty.unwrap_type());
 
-        let instantiate_msg = map
-            .remove(&parse_quote!(instantiate_msg))
-            .map(|ty| ty.to_token_stream());
-
         if let Some((invalid_option, _)) = map.into_iter().next() {
             panic!("unknown generate_api option: {}", invalid_option);
         }
 
         Ok(Self {
-            name,
+            rename,
+            bin_name,
+            path,
             admin,
             instantiate,
             execute,
@@ -282,20 +299,5 @@ impl Parse for Options {
             migrate,
             cw20_send,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    #[should_panic(expected = "unknown generate_api option: asd")]
-    fn invalid_option() {
-        let _options: Options = parse_quote! {
-            instantiate: InstantiateMsg,
-            asd: Asd,
-        };
     }
 }

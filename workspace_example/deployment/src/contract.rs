@@ -1,19 +1,26 @@
 // This file defines your contract. It's mostly boiler plate.
+use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
 use wasm_deploy::contract::{Contract, Msg};
 use wasm_deploy::derive::contracts;
 
-use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
-
 /// This is where you define the list of all contracts you want wasm-deploy to know about
+/// This attribute macro will generate a bunch of code for you.
+/// Simply create an enum with variants for each contract.
 #[contracts]
 pub enum Contracts {
     // Cw20Base is just an example.
     // You should replace it with your own contract.
     #[contract(
-        admin = "hello",
+        admin = ADMIN,
         instantiate = cw20_base::msg::InstantiateMsg,
         execute = cw20_base::msg::ExecuteMsg,
         query = cw20_base::msg::QueryMsg
+        // cw20_send = ...             
+        // migrate = ...                
+        // rename = "cw20"               // | You should only need to change these
+        // bin_name = "cw20"             // | three ff you have a non-standard workspace
+        // path = "contracts/cw20_base"  // | layout.
+
     )]
     Cw20Base,
     // You can add more contracts to this list

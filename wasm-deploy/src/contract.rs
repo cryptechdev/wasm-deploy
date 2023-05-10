@@ -23,30 +23,11 @@ impl Serialize for dyn Msg {
 
 /// This trait represents a contract that can be deployed.
 pub trait Contract: ContractInteractive {
-    /// This is the name of the contract and represents
-    /// how it will appear in the cli.
-    fn name(&self) -> String {
-        self.to_string()
-    }
-
-    /// This is the name of the generated binary.
-    /// It defaults to the contract name.
-    /// If you have multiple contracts that share the same code
-    /// then you can use this, in conjunction with the path method.
-    fn bin_name(&self) -> String {
-        self.name()
-    }
-
     /// This method gets the preprogrammed instantiate msg for the contract.
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>> {
         println!("No instantiate msg for {}", self.name());
         println!("Defaulting to interactive instantiate");
         self.instantiate().ok()
-    }
-
-    /// This method will instantiate an external contract via code_id alongside a local contract.
-    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>> {
-        vec![]
     }
 
     /// This method gets the preprogrammed migrate msg for the contract.
@@ -64,16 +45,35 @@ pub trait Contract: ContractInteractive {
         vec![]
     }
 
-    /// This method allows for customizing the path to the contract.
-    /// This should be the path relative to the project root.
-    fn path(&self) -> PathBuf {
-        PathBuf::from(format!("contracts/{}", self.name()))
+    /// This method will instantiate an external contract via code_id alongside a local contract.
+    fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>> {
+        vec![]
     }
 }
 
 pub trait ContractInteractive:
     Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
 {
+    /// This is the name of the contract and represents
+    /// how it will appear in the cli.
+    fn name(&self) -> String {
+        self.to_string()
+    }
+
+    /// This is the name of the generated binary.
+    /// It defaults to the contract name.
+    /// If you have multiple contracts that share the same code
+    /// then you can use this, in conjunction with the path method.
+    fn bin_name(&self) -> String {
+        self.name()
+    }
+
+    /// This method allows for customizing the path to the contract.
+    /// This should be the path relative to the project root.
+    fn path(&self) -> PathBuf {
+        PathBuf::from(format!("contracts/{}", self.name()))
+    }
+
     /// This is the address of the contract admin.
     /// It is required when instantiating.
     fn admin(&self) -> String;
