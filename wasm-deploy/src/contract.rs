@@ -22,9 +22,7 @@ impl Serialize for dyn Msg {
 }
 
 /// This trait represents a contract that can be deployed.
-pub trait Contract:
-    Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
-{
+pub trait Contract: ContractInteractive {
     /// This is the name of the contract and represents
     /// how it will appear in the cli.
     fn name(&self) -> String {
@@ -37,40 +35,6 @@ pub trait Contract:
     /// then you can use this, in conjunction with the path method.
     fn bin_name(&self) -> String {
         self.name()
-    }
-
-    /// This is the address of the contract admin.
-    /// It is required when instantiating.
-    fn admin(&self) -> String;
-
-    /// This method allows instantiating a contract interactively.
-    /// interactive-parse should be used to generate the msg.
-    fn instantiate(&self) -> anyhow::Result<Box<dyn Msg>> {
-        Err(DeployError::TraitNotImplemented.into())
-    }
-
-    /// This method allows executing a contract interactively.
-    /// interactive-parse should be used to generate the msg.
-    fn execute(&self) -> anyhow::Result<Box<dyn Msg>> {
-        Err(DeployError::TraitNotImplemented.into())
-    }
-
-    /// This method allows querying a contract interactively.
-    /// interactive-parse should be used to generate the msg.
-    fn query(&self) -> anyhow::Result<Box<dyn Msg>> {
-        Err(DeployError::TraitNotImplemented.into())
-    }
-
-    /// This method allows migrating a contract interactively.
-    /// interactive-parse should be used to generate the msg.
-    fn migrate(&self) -> anyhow::Result<Box<dyn Msg>> {
-        Err(DeployError::TraitNotImplemented.into())
-    }
-
-    /// This method allows sending a cw20 token with an attached message to a contract interactively.
-    /// interactive-parse should be used to generate the msg.
-    fn cw20_send(&self) -> anyhow::Result<Box<dyn Msg>> {
-        Err(DeployError::TraitNotImplemented.into())
     }
 
     /// This method gets the preprogrammed instantiate msg for the contract.
@@ -104,6 +68,44 @@ pub trait Contract:
     /// This should be the path relative to the project root.
     fn path(&self) -> PathBuf {
         PathBuf::from(format!("contracts/{}", self.name()))
+    }
+}
+
+pub trait ContractInteractive:
+    Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
+{
+    /// This is the address of the contract admin.
+    /// It is required when instantiating.
+    fn admin(&self) -> String;
+
+    /// This method allows instantiating a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn instantiate(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows executing a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn execute(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows querying a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn query(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows migrating a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn migrate(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows sending a cw20 token with an attached message to a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn cw20_send(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
     }
 }
 

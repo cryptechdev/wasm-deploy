@@ -1,23 +1,52 @@
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Display, Formatter},
-};
+use std::collections::BTreeMap;
 
 use convert_case::{Case, Casing};
-use quote::{
-    ToTokens,
-    __private::{Span, TokenStream},
-};
+use quote::{ToTokens, __private::TokenStream};
+// use proc_macro2::{Ident, TokenStream};
 
 use syn::{
+    braced,
     parse::{Parse, ParseStream},
     parse_quote,
     token::Brace,
-    Expr, ExprMatch, Ident, ItemEnum, ItemImpl, LitStr, Path, Token,
+    Expr, ExprMatch, Fields, Ident, ItemEnum, ItemImpl, LitStr, Path, Token, Variant,
 };
-pub fn generate_match<F>(enum_ident: &Ident, contracts: &[Contract], f: F) -> ExprMatch
+
+pub fn generate_enum(contracts: &[Options]) -> ItemEnum {
+    let mut item_enum: ItemEnum = parse_quote!(
+        #[derive(
+            ::wasm_deploy::strum_macros::Display,
+            ::wasm_deploy::strum_macros::EnumIter,
+            ::wasm_deploy::strum_macros::EnumString,
+            ::std::clone::Clone,
+            ::std::fmt::Debug,
+        )]
+        #[strum(serialize_all = "snake_case")]
+        pub enum Contracts {}
+    );
+    item_enum.variants = contracts
+        .iter()
+        .map(|contract| {
+            let ident = Ident::new(
+                contract.name.value().to_case(Case::UpperCamel).as_str(),
+                contract.name.span(),
+            );
+            println!("ident: {}", ident);
+
+            Variant {
+                attrs: vec![],
+                ident,
+                fields: Fields::Unit,
+                discriminant: None,
+            }
+        })
+        .collect();
+    item_enum
+}
+
+pub fn generate_match<F>(contracts: &[Options], f: F) -> ExprMatch
 where
-    F: Fn(&Contract) -> Expr,
+    F: Fn(&Options) -> Expr,
 {
     let match_statement_base = ExprMatch {
         attrs: vec![],
@@ -28,13 +57,13 @@ where
             .iter()
             .map(|contract| {
                 let ident = Ident::new(
-                    contract.name.to_case(Case::UpperCamel).as_str(),
-                    Span::call_site(),
+                    contract.name.value().to_case(Case::UpperCamel).as_str(),
+                    contract.name.span(),
                 );
                 let expr = f(contract);
 
                 parse_quote!(
-                   #enum_ident::#ident => {
+                   Contracts::#ident => {
                        #expr
                    }
                 )
@@ -47,46 +76,18 @@ where
     }
 }
 
-pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
-    item_enum
-        .variants
-        .into_iter()
-        .map(|variant| {
-            let attr = variant
-                .attrs
-                .into_iter()
-                .find(|attr| attr.path().is_ident("contract"))
-                .expect("Missing `#[contract(..)]` attribute");
-
-            let options: Options = attr.parse_args().unwrap();
-
-            let name = variant.ident.to_string();
-
-            Contract {
-                name,
-                admin: options.admin,
-                instantiate: options.instantiate,
-                execute: options.execute,
-                query: options.query,
-                migrate: options.migrate,
-                cw20_send: options.cw20_send,
-            }
-        })
-        .collect()
-}
-
-pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
-    let admin_match = generate_match(enum_ident, contracts, |contract| {
+pub fn generate_impl(contracts: &[Options]) -> ItemImpl {
+    let admin_match = generate_match(contracts, |contract| {
         let path = &contract.admin;
         parse_quote!(#path.to_string())
     });
 
-    let instantiate_match = generate_match(enum_ident, contracts, |contract| {
+    let instantiate_match = generate_match(contracts, |contract| {
         let path = &contract.instantiate;
         parse_quote!(Ok(Box::new(<#path as ::interactive_parse::InteractiveParseObj>::parse_to_obj()?)))
     });
 
-    let execute_match = generate_match(enum_ident, contracts, |contract| match &contract.execute {
+    let execute_match = generate_match(contracts, |contract| match &contract.execute {
         Some(path) => {
             parse_quote!(Ok(Box::new(<#path as ::interactive_parse::InteractiveParseObj>::parse_to_obj()?)))
         }
@@ -97,7 +98,7 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
         }
     });
 
-    let query_match = generate_match(enum_ident, contracts, |contract| match &contract.query {
+    let query_match = generate_match(contracts, |contract| match &contract.query {
         Some(path) => {
             parse_quote!(Ok(Box::new(<#path as ::interactive_parse::InteractiveParseObj>::parse_to_obj()?)))
         }
@@ -106,7 +107,7 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
         }
     });
 
-    let migrate_match = generate_match(enum_ident, contracts, |contract| match &contract.migrate {
+    let migrate_match = generate_match(contracts, |contract| match &contract.migrate {
         Some(path) => {
             parse_quote!(Ok(Box::new(<#path as ::interactive_parse::InteractiveParseObj>::parse_to_obj()?)))
         }
@@ -117,21 +118,19 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
         }
     });
 
-    let cw20_send_match = generate_match(enum_ident, contracts, |contract| {
-        match &contract.cw20_send {
-            Some(path) => {
-                parse_quote!(Ok(Box::new(<#path as ::interactive_parse::InteractiveParseObj>::parse_to_obj()?)))
-            }
-            None => {
-                parse_quote!(::anyhow::bail!(
-                    "The Cw20 Receive message has not yet been implemented"
-                ))
-            }
+    let cw20_send_match = generate_match(contracts, |contract| match &contract.cw20_send {
+        Some(path) => {
+            parse_quote!(Ok(Box::new(<#path as ::interactive_parse::InteractiveParseObj>::parse_to_obj()?)))
+        }
+        None => {
+            parse_quote!(::anyhow::bail!(
+                "The Cw20 Receive message has not yet been implemented"
+            ))
         }
     });
 
     parse_quote! {
-        impl ::wasm_deploy::contract::ContractInteractive for #enum_ident {
+        impl ::wasm_deploy::contract::ContractInteractive for Contracts {
             fn admin(&self) -> String {
                 #admin_match
             }
@@ -177,15 +176,6 @@ impl Value {
     }
 }
 
-// impl Display for Value {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         match self {
-//             Self::Type(p) => p.get_ident().unwrap().fmt(f),
-//             Self::Str(s) => s.value().fmt(f),
-//         }
-//     }
-// }
-
 impl ToTokens for Value {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
@@ -210,25 +200,41 @@ struct Pair((Ident, Value));
 impl Parse for Pair {
     fn parse(input: ParseStream) -> syn::parse::Result<Self> {
         let k = input.parse::<syn::Ident>()?;
-        input.parse::<Token![=]>()?;
+        input.parse::<Token![:]>()?;
         let v = input.parse::<Value>()?;
 
         Ok(Self((k, v)))
     }
 }
 
-pub struct Contract {
-    name: String,
-    admin: Value,
-    instantiate: Path,
-    execute: Option<Path>,
-    query: Option<Path>,
-    migrate: Option<Path>,
-    cw20_send: Option<Path>,
+pub struct Contracts(pub Vec<Options>);
+
+impl Parse for Contracts {
+    fn parse(input: ParseStream) -> syn::parse::Result<Self> {
+        // first try to parse as a single contract
+        if let Ok(contract) = input.parse::<Options>() {
+            Ok(Self(vec![contract]))
+        } else {
+            // if that fails, try to parse as a list of contracts
+            let contracts = input.parse_terminated(BracedOptions::parse, Token![,])?;
+            Ok(Self(contracts.into_iter().map(|x| x.0).collect()))
+        }
+    }
+}
+
+pub struct BracedOptions(Options);
+
+impl Parse for BracedOptions {
+    fn parse(input: ParseStream) -> syn::parse::Result<Self> {
+        let content;
+        braced!(content in input);
+
+        Ok(Self(content.parse::<Options>()?))
+    }
 }
 
 pub struct Options {
-    name: Option<LitStr>,
+    name: LitStr,
     admin: Value,
     instantiate: Path,
     execute: Option<Path>,
@@ -242,7 +248,7 @@ impl Parse for Options {
         let pairs = input.parse_terminated(Pair::parse, Token![,])?;
         let mut map: BTreeMap<_, _> = pairs.into_iter().map(|p| p.0).collect();
 
-        let name = map.remove(&parse_quote!(name)).map(|x| x.unwrap_str());
+        let name = map.remove(&parse_quote!(name)).unwrap().unwrap_str();
 
         let admin = map.remove(&parse_quote!(admin)).unwrap();
 
@@ -264,10 +270,6 @@ impl Parse for Options {
         let cw20_send = map
             .remove(&parse_quote!(cw20_send))
             .map(|ty| ty.unwrap_type());
-
-        let instantiate_msg = map
-            .remove(&parse_quote!(instantiate_msg))
-            .map(|ty| ty.to_token_stream());
 
         if let Some((invalid_option, _)) = map.into_iter().next() {
             panic!("unknown generate_api option: {}", invalid_option);

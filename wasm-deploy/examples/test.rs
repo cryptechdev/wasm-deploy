@@ -1,30 +1,12 @@
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use wasm_deploy_derive::contracts;
-
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-pub enum SampleMsg {
-    Foo,
-    Bar,
-}
 
 pub const ADMIN: &str = "I am const";
 
 fn main() {
-    let my_var = "asdfasdf";
-    contracts!(
-        {
-            name: "doodoo",
-            admin: my_var,
-            instantiate: SampleMsg,
-            execute: String,
-            query: String,
-            migrate: String,
-        },
-        {
-            name: "asdfasdf",
-            admin: "asdfasdf",
-            instantiate: SampleMsg,
-        }
-    );
+    let admin = "woah_dude";
+    #[contracts]
+    pub enum TestContracts {
+        #[contract(admin = ADMIN, instantiate = String)]
+        Foo,
+    }
 }
