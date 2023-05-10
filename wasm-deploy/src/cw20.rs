@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{contract::Contract, file::CONFIG};
+use crate::{contract::Deploy, file::CONFIG};
 use colored::Colorize;
 use cosm_utils::prelude::*;
 use cosm_utils::{
@@ -15,7 +15,7 @@ use inquire::{CustomType, Text};
 use interactive_parse::InteractiveParseObj;
 use tendermint_rpc::HttpClient;
 
-pub async fn cw20_send(contract: &impl Contract) -> anyhow::Result<()> {
+pub async fn cw20_send(contract: &impl Deploy) -> anyhow::Result<()> {
     println!("Executing cw20 send");
     let config = CONFIG.read().await;
     let key = config.get_active_key().await?;

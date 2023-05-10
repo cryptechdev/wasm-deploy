@@ -29,7 +29,7 @@ use wasm_opt::integration::run_from_command_args;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
-    contract::Contract,
+    contract::Deploy,
     cw20::{cw20_execute, cw20_instantiate, cw20_send},
     deployment::{execute_deployment, DeploymentStage},
     error::DeployError,
@@ -49,7 +49,7 @@ use std::path::{Path, PathBuf};
 #[async_recursion(?Send)]
 pub async fn execute_args<C, S>(settings: &WorkspaceSettings, cli: &Cli<C, S>) -> anyhow::Result<()>
 where
-    C: Contract + Clone,
+    C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
     info!("Executing args: {:#?}", cli);
@@ -202,7 +202,7 @@ pub async fn execute_env(
 
 pub async fn deploy(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
     no_build: &bool,
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
@@ -218,7 +218,7 @@ pub async fn deploy(
 
 pub async fn update<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
 where
-    C: Contract + Clone,
+    C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
     Command::new("cargo")
@@ -236,7 +236,7 @@ where
 
 pub async fn generate_completions<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
 where
-    C: Contract + Clone,
+    C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
     let mut config = CONFIG.write().await;
@@ -319,7 +319,7 @@ where
 
 pub async fn build(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     // Build contracts
@@ -347,7 +347,7 @@ pub async fn build(
     Ok(())
 }
 
-pub fn schemas(contracts: &[impl Contract]) -> anyhow::Result<()> {
+pub fn schemas(contracts: &[impl Deploy]) -> anyhow::Result<()> {
     // Generate schemas
     for contract in contracts {
         Command::new("cargo")
@@ -369,7 +369,7 @@ pub fn schemas(contracts: &[impl Contract]) -> anyhow::Result<()> {
 // TODO: contracts with the same code are reprocessed. This is not optimal.
 pub async fn optimize(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
 ) -> anyhow::Result<()> {
     // Optimize contracts
     let mut handles = vec![];
@@ -453,7 +453,7 @@ pub async fn gzip_file(src: PathBuf) -> anyhow::Result<File> {
 
 pub fn set_execute_permissions(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
 ) -> anyhow::Result<()> {
     // change mod
     for contract in contracts {
@@ -467,7 +467,7 @@ pub fn set_execute_permissions(
 
 pub async fn store_code(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
 ) -> anyhow::Result<()> {
     let chunk_size = CONFIG.read().await.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
@@ -479,7 +479,7 @@ pub async fn store_code(
 
 pub async fn instantiate(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
 ) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, DeploymentStage::Instantiate).await?;
     execute_deployment(settings, contracts, DeploymentStage::ExternalInstantiate).await?;
@@ -488,7 +488,7 @@ pub async fn instantiate(
 
 pub async fn migrate(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     build(settings, contracts, cargo_args).await?;
@@ -499,21 +499,18 @@ pub async fn migrate(
 
 pub async fn set_config(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
 ) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, DeploymentStage::SetConfig).await?;
     Ok(())
 }
 
-pub async fn set_up(
-    settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
-) -> anyhow::Result<()> {
+pub async fn set_up(settings: &WorkspaceSettings, contracts: &[impl Deploy]) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, DeploymentStage::SetUp).await?;
     Ok(())
 }
 
-pub async fn custom_execute<C: Contract>(contract: &C, string: &str) -> anyhow::Result<()> {
+pub async fn custom_execute<C: Deploy>(contract: &C, string: &str) -> anyhow::Result<()> {
     println!("Executing {}", contract.name());
     let config = CONFIG.read().await;
     let value: serde_json::Value = serde_json::from_str(string)?;

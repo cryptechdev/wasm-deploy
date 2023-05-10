@@ -22,7 +22,7 @@ impl Serialize for dyn Msg {
 }
 
 /// This trait represents a contract that can be deployed.
-pub trait Contract: ContractInteractive {
+pub trait Deploy: ContractInteractive {
     /// This method gets the preprogrammed instantiate msg for the contract.
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>> {
         println!("No instantiate msg for {}", self.name());

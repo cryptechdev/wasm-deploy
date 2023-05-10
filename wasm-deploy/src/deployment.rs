@@ -12,7 +12,7 @@ use cosm_utils::{
 use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 
 use crate::{
-    contract::Contract,
+    contract::Deploy,
     error::DeployError,
     file::{ContractInfo, CONFIG},
     settings::WorkspaceSettings,
@@ -29,7 +29,7 @@ pub enum DeploymentStage {
 
 pub async fn execute_deployment(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
     // TODO: perhaps accept &[DeploymentStage]
     deployment_stage: DeploymentStage,
 ) -> anyhow::Result<()> {

@@ -10,12 +10,12 @@ use serde_json::Value;
 use tendermint_rpc::HttpClient;
 
 use crate::{
-    contract::Contract,
+    contract::Deploy,
     file::{Config, CONFIG},
     utils::replace_strings_any,
 };
 
-pub async fn query_contract(contract: &impl Contract) -> anyhow::Result<Value> {
+pub async fn query_contract(contract: &impl Deploy) -> anyhow::Result<Value> {
     println!("Querying");
     let config = CONFIG.read().await;
     let msg = contract.query()?;

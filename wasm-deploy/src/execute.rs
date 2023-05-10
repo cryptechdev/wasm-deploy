@@ -1,5 +1,5 @@
 use crate::{
-    contract::Contract,
+    contract::Deploy,
     file::{Config, CONFIG},
 };
 use colored::Colorize;
@@ -13,7 +13,7 @@ use serde::Serialize;
 use std::str::FromStr;
 use tendermint_rpc::HttpClient;
 
-pub async fn execute_contract(contract: &impl Contract) -> anyhow::Result<()> {
+pub async fn execute_contract(contract: &impl Deploy) -> anyhow::Result<()> {
     println!("Executing");
     let config = CONFIG.read().await;
     let msg = contract.execute()?;

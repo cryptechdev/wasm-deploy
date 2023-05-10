@@ -1,6 +1,6 @@
 // This file defines your contract. It's mostly boiler plate.
 use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
-use wasm_deploy::contract::{Contract, Msg};
+use wasm_deploy::contract::{Deploy, Msg};
 use wasm_deploy::derive::contracts;
 
 /// This is where you define the list of all contracts you want wasm-deploy to know about
@@ -30,7 +30,7 @@ pub enum Contracts {
 // There are a few default methods that you can override.
 // Most of these apply for have preprogrammed messages for the various stages of deployment.
 // Generally you'll want to match on the Contracts enum and handle the logic for each contract.
-impl Contract for Contracts {
+impl Deploy for Contracts {
     // This method gets the preprogrammed instantiate msg for the contract.
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>> {
         match self {
