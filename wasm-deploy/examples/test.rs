@@ -15,7 +15,7 @@ fn main() {
     contracts!(
         {
             name: "doodoo",
-            admin: "admin",
+            admin: my_var,
             instantiate: SampleMsg,
             execute: String,
             query: String,

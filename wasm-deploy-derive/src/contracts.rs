@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use convert_case::{Case, Casing};
-use quote::{__private::TokenStream, quote};
+use quote::{__private::TokenStream, quote, ToTokens};
 // use proc_macro2::{Ident, TokenStream};
 
 use syn::{
@@ -84,8 +84,8 @@ where
 
 pub fn generate_impl(contracts: &[Options]) -> ItemImpl {
     let admin_match = generate_match(contracts, |contract| {
-        let admin = contract.admin.value();
-        parse_quote!(#admin.to_string())
+        let path = &contract.admin;
+        parse_quote!(#path.to_string())
     });
 
     let instantiate_match = generate_match(contracts, |contract| {
@@ -137,13 +137,9 @@ pub fn generate_impl(contracts: &[Options]) -> ItemImpl {
 
     parse_quote! {
         impl ::wasm_deploy::contract::Contract for Contracts {
-            // fn name(&self) -> String {
-            //     #name_match
-            // }
             fn admin(&self) -> String {
                 #admin_match
             }
-
             fn instantiate(&self) -> Result<Box<dyn ::wasm_deploy::contract::Msg>, ::anyhow::Error> {
                 #instantiate_match
             }
@@ -159,7 +155,6 @@ pub fn generate_impl(contracts: &[Options]) -> ItemImpl {
             fn cw20_send(&self) -> Result<Box<dyn ::wasm_deploy::contract::Msg>, ::anyhow::Error> {
                 #cw20_send_match
             }
-
         }
     }
 }
@@ -183,6 +178,15 @@ impl Value {
             s
         } else {
             panic!("expected a string literal");
+        }
+    }
+}
+
+impl ToTokens for Value {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Type(p) => p.to_tokens(tokens),
+            Self::Str(s) => s.to_tokens(tokens),
         }
     }
 }
@@ -237,7 +241,7 @@ impl Parse for BracedOptions {
 
 pub struct Options {
     name: LitStr,
-    admin: LitStr,
+    admin: Value,
     instantiate: Path,
     execute: Option<Path>,
     query: Option<Path>,
@@ -252,7 +256,7 @@ impl Parse for Options {
 
         let name = map.remove(&parse_quote!(name)).unwrap().unwrap_str();
 
-        let admin = map.remove(&parse_quote!(admin)).unwrap().unwrap_str();
+        let admin = map.remove(&parse_quote!(admin)).unwrap();
 
         let instantiate = map
             .remove(&parse_quote!(instantiate))
@@ -293,75 +297,6 @@ impl Parse for Options {
 mod tests {
 
     use super::*;
-
-    // #[test]
-    // fn api_object_minimal() {
-    //     assert_eq!(
-    //         generate_api_impl(&parse_quote! {
-    //             instantiate: InstantiateMsg,
-    //         }),
-    //         parse_quote! {
-    //             ::cosmwasm_schema::Api {
-    //                 contract_name: ::std::env!("CARGO_PKG_NAME").to_string(),
-    //                 contract_version: ::std::env!("CARGO_PKG_VERSION").to_string(),
-    //                 instantiate: ::cosmwasm_schema::schema_for!(InstantiateMsg),
-    //                 execute: None,
-    //                 query: None,
-    //                 migrate: None,
-    //                 sudo: None,
-    //                 responses: None,
-    //             }
-    //         }
-    //     );
-    // }
-
-    // #[test]
-    // fn api_object_name_vesion_override() {
-    //     assert_eq!(
-    //         generate_api_impl(&parse_quote! {
-    //             name: "foo",
-    //             version: "bar",
-    //             instantiate: InstantiateMsg,
-    //         }),
-    //         parse_quote! {
-    //             ::cosmwasm_schema::Api {
-    //                 contract_name: "foo".to_string(),
-    //                 contract_version: "bar".to_string(),
-    //                 instantiate: ::cosmwasm_schema::schema_for!(InstantiateMsg),
-    //                 execute: None,
-    //                 query: None,
-    //                 migrate: None,
-    //                 sudo: None,
-    //                 responses: None,
-    //             }
-    //         }
-    //     );
-    // }
-
-    // #[test]
-    // fn api_object_all_msgs() {
-    //     assert_eq!(
-    //         generate_api_impl(&parse_quote! {
-    //             instantiate: InstantiateMsg,
-    //             execute: ExecuteMsg,
-    //             query: QueryMsg,
-    //             migrate: MigrateMsg,
-    //             sudo: SudoMsg,
-    //         }),
-    //         parse_quote! {
-    //             ::cosmwasm_schema::Api {
-    //                 contract_name: ::std::env!("CARGO_PKG_NAME").to_string(),
-    //                 contract_version: ::std::env!("CARGO_PKG_VERSION").to_string(),
-    //                 instantiate: ::cosmwasm_schema::schema_for!(InstantiateMsg),
-    //                 execute: Some(::cosmwasm_schema::schema_for!(ExecuteMsg)),
-    //                 query: Some(::cosmwasm_schema::schema_for!(QueryMsg)),
-    //                 migrate: Some(::cosmwasm_schema::schema_for!(MigrateMsg)),
-    //                 sudo: Some(::cosmwasm_schema::schema_for!(SudoMsg)),
-    //                 responses: Some(<QueryMsg as ::cosmwasm_schema::QueryResponses>::response_schemas().unwrap()),
-    //             }
-    //         }
-    //     );
-    // }
 
     #[test]
     #[should_panic(expected = "unknown generate_api option: asd")]
