@@ -3,7 +3,7 @@
 [package]
 # This is the name of the generated binary for wasm-deploy.
 # Feel free to change it to suit your project.
-name = "{{deploy_name}}"
+name = "deploy"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,6 +27,6 @@ clap = { version = "4", features = ["derive"] }
 lazy_static = "1.4"
 strum = "0.24"
 strum_macros = "0.24"
-wasm-deploy = { version = "0.5.0-alpha" }
+wasm-deploy = { version = "0.5.0-alpha", path = "../../wasm-deploy"}
 tokio = "1"
 interactive-parse = "0.1"

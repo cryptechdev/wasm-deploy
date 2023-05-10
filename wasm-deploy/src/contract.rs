@@ -43,26 +43,42 @@ pub trait Contract:
     /// It is required when instantiating.
     fn admin(&self) -> String;
 
-    /// This method allows executing a contract.
+    /// This method allows instantiating a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn instantiate(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows executing a contract interactively.
     /// interactive-parse should be used to generate the msg.
     fn execute(&self) -> anyhow::Result<Box<dyn Msg>> {
         Err(DeployError::TraitNotImplemented.into())
     }
 
-    /// This method allows querying a contract.
+    /// This method allows querying a contract interactively.
     /// interactive-parse should be used to generate the msg.
     fn query(&self) -> anyhow::Result<Box<dyn Msg>> {
         Err(DeployError::TraitNotImplemented.into())
     }
 
-    /// This method allows sending a cw20 token with an attached message to a contract.
+    /// This method allows migrating a contract interactively.
+    /// interactive-parse should be used to generate the msg.
+    fn migrate(&self) -> anyhow::Result<Box<dyn Msg>> {
+        Err(DeployError::TraitNotImplemented.into())
+    }
+
+    /// This method allows sending a cw20 token with an attached message to a contract interactively.
     /// interactive-parse should be used to generate the msg.
     fn cw20_send(&self) -> anyhow::Result<Box<dyn Msg>> {
         Err(DeployError::TraitNotImplemented.into())
     }
 
     /// This method gets the preprogrammed instantiate msg for the contract.
-    fn instantiate_msg(&self) -> Option<Box<dyn Msg>>;
+    fn instantiate_msg(&self) -> Option<Box<dyn Msg>> {
+        println!("No instantiate msg for {}", self.name());
+        println!("Defaulting to interactive instantiate");
+        self.instantiate().ok()
+    }
 
     /// This method will instantiate an external contract via code_id alongside a local contract.
     fn external_instantiate_msgs(&self) -> Vec<ExternalInstantiate<Box<dyn Msg>>> {

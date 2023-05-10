@@ -4,7 +4,7 @@ version = "0.5.0-alpha"
 edition = "2021"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 homepage = "https://cryptech.dev"
-description = "wasm-deploy is a fully featured deployment suite for complex, multicontract cosmwasm projects"
+description = "wasm-deploy is a fully featured deployment suite for complex, multicontract, cosmwasm projects"
 keywords = ["cosmwasm", "smart-contracts", "cosmos", "deployment", "cli"]
 license = "MIT"
 repository = "https://github.com/cryptechdev/wasm-deploy"
@@ -14,6 +14,6 @@ readme = "../README.md"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
 quote = "1"
 syn = { version = "2", features = ["full"] }
+convert_case = "0.6.0"

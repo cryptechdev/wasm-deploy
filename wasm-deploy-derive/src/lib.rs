@@ -1,6 +1,9 @@
+use contracts::{generate_enum, generate_impl, generate_use, Contracts};
 use proc_macro::{self};
 use quote::ToTokens;
 use syn::{parse_macro_input, parse_quote, DeriveInput};
+
+mod contracts;
 
 #[proc_macro_attribute]
 pub fn contract(
@@ -30,4 +33,23 @@ fn contract_impl(input: DeriveInput) -> DeriveInput {
         },
         _ => panic!("wasm deploy only supports enums"),
     }
+}
+
+///////////////////////////////////////////////////
+
+#[proc_macro]
+pub fn contracts(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as Contracts).0;
+
+    let use_expr = generate_use().into_token_stream();
+    let enum_expr = generate_enum(&input).into_token_stream();
+    let impl_expr = generate_impl(&input).into_token_stream();
+
+    let total_expr = quote::quote! {
+        #use_expr
+        #enum_expr
+        #impl_expr
+    };
+
+    proc_macro::TokenStream::from(total_expr)
 }
