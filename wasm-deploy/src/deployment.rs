@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use colored::Colorize;
 use cosm_utils::{
     chain::request::TxOptions,
     modules::{
@@ -17,13 +16,14 @@ use crate::{
     error::DeployError,
     file::{ContractInfo, CONFIG},
     settings::WorkspaceSettings,
+    utils::print_res,
 };
 
 pub enum DeploymentStage {
     StoreCode,
-    Instantiate,
+    Instantiate { interactive: bool },
     ExternalInstantiate,
-    Migrate,
+    Migrate { interactive: bool },
     SetConfig,
     SetUp,
 }
@@ -39,7 +39,6 @@ pub async fn execute_deployment(
     let key = config.get_active_key().await?;
     let rpc_endpoint = chain_info.rpc_endpoint.clone();
     drop(config);
-
     let client = get_client(rpc_endpoint.as_str()).await?;
 
     let response: Option<tx_commit::Response> = match deployment_stage {
@@ -77,11 +76,27 @@ pub async fn execute_deployment(
             config.save(settings)?;
             Some(response.res)
         }
-        DeploymentStage::Instantiate => {
+        DeploymentStage::Instantiate { interactive } => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
             for contract in contracts {
-                if let Some(msg) = contract.instantiate_msg() {
+                let msg = if interactive {
+                    Some(contract.instantiate()?)
+                } else {
+                    contract.instantiate_msg()
+                };
+                if let Some(msg) = msg {
+                    println!("Instantiating {}", contract.name());
+                    let contract_info = config.get_contract(&contract.to_string())?;
+                    let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
+                    reqs.push(InstantiateRequest {
+                        code_id,
+                        msg,
+                        label: contract.name(),
+                        admin: Some(Address::from_str(&contract.admin())?),
+                        funds: vec![],
+                    });
+                } else if let Some(msg) = contract.instantiate_msg() {
                     println!("Instantiating {}", contract.name());
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
@@ -198,11 +213,16 @@ pub async fn execute_deployment(
                 Some(response)
             }
         }
-        DeploymentStage::Migrate => {
+        DeploymentStage::Migrate { interactive } => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
             for contract in contracts {
-                if let Some(msg) = contract.migrate_msg() {
+                let msg = if interactive {
+                    Some(contract.migrate()?)
+                } else {
+                    contract.migrate_msg()
+                };
+                if let Some(msg) = msg {
                     println!("Migrating {}", contract.name());
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let contract_addr =
@@ -227,12 +247,7 @@ pub async fn execute_deployment(
         }
     };
     if let Some(res) = response {
-        println!(
-            "gas wanted: {}, gas used: {}",
-            res.deliver_tx.gas_wanted.to_string().green(),
-            res.deliver_tx.gas_used.to_string().green()
-        );
-        println!("tx hash: {}", res.hash.to_string().purple());
+        print_res(res);
     }
 
     Ok(())

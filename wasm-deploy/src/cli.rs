@@ -122,12 +122,16 @@ where
         contracts: Vec<C>,
     },
 
-    /// Instantiates a contract
+    /// Instantiates a contract using the preprogrammed messages
     #[command(visible_alias = "i")]
     Instantiate {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Interactive mode
+        #[arg(short, long, required = false)]
+        interactive: bool,
     },
 
     /// Migrates contracts
@@ -136,6 +140,10 @@ where
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Interactive mode
+        #[arg(short, long, required = false)]
+        interactive: bool,
     },
 
     /// Sets the config of a contract

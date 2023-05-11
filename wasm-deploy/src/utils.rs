@@ -5,10 +5,12 @@ use crate::{
     file::{ContractInfo, CONFIG, WORKSPACE_SETTINGS},
     settings::WorkspaceSettings,
 };
+use colored::Colorize;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
+use tendermint_rpc::endpoint::broadcast::tx_commit;
 
 lazy_static! {
     pub static ref BIN_NAME: String = std::env::current_exe()
@@ -87,4 +89,13 @@ pub fn get_addr(contract_name: &str) -> anyhow::Result<String> {
         .ok_or(DeployError::AddrNotFound {
             name: contract_name.to_string(),
         })?)
+}
+
+pub fn print_res(tx_commit: tx_commit::Response) {
+    println!(
+        "gas wanted: {}, gas used: {}",
+        tx_commit.deliver_tx.gas_wanted.to_string().green(),
+        tx_commit.deliver_tx.gas_used.to_string().green()
+    );
+    println!("tx hash: {}", tx_commit.hash.to_string().purple());
 }

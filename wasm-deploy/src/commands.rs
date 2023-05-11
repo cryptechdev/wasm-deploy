@@ -75,8 +75,14 @@ where
         } => execute_env(settings, add, delete, select, id).await?,
         Commands::Schema { contracts } => schemas(contracts)?,
         Commands::StoreCode { contracts } => store_code(settings, contracts).await?,
-        Commands::Instantiate { contracts } => instantiate(settings, contracts).await?,
-        Commands::Migrate { contracts } => migrate(settings, contracts, &cli.cargo_args).await?,
+        Commands::Instantiate {
+            contracts,
+            interactive,
+        } => instantiate(settings, contracts, *interactive).await?,
+        Commands::Migrate {
+            contracts,
+            interactive,
+        } => migrate(settings, contracts, *interactive, &cli.cargo_args).await?,
         Commands::Execute { contract } => execute_contract(contract).await?,
         Commands::Cw20Send { contract } => cw20_send(contract).await?,
         Commands::Cw20Execute {} => cw20_execute().await?,
@@ -211,7 +217,7 @@ pub async fn deploy(
         build(settings, contracts, cargo_args).await?;
     }
     store_code(settings, contracts).await?;
-    instantiate(settings, contracts).await?;
+    instantiate(settings, contracts, false).await?;
     set_config(settings, contracts).await?;
     set_up(settings, contracts).await?;
     Ok(())
@@ -481,20 +487,35 @@ pub async fn store_code(
 pub async fn instantiate(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
+    interactive: bool,
 ) -> anyhow::Result<()> {
-    execute_deployment(settings, contracts, DeploymentStage::Instantiate).await?;
+    execute_deployment(
+        settings,
+        contracts,
+        DeploymentStage::Instantiate { interactive },
+    )
+    .await?;
     execute_deployment(settings, contracts, DeploymentStage::ExternalInstantiate).await?;
+
     Ok(())
 }
 
 pub async fn migrate(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
+    interactive: bool,
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     build(settings, contracts, cargo_args).await?;
     store_code(settings, contracts).await?;
-    execute_deployment(settings, contracts, DeploymentStage::Migrate).await?;
+
+    execute_deployment(
+        settings,
+        contracts,
+        DeploymentStage::Migrate { interactive },
+    )
+    .await?;
+
     Ok(())
 }
 
