@@ -1,6 +1,5 @@
 // This file defines your contract. It's mostly boiler plate.
-use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
-use wasm_deploy::contract::{Contract, Msg};
+use wasm_deploy::contract::Deploy;
 use wasm_deploy::derive::contracts;
 
 pub const ADMIN: &str = "{{admin}}";
@@ -30,7 +29,7 @@ pub enum Contracts {
 
 // Take a look at the Deploy trait.
 // There are a few default methods that you can override.
-// Most of these apply for have preprogrammed messages for the various stages of deployment.
+// These apply for have preprogrammed messages for the various stages of deployment.
 // Generally you'll want to match on the Contracts enum and handle the logic for each contract.
 // You'll also likely want to use lazy_static to create the messages you need.
 impl Deploy for Contracts {

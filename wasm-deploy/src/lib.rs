@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod client;
 pub mod commands;
 pub mod contract;
 pub mod cw20;

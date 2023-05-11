@@ -10,7 +10,7 @@ use std::{
 
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
-use crate::{error::DeployError, settings::WorkspaceSettings};
+use crate::{client::get_client, error::DeployError, settings::WorkspaceSettings};
 use cosm_utils::{
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
@@ -366,9 +366,9 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_rpc_client(&mut self) -> anyhow::Result<HttpClient> {
+    pub async fn get_rpc_client(&mut self) -> anyhow::Result<HttpClient> {
         let chain_info = self.get_active_chain_info()?;
-        let client = HttpClient::new(chain_info.rpc_endpoint.as_str())?;
+        let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
         Ok(client)
     }
 

@@ -29,6 +29,12 @@ https://user-images.githubusercontent.com/8366997/198078221-5fa01e97-a921-4441-b
 ## Batch messaging
  - Messages are batched together to save you time!
 
+ ## Awesome Proc Macros
+ - wasm-deploy is built on top of some verbose trait, and these macros really simplify the setup process.
+
+  ## Automatically handles the tendermint version
+ - automatically queries the node in order to correctly negotiate the tendermint version.
+
 ---
 
 # Getting the example working
@@ -40,21 +46,12 @@ wasm-opt --version
 
 Alternatively you can use the experimental `wasm-opt` feature within wasm-deploy. Simply change the line in your toml file to
 ```toml
-wasm-deploy = { version = "0.5.0-alpha", features = ["wasm-opt"] }
+wasm-deploy = { version = "0.5.0-alpha.1", features = ["wasm-opt"] }
 ```
 
-Install cargo generate with
-```bash
-cargo install cargo-generate
-```
+Go ahead and clone this repo and `cd` into the `workspace_example` folder.
 
-generate the example project with 
-```bash
-cargo generate cryptechdev/wasm-deploy workspace_example
-```
-and name the project whatever you like. We will use `my-contracts` for the rest of this example. During this step you can also pick the name for the binary. The default binary name is `deploy` which we will use in the rest of this example.
-
-Run `cd my-contracts` and install wasm-deploy globally with 
+Install wasm-deploy globally with 
 ```bash
 cargo install --path deployment
 ```
@@ -98,9 +95,14 @@ Code Ids and addresses of local contracts can be fetched using `get_code_id(cont
 
 First ensure you have cargo-generate and wasm-opt installed as above.
 
+Install cargo generate with
+```bash
+cargo install cargo-generate
+```
+
 Then cd into your project `cd my-contracts` and run
 ```bash
-cargo generate --init cryptechdev/wasm-deploy workspace_example
+cargo generate --init cryptechdev/wasm-deploy template
 ```
 and be sure to name the project after your folder, and pick a custom name for the binary/executable, such as `projd`, that will replace the `deploy` name.
 
@@ -151,7 +153,9 @@ workspace-root/
 
 ## Feature List
 
+- [x] Support for tendermint 0.34
 - [x] Support for tendermint 0.37
+- [x] default compatibility mode for either version
 - [x] Full deployment automation
 - [x] Interactive parsing of all jsonschema types
 - [x] Automatic contract address insertion.

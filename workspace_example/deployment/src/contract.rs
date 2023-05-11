@@ -11,7 +11,9 @@ pub enum Contracts {
     // Cw20Base is just an example.
     // You should replace it with your own contract.
     #[contract(
+        // This field must be a string literal or constant
         admin = ADMIN,
+        // These fields should be paths to the types
         instantiate = cw20_base::msg::InstantiateMsg,
         execute = cw20_base::msg::ExecuteMsg,
         query = cw20_base::msg::QueryMsg

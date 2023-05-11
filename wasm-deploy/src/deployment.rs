@@ -9,9 +9,10 @@ use cosm_utils::{
     },
     prelude::*,
 };
-use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
+use tendermint_rpc::endpoint::broadcast::tx_commit;
 
 use crate::{
+    client::get_client,
     contract::Deploy,
     error::DeployError,
     file::{ContractInfo, CONFIG},
@@ -39,7 +40,7 @@ pub async fn execute_deployment(
     let rpc_endpoint = chain_info.rpc_endpoint.clone();
     drop(config);
 
-    let client = HttpClient::new(rpc_endpoint.as_str())?;
+    let client = get_client(rpc_endpoint.as_str()).await?;
 
     let response: Option<tx_commit::Response> = match deployment_stage {
         DeploymentStage::StoreCode => {

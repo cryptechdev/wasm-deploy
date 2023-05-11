@@ -19,7 +19,8 @@ use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::InteractiveParseObj;
 use log::info;
-use tendermint_rpc::HttpClient;
+use tendermint_rpc::client::CompatMode;
+use tendermint_rpc::{HttpClient, HttpClientUrl};
 #[cfg(feature = "wasm_opt")]
 use tokio::task::spawn_blocking;
 #[cfg(feature = "wasm_opt")]
@@ -520,7 +521,10 @@ pub async fn custom_execute<C: Deploy>(contract: &C, string: &str) -> anyhow::Re
     let key = config.get_active_key().await?;
 
     let chain_info = config.get_active_chain_info()?.clone();
-    let client = HttpClient::new(chain_info.rpc_endpoint.as_str())?;
+    let client =
+        HttpClient::builder(HttpClientUrl::from_str(chain_info.rpc_endpoint.as_str()).unwrap())
+            .compat_mode(CompatMode::V0_34)
+            .build()?; //::new(chain_info.rpc_endpoint.as_str())?.set_compat_mode(CompatMode::V0_34);
     let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
     let req = ExecRequest {
