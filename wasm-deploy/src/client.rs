@@ -10,11 +10,11 @@ lazy_static! {
     static ref COMPAT_MODE: RwLock<Option<CompatMode>> = RwLock::new(None);
 }
 
-pub async fn set_compat_mode(compat_mode: CompatMode) {
+async fn set_compat_mode(compat_mode: CompatMode) {
     *COMPAT_MODE.write().await = Some(compat_mode);
 }
 
-pub async fn get_compat_mode(rpc_endpoint: &str) -> CompatMode {
+async fn get_compat_mode(rpc_endpoint: &str) -> CompatMode {
     let maybe_compat_mode = *COMPAT_MODE.read().await;
     match maybe_compat_mode {
         Some(compat_mode) => compat_mode,
