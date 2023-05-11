@@ -16,12 +16,14 @@ pub enum Contracts {
         // These fields should be paths to the types
         instantiate = cw20_base::msg::InstantiateMsg,
         execute = cw20_base::msg::ExecuteMsg,
-        query = cw20_base::msg::QueryMsg
+        query = cw20_base::msg::QueryMsg,
+        // The snake case name is technically cw_20_base
+        // but we will rename it to match the library name
+        rename = "cw20_base"
         // cw20_send = ...             
         // migrate = ...                
-        // rename = "cw20"               // | You should only need to change these
-        // bin_name = "cw20"             // | three ff you have a non-standard workspace
-        // path = "contracts/cw20_base"  // | layout.
+        // bin_name = "cw20"             // | You should only need to change these
+        // path = "contracts/cw20_base"  // | if you have a non-standard workspace layout.
 
     )]
     Cw20Base,
@@ -30,7 +32,7 @@ pub enum Contracts {
 
 // Take a look at the Contract trait.
 // There are a few default methods that you can override.
-// Most of these apply for have preprogrammed messages for the various stages of deployment.
+// These are preprogrammed messages for the various stages of deployment.
 // Generally you'll want to match on the Contracts enum and handle the logic for each contract.
 impl Deploy for Contracts {
     // This method gets the preprogrammed instantiate msg for the contract.

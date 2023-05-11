@@ -1,6 +1,6 @@
 [package]
 name = "wasm-deploy"
-version = "0.5.0-alpha.1"
+version = "0.5.0"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
 homepage = "https://cryptech.dev"
@@ -14,7 +14,7 @@ readme = "../README.md"
 wasm_cli = []
 
 [dependencies]
-wasm-deploy-derive = { version = "0.5.0-alpha.1", path = "../wasm-deploy-derive" }
+wasm-deploy-derive = { version = "0.5.0", path = "../wasm-deploy-derive" }
 cosm-utils = { version = "0.1.1", features = ["keyring"] }
 tendermint-rpc = "0.32"
 wasm-opt = { version = "=0.110.2", optional = true }

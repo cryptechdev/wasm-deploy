@@ -46,7 +46,7 @@ wasm-opt --version
 
 Alternatively you can use the experimental `wasm-opt` feature within wasm-deploy. Simply change the line in your toml file to
 ```toml
-wasm-deploy = { version = "0.5.0-alpha.1", features = ["wasm-opt"] }
+wasm-deploy = { version = "0.5.0", features = ["wasm-opt"] }
 ```
 
 Go ahead and clone this repo and `cd` into the `workspace_example` folder.
