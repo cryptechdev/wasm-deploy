@@ -1,50 +1,38 @@
 // This file defines your contract. It's mostly boiler plate.
-use cw20::{Cw20ExecuteMsg, Cw20QueryMsg};
-use interactive_parse::traits::InteractiveParseObj;
-use wasm_deploy::contract::{Contract, Msg};
-use wasm_deploy::derive::contract;
-
 use crate::defaults::{ADMIN, CW20_INSTANTIATE, CW20_MINT};
+use wasm_deploy::contract::{Deploy, Msg};
+use wasm_deploy::derive::contracts;
 
 /// This is where you define the list of all contracts you want wasm-deploy to know about
-#[contract]
+/// This attribute macro will generate a bunch of code for you.
+/// Simply create an enum with variants for each contract.
+#[contracts]
 pub enum Contracts {
+    // Cw20Base is just an example.
+    // You should replace it with your own contract.
+    #[contract(
+        // This field must be a string literal or constant
+        admin = ADMIN,
+        // These fields should be paths to the types
+        instantiate = cw20_base::msg::InstantiateMsg,
+        execute = cw20_base::msg::ExecuteMsg,
+        query = cw20_base::msg::QueryMsg
+        // cw20_send = ...             
+        // migrate = ...                
+        // rename = "cw20"               // | You should only need to change these
+        // bin_name = "cw20"             // | three ff you have a non-standard workspace
+        // path = "contracts/cw20_base"  // | layout.
+
+    )]
     Cw20Base,
     // You can add more contracts to this list
 }
 
 // Take a look at the Contract trait.
 // There are a few default methods that you can override.
+// Most of these apply for have preprogrammed messages for the various stages of deployment.
 // Generally you'll want to match on the Contracts enum and handle the logic for each contract.
-impl Contract for Contracts {
-    // This is the name of the contract and represents how it will appear in the cli.
-    fn name(&self) -> String {
-        match self {
-            Contracts::Cw20Base { .. } => self.to_string(),
-        }
-    }
-
-    // This is the address of the contract admin. It is required when instantiating.
-    fn admin(&self) -> String {
-        match self {
-            Contracts::Cw20Base { .. } => ADMIN.to_string(),
-        }
-    }
-
-    // This method allows executing a contract. interactive-parse should be used to generate the msg.
-    fn execute(&self) -> anyhow::Result<Box<dyn Msg>> {
-        match self {
-            Contracts::Cw20Base { .. } => Ok(Box::new(Cw20ExecuteMsg::parse_to_obj()?)),
-        }
-    }
-
-    // This method allows querying a contract. interactive-parse should be used to generate the msg.
-    fn query(&self) -> anyhow::Result<Box<dyn Msg>> {
-        match self {
-            Contracts::Cw20Base { .. } => Ok(Box::new(Cw20QueryMsg::parse_to_obj()?)),
-        }
-    }
-
+impl Deploy for Contracts {
     // This method gets the preprogrammed instantiate msg for the contract.
     fn instantiate_msg(&self) -> Option<Box<dyn Msg>> {
         match self {

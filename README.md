@@ -6,7 +6,7 @@
 
 ---
 
-https://user-images.githubusercontent.com/8366997/198078221-5fa01e97-a921-4441-b054-f75f4d1ff272.mp4
+![](https://i.imgur.com/AVneDxD.gif)
 
 ---
 
@@ -29,6 +29,12 @@ https://user-images.githubusercontent.com/8366997/198078221-5fa01e97-a921-4441-b
 ## Batch messaging
  - Messages are batched together to save you time!
 
+ ## Awesome Proc Macros
+ - wasm-deploy is built on top of some verbose trait, and these macros really simplify the setup process.
+
+  ## Automatically negotiates the tendermint version
+ - automatically queries the node in order to correctly negotiate the tendermint version.
+
 ---
 
 # Getting the example working
@@ -37,30 +43,23 @@ The first step is installing wasm-opt and ensuring that it is in your path. Run
 ```bash
 wasm-opt --version  
 ``` 
-to ensure that it is installed correctly.
 
-Install cargo generate with
-```bash
-cargo install cargo-generate
+Alternatively you can use the experimental `wasm-opt` feature within wasm-deploy. Simply change the line in your toml file to
+```toml
+wasm-deploy = { version = "0.5.0-alpha.1", features = ["wasm-opt"] }
 ```
 
-generate the example project with 
-```bash
-cargo generate cryptechdev/wasm-deploy workspace_example
-```
-and name the project whatever you like. We will use `my-contracts` for the rest of this example.
+Go ahead and clone this repo and `cd` into the `workspace_example` folder.
 
-Run `cd my-contracts` and install wasm-deploy globally with 
+Install wasm-deploy globally with 
 ```bash
 cargo install --path deployment
 ```
-The default binary name is `deploy`, but you can change it to whatever you like.
 Then you should be able to run
 ```bash
 deploy init
 ```
-This will initialize the deployment config and will prompt you for a bunch of information. Please ensure you fill out the optional RPC endpoint as it is the only client which is currently fully working.
-
+This will initialize the deployment config and will prompt you for a bunch of important information.
 Before you deploy the contracts, please be sure to change the ADMIN constant in deployment/src/defaults.rs to your personal dev address.
 
 Deploy all contracts with
@@ -90,17 +89,22 @@ To see a list of commands please run
 deploy --help
 ```
 
-Messages sent through wasm deploy are searched for `&<contract_name>` and replaced with the contract address. This allows you to send messages to other contracts without having to manually insert the address.
+Code Ids and addresses of local contracts can be fetched using `get_code_id(contract_name: &str)` and `get_addr(contract_name: &str)`. This allows you to send messages to other contracts without having to manually insert the address.
 
 # Configuring wasm-deploy to work with a preexisting cosmwasm project
 
 First ensure you have cargo-generate and wasm-opt installed as above.
 
+Install cargo generate with
+```bash
+cargo install cargo-generate
+```
+
 Then cd into your project `cd my-contracts` and run
 ```bash
-cargo generate cryptechdev/wasm-deploy workspace_example/deployment
+cargo generate --init cryptechdev/wasm-deploy template
 ```
-and be sure to name the project `deployment`.
+and be sure to name the project after your folder, and pick a custom name for the binary/executable, such as `projd`, that will replace the `deploy` name.
 
 Install wasm-deploy globally with 
 ```bash
@@ -149,6 +153,9 @@ workspace-root/
 
 ## Feature List
 
+- [x] Support for tendermint 0.34
+- [x] Support for tendermint 0.37
+- [x] default compatibility mode for either version
 - [x] Full deployment automation
 - [x] Interactive parsing of all jsonschema types
 - [x] Automatic contract address insertion.
@@ -160,7 +167,6 @@ workspace-root/
 - [x] Cw20HookMsg
 - [x] Batching messages of the same type
 - [ ] Batching messages of different types
-- [ ] gRPC client
 - [x] HTTP client
 - [ ] Automatic wasm-deploy compilation
 - [x] Mnemonic key

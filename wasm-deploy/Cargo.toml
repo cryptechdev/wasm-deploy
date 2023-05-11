@@ -1,6 +1,6 @@
 [package]
 name = "wasm-deploy"
-version = "0.3.0"
+version = "0.5.0-alpha.1"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
 homepage = "https://cryptech.dev"
@@ -8,15 +8,18 @@ description = "wasm-deploy is a fully featured deployment suite for complex, mul
 keywords = ["cosmwasm", "smart-contracts", "cosmos", "deployment", "cli"]
 license = "MIT"
 repository = "https://github.com/cryptechdev/wasm-deploy"
-readme = "README.md"
-exclude = ["workspace_example/*"]
+readme = "../README.md"
 
 [features]
 wasm_cli = []
 
 [dependencies]
-wasm-deploy-derive = { version = "0.3.0", path = "../wasm-deploy-derive" }
+wasm-deploy-derive = { version = "0.5.0-alpha.1", path = "../wasm-deploy-derive" }
+cosm-utils = { version = "0.1.1", features = ["keyring"] }
+tendermint-rpc = "0.32"
+wasm-opt = { version = "=0.110.2", optional = true }
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
+ibc-chain-registry = "0.23.1"
 cw20 = "1"
 cw20-base = "1"
 clap = { version = "4", features = ["derive", "string"] }
@@ -35,7 +38,7 @@ async-recursion = "1"
 keyring = "2"
 colored = "2"
 colored_json = "3"
-interactive-parse = "0.1"
-cosm-tome = { version = "0.2", features = ["os_keyring"] }
+interactive-parse = "0.1.5"
 log = "0.4"
 erased-serde = "0.3"
+flate2 = "1"

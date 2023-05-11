@@ -34,18 +34,20 @@ impl WorkspaceSettings {
         })
     }
 
+    /// Default path is `.wasm-deploy/config.json`
     pub fn set_config_path<T: ?Sized + AsRef<OsStr>>(
         mut self,
         config_path: &T,
     ) -> anyhow::Result<Self> {
-        let config_path = PathBuf::from(config_path);
-        if !config_path.is_file() {
-            bail!("config path must be a file")
+        let mut config_path = PathBuf::from(config_path);
+        if config_path.is_dir() {
+            config_path = config_path.join("config.json");
         }
         self.config_path = config_path;
         Ok(self)
     }
 
+    /// Default path is `target`
     pub fn set_build_dir<T: ?Sized + AsRef<OsStr>>(
         mut self,
         target_dir: &T,
@@ -58,6 +60,7 @@ impl WorkspaceSettings {
         Ok(self)
     }
 
+    /// Default path is `deployment`
     pub fn set_deployment_dir<T: ?Sized + AsRef<OsStr>>(
         mut self,
         deployment_dir: &T,
@@ -70,6 +73,7 @@ impl WorkspaceSettings {
         Ok(self)
     }
 
+    /// Default path is `artifacts`
     pub fn set_artifacts_dir<T: ?Sized + AsRef<OsStr>>(
         mut self,
         artifacts_dir: &T,

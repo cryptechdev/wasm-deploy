@@ -1,63 +1,53 @@
 use std::str::FromStr;
 
-use colored::Colorize;
-use cosm_tome::{
-    chain::{request::TxOptions, response::ChainTxResponse},
-    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
+use cosm_utils::{
+    chain::request::TxOptions,
     modules::{
         auth::model::Address,
         cosmwasm::model::{ExecRequest, InstantiateRequest, MigrateRequest, StoreCodeRequest},
     },
+    prelude::*,
 };
+use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 
 use crate::{
-    contract::Contract,
+    contract::Deploy,
     error::DeployError,
-    file::{Config, ContractInfo},
+    file::{ContractInfo, CONFIG},
     settings::WorkspaceSettings,
-    utils::replace_strings,
+    utils::print_res,
 };
 
 pub enum DeploymentStage {
     StoreCode,
-    Instantiate,
+    Instantiate { interactive: bool },
     ExternalInstantiate,
-    Migrate,
+    Migrate { interactive: bool },
     SetConfig,
     SetUp,
 }
 
 pub async fn execute_deployment(
     settings: &WorkspaceSettings,
-    contracts: &[impl Contract],
+    contracts: &[impl Deploy],
     // TODO: perhaps accept &[DeploymentStage]
     deployment_stage: DeploymentStage,
 ) -> anyhow::Result<()> {
-    let mut config = Config::load(settings)?;
-    let chain_info = config.get_active_chain_info()?;
+    let config = CONFIG.read().await;
+    let chain_info = config.get_active_chain_info()?.clone();
     let key = config.get_active_key().await?;
+    let rpc_endpoint = chain_info.rpc_endpoint.clone();
+    drop(config);
+    let client = HttpClient::get_persistent_compat(rpc_endpoint.as_str()).await?;
 
-    // TODO: maybe impl http here, maybe not required
-    let Some(rpc_endpoint) = chain_info.rpc_endpoint.clone() else {
-        return Err(DeployError::MissingRpc.into());
-    };
-
-    let client = TendermintRPC::new(&rpc_endpoint)?;
-    let cosm_tome = CosmTome::new(chain_info, client);
-    let tx_options = TxOptions {
-        timeout_height: None,
-        fee: None,
-        memo: "wasm_deploy".into(),
-    };
-
-    let response: Option<ChainTxResponse> = match deployment_stage {
+    let response: Option<tx_commit::Response> = match deployment_stage {
         DeploymentStage::StoreCode => {
             let mut reqs = vec![];
             for contract in contracts {
                 println!("Storing code for {}", contract.name());
                 let path = settings
                     .artifacts_dir
-                    .join(format!("{}.wasm.gz", contract.name()));
+                    .join(format!("{}.wasm.gz", contract.bin_name()));
                 let wasm_data = std::fs::read(path)?;
                 reqs.push(StoreCodeRequest {
                     wasm_data,
@@ -65,10 +55,13 @@ pub async fn execute_deployment(
                 });
             }
 
-            let response = cosm_tome.wasm_store_batch(reqs, &key, &tx_options).await?;
+            let response = client
+                .wasm_store_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
+                .await?;
 
+            let mut config = CONFIG.write().await;
             for (i, contract) in contracts.iter().enumerate() {
-                match config.get_contract(&contract.to_string()) {
+                match config.get_contract_mut(&contract.to_string()) {
                     Ok(contract_info) => contract_info.code_id = Some(response.code_ids[i]),
                     Err(_) => {
                         config.add_contract_from(ContractInfo {
@@ -82,34 +75,46 @@ pub async fn execute_deployment(
             config.save(settings)?;
             Some(response.res)
         }
-        DeploymentStage::Instantiate => {
+        DeploymentStage::Instantiate { interactive } => {
             let mut reqs = vec![];
-            let tx_options = TxOptions {
-                timeout_height: None,
-                fee: None,
-                memo: "wasm_deploy".into(),
-            };
+            let config = CONFIG.read().await;
             for contract in contracts {
-                if let Some(msg) = contract.instantiate_msg() {
+                let msg = if interactive {
+                    Some(contract.instantiate()?)
+                } else {
+                    contract.instantiate_msg()
+                };
+                if let Some(msg) = msg {
                     println!("Instantiating {}", contract.name());
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(InstantiateRequest {
                         code_id,
-                        msg: value,
+                        msg,
                         label: contract.name(),
-                        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+                        admin: Some(Address::from_str(&contract.admin())?),
+                        funds: vec![],
+                    });
+                } else if let Some(msg) = contract.instantiate_msg() {
+                    println!("Instantiating {}", contract.name());
+                    let contract_info = config.get_contract(&contract.to_string())?;
+                    let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
+                    reqs.push(InstantiateRequest {
+                        code_id,
+                        msg,
+                        label: contract.name(),
+                        admin: Some(Address::from_str(&contract.admin())?),
                         funds: vec![],
                     });
                 }
             }
-            let response = cosm_tome
-                .wasm_instantiate_batch(reqs, &key, &tx_options)
+            let response = client
+                .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
+            drop(config);
+            let mut config = CONFIG.write().await;
             for (index, contract) in contracts.iter().enumerate() {
-                let contract_info = config.get_contract(&contract.to_string())?;
+                let contract_info = config.get_contract_mut(&contract.to_string())?;
                 contract_info.addr = Some(response.addresses[index].to_string());
             }
             config.save(settings)?;
@@ -117,34 +122,35 @@ pub async fn execute_deployment(
         }
         DeploymentStage::ExternalInstantiate => {
             let mut reqs = vec![];
-            let tx_options = TxOptions {
-                timeout_height: None,
-                fee: None,
-                memo: "wasm_deploy".into(),
-            };
+            let config = CONFIG.read().await;
             for contract in contracts {
                 for external in contract.external_instantiate_msgs() {
                     println!("Instantiating {}", external.name);
-                    let mut value = serde_json::to_value(external.msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     reqs.push(InstantiateRequest {
                         code_id: external.code_id,
-                        msg: value,
+                        msg: external.msg,
                         label: external.name.clone(),
-                        admin: Some(Address::from_str(&contract.admin()).unwrap()),
+                        admin: Some(Address::from_str(&contract.admin())?),
                         funds: vec![],
                     });
                 }
             }
+            drop(config);
             if reqs.is_empty() {
                 None
             } else {
-                let response = cosm_tome
-                    .wasm_instantiate_batch(reqs, &key, &tx_options)
+                let response = client
+                    .wasm_instantiate_batch_commit(
+                        &chain_info.cfg,
+                        reqs,
+                        &key,
+                        &TxOptions::default(),
+                    )
                     .await?;
                 let mut index = 0;
                 for contract in contracts {
                     for external in contract.external_instantiate_msgs() {
+                        let mut config = CONFIG.write().await;
                         config.add_contract_from(ContractInfo {
                             name: external.name,
                             addr: Some(response.addresses[index].to_string()),
@@ -153,69 +159,70 @@ pub async fn execute_deployment(
                         index += 1;
                     }
                 }
+                let config = CONFIG.read().await;
                 config.save(settings)?;
                 Some(response.res)
             }
         }
         DeploymentStage::SetConfig => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             for contract in contracts {
                 if let Some(msg) = contract.set_config_msg() {
                     println!("Setting config for {}", contract.name());
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
-                    let contract_addr =
-                        config.get_contract_addr_mut(&contract.to_string())?.clone();
+                    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
-                        msg: value,
+                        msg,
                         funds: vec![],
-                        address: Address::from_str(&contract_addr).unwrap(),
+                        address: Address::from_str(&contract_addr)?,
                     });
                 };
             }
             if reqs.is_empty() {
                 None
             } else {
-                let response = cosm_tome
-                    .wasm_execute_batch(reqs, &key, &tx_options)
+                let response = client
+                    .wasm_execute_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                     .await?;
-                Some(response.res)
+                Some(response)
             }
         }
         DeploymentStage::SetUp => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             for contract in contracts {
                 for (i, msg) in contract.set_up_msgs().into_iter().enumerate() {
                     if i == 0 {
                         println!("Executing Set Up for {}", contract.name());
                     }
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
-                    let contract_addr =
-                        config.get_contract_addr_mut(&contract.to_string())?.clone();
+                    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
-                        msg: value,
+                        msg,
                         funds: vec![],
-                        address: Address::from_str(&contract_addr).unwrap(),
+                        address: Address::from_str(&contract_addr)?,
                     });
                 }
             }
             if reqs.is_empty() {
                 None
             } else {
-                let response = cosm_tome
-                    .wasm_execute_batch(reqs, &key, &tx_options)
+                let response = client
+                    .wasm_execute_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                     .await?;
-                Some(response.res)
+                Some(response)
             }
         }
-        DeploymentStage::Migrate => {
+        DeploymentStage::Migrate { interactive } => {
             let mut reqs = vec![];
+            let config = CONFIG.read().await;
             for contract in contracts {
-                if let Some(msg) = contract.migrate_msg() {
+                let msg = if interactive {
+                    Some(contract.migrate()?)
+                } else {
+                    contract.migrate_msg()
+                };
+                if let Some(msg) = msg {
                     println!("Migrating {}", contract.name());
-                    let mut value = serde_json::to_value(msg)?;
-                    replace_strings(&mut value, &config.get_active_env()?.contracts)?;
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let contract_addr =
                         contract_info
@@ -226,25 +233,20 @@ pub async fn execute_deployment(
                             })?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(MigrateRequest {
-                        msg: value,
-                        address: Address::from_str(&contract_addr).unwrap(),
+                        msg,
+                        address: Address::from_str(&contract_addr)?,
                         new_code_id: code_id,
                     });
                 }
             }
-            let response = cosm_tome
-                .wasm_migrate_batch(reqs, &key, &tx_options)
+            let response = client
+                .wasm_migrate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
-            Some(response.res)
+            Some(response)
         }
     };
     if let Some(res) = response {
-        println!(
-            "gas wanted: {}, gas used: {}",
-            res.gas_wanted.to_string().green(),
-            res.gas_used.to_string().green()
-        );
-        println!("tx hash: {}", res.tx_hash.purple());
+        print_res(res);
     }
 
     Ok(())

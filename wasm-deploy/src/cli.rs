@@ -2,13 +2,13 @@ use clap::{Parser, Subcommand};
 use std::fmt::Debug;
 use strum::IntoEnumIterator;
 
-use crate::contract::Contract;
+use crate::contract::Deploy;
 
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli<C, S = EmptySubcommand>
 where
-    C: Contract + Clone,
+    C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
     #[command(subcommand)]
@@ -23,7 +23,7 @@ where
 #[clap(rename_all = "snake_case", infer_subcommands = true)]
 pub enum Commands<C, S>
 where
-    C: Contract + Clone,
+    C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
     /// Rebuilds deploy
@@ -122,12 +122,16 @@ where
         contracts: Vec<C>,
     },
 
-    /// Instantiates a contract
+    /// Instantiates a contract using the preprogrammed messages
     #[command(visible_alias = "i")]
     Instantiate {
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Interactive mode
+        #[arg(short, long, required = false)]
+        interactive: bool,
     },
 
     /// Migrates contracts
@@ -136,6 +140,10 @@ where
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Interactive mode
+        #[arg(short, long, required = false)]
+        interactive: bool,
     },
 
     /// Sets the config of a contract
@@ -186,7 +194,7 @@ where
     },
 }
 
-fn get_all<C: Contract + IntoEnumIterator>() -> Vec<String> {
+fn get_all<C: Deploy + IntoEnumIterator>() -> Vec<String> {
     C::iter().map(|x| x.to_string()).collect()
 }
 

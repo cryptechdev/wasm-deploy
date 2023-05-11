@@ -1,0 +1,40 @@
+name: wasm-deploy CI
+
+on:
+  push:
+    branches: [ "master", "develop", "eric/develop" ]
+  pull_request:
+    branches: [ "master", "develop" ]
+
+env:
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+
+      - name: Install latest
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            target: wasm32-unknown-unknown
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --release --all-features
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
+        
+        # TODO
+        # Create workflow that can spin up a local chain and test deployment of a simple contract 

@@ -10,11 +10,11 @@ pub mod query;
 pub mod settings;
 pub mod utils;
 
-pub use cosm_tome;
+pub use cosm_utils;
 
 #[cfg(wasm_cli)]
 pub mod wasm_cli;
 
-pub extern crate strum;
-pub extern crate strum_macros;
-pub extern crate wasm_deploy_derive as derive;
+pub use strum;
+pub use strum_macros;
+pub use wasm_deploy_derive as derive;

@@ -18,7 +18,7 @@ pub enum DeployError {
     #[error("Contract already exists")]
     ContractAlreadyExists,
 
-    #[error("Contract not found")]
+    #[error("Contract not found, consider running \"store_code\"")]
     ContractNotFound,
 
     #[error("Env already exists")]
@@ -27,43 +27,44 @@ pub enum DeployError {
     #[error("Invalid directory")]
     InvalidDir,
 
-    #[error("Contract does not have an address")]
-    NoAddr,
-
     #[error("Key already exists")]
     KeyAlreadyExists,
 
     #[error("Key not found")]
     KeyNotFound { key_name: String },
 
-    #[error("Code id not found")]
+    #[error("Code id not found, consider running \"store_code\"")]
     CodeIdNotFound,
 
     #[error("Env not found")]
     EnvNotFound,
 
-    #[error("Contract address not found for {name}, perhaps you need to instantiate first?")]
+    #[error("Chain config not found")]
+    ChainConfigNotFound,
+
+    #[error("Contract address not found for {name}, consider running \"instantiate\"")]
     AddrNotFound { name: String },
+
     #[error(
-        "{} Config file not found, perhaps you need to run \"deploy init\"?",
+        "{} Config file not found, consider running \"deploy init\"?",
         "Deploy Error"
     )]
     ConfigNotFound {},
 
     #[error(
-        "Both gRPC endpoint and RPC endpoint cannot be null.\
+        "Both gRPC endpoint and RPC endpoint cannot be null. \
         Update you ChainInfo to add at least one endpoint"
     )]
     MissingClient,
 
     #[error(
-        "The current version of wasm-deploy requires the gRPC endpoint.\
+        "The current version of wasm-deploy requires the gRPC endpoint. \
         Update you ChainInfo to include the endpoint address"
     )]
     MissingGRpc,
 
     #[error(
-        "The current version of wasm-deploy requires the RPC endpoint.\
+        "The current version of wasm-deploy requires the RPC endpoint. \
         Update you ChainInfo to include the endpoint address"
     )]
     MissingRpc,
@@ -73,6 +74,12 @@ pub enum DeployError {
      Implement the relevant trait and try again."
     )]
     TraitNotImplemented,
+
+    #[error("WorkspaceSettings are not initialized")]
+    SettingsUninitialized,
+
+    #[error("Response received from client was empty")]
+    EmptyResponse,
 }
 
 #[cfg(test)]

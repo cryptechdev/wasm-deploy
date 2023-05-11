@@ -1,38 +1,41 @@
 #[cfg(feature = "ledger")]
+use crate::ledger::get_ledger_info;
+use crate::{error::DeployError, settings::WorkspaceSettings};
+use cosm_utils::prelude::*;
+use cosm_utils::{
+    config::cfg::ChainConfig,
+    signing_key::key::{Key, KeyringParams, SigningKey},
+};
+use futures::executor::block_on;
+use ibc_chain_registry::{chain::ChainData, constants::ALL_CHAINS, fetchable::Fetchable};
+use inquire::{Confirm, CustomType, Select, Text};
+use interactive_parse::InteractiveParseObj;
+use lazy_static::lazy_static;
+#[cfg(feature = "ledger")]
+use ledger_utility::Connection;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "ledger")]
 use std::rc::Rc;
 use std::{
     fmt::Display,
     fs::{create_dir_all, OpenOptions},
     io::prelude::*,
     path::PathBuf,
+    sync::Arc,
 };
+use tendermint_rpc::HttpClient;
+use tokio::sync::RwLock;
 
-#[cfg(feature = "ledger")]
-use crate::ledger::get_ledger_info;
-use crate::{error::DeployError, settings::WorkspaceSettings};
-use cosm_tome::{
-    clients::{client::CosmTome, tendermint_rpc::TendermintRPC},
-    config::cfg::ChainConfig,
-    signing_key::key::{Key, KeyringParams, SigningKey},
-};
-
-use inquire::{Confirm, CustomType, Select, Text};
-use interactive_parse::traits::InteractiveParseObj;
-#[cfg(feature = "ledger")]
-use ledger_utility::Connection;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
-// lazy_static! {
-//     pub static ref WORKSPACE_SETTINGS: Arc<Mutex<Option<WorkspaceSettings>>> =
-//         Arc::new(Mutex::new(None));
-//     pub static ref CONFIG: Arc<Mutex<Config>> = {
-//         match block_on(WORKSPACE_SETTINGS.lock()).as_ref() {
-//             Some(settings) => Arc::new(Mutex::new(Config::load(settings).unwrap())),
-//             None => panic!("WORKSPACE_SETTINGS not set"),
-//         }
-//     };
-// }
+lazy_static! {
+    pub static ref WORKSPACE_SETTINGS: RwLock<Option<Arc<WorkspaceSettings>>> = RwLock::new(None);
+    pub static ref CONFIG: Arc<RwLock<Config>> = {
+        match block_on(WORKSPACE_SETTINGS.read()).as_ref() {
+            Some(settings) => Arc::new(RwLock::new(Config::load(settings).unwrap())),
+            None => panic!("WORKSPACE_SETTINGS not set"),
+        }
+    };
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Env {
@@ -63,13 +66,13 @@ impl Display for ContractInfo {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Settings {
+pub struct UserSettings {
     pub store_code_chunk_size: usize,
 }
 
-impl Default for Settings {
+impl Default for UserSettings {
     fn default() -> Self {
-        Settings {
+        UserSettings {
             store_code_chunk_size: 2,
         }
     }
@@ -78,23 +81,23 @@ impl Default for Settings {
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
-    pub settings: Settings,
+    pub settings: UserSettings,
     pub shell_completion_dir: Option<PathBuf>,
-    pub chains: Vec<ChainConfig>,
+    pub chains: Vec<ChainInfo>,
     pub envs: Vec<Env>,
     pub keys: Vec<SigningKey>,
 }
 
-// impl Drop for Config {
-//     fn drop(&mut self) {
-//         self.save(block_on(WORKSPACE_SETTINGS.lock()).as_ref().unwrap())
-//             .unwrap();
-//     }
-// }
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
+pub struct ChainInfo {
+    #[serde(flatten)]
+    pub cfg: ChainConfig,
+    pub rpc_endpoint: String,
+}
 
 impl Config {
     pub fn init(settings: &WorkspaceSettings) -> anyhow::Result<Config> {
-        create_dir_all(settings.config_path.parent().expect("Invalid CONFIG_PATH")).unwrap();
+        create_dir_all(settings.config_path.parent().expect("Invalid CONFIG_PATH"))?;
         let config = Config::default();
         Ok(config)
     }
@@ -119,42 +122,36 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_active_env_mut(&mut self) -> anyhow::Result<&mut Env> {
-        match self.envs.iter().position(|x| x.is_active) {
-            Some(index) => Ok(self.envs.get_mut(index).unwrap()),
-            None => {
-                println!("No env found, creating one");
-                Ok(self.add_env()?)
-            }
-        }
-    }
-
     pub fn get_active_env(&self) -> Result<&Env, DeployError> {
         match self.envs.iter().position(|x| x.is_active) {
-            Some(index) => Ok(self.envs.get(index).unwrap()),
+            Some(index) => Ok(self.envs.get(index).ok_or(DeployError::EnvNotFound)?),
             None => Err(DeployError::EnvNotFound),
         }
     }
 
-    pub fn get_active_chain_info(&mut self) -> anyhow::Result<ChainConfig> {
-        let chains = self.chains.clone();
-        let env = self.get_active_env_mut()?;
-        match chains.iter().find(|x| x.chain_id == env.chain_id) {
-            Some(chain_info) => Ok(chain_info.clone()),
-            None => Ok(self.add_chain()?),
+    pub fn get_active_env_mut(&mut self) -> anyhow::Result<&mut Env> {
+        match self.envs.iter().position(|x| x.is_active) {
+            Some(index) => Ok(self.envs.get_mut(index).ok_or(DeployError::EnvNotFound)?),
+            None => Err(DeployError::EnvNotFound.into()),
+        }
+    }
+
+    pub fn get_active_chain_info(&self) -> anyhow::Result<&ChainInfo> {
+        let env = self.get_active_env()?;
+        match self.chains.iter().find(|x| x.cfg.chain_id == env.chain_id) {
+            Some(chain_info) => Ok(chain_info),
+            None => Err(DeployError::ChainConfigNotFound.into()),
         }
     }
 
     #[allow(unused_mut)]
-    pub async fn get_active_key(&mut self) -> Result<SigningKey, DeployError> {
+    pub async fn get_active_key(&self) -> anyhow::Result<SigningKey> {
         let active_key_name = self.get_active_env()?.key_name.clone();
-        let key = self
-            .keys
-            .iter_mut()
-            .find(|x| x.name == active_key_name)
-            .ok_or(DeployError::KeyNotFound {
+        let key = self.keys.iter().find(|x| x.name == active_key_name).ok_or(
+            DeployError::KeyNotFound {
                 key_name: active_key_name,
-            })?;
+            },
+        )?;
         let mut key = key.clone();
         #[cfg(feature = "ledger")]
         if let Key::Ledger { connection, .. } = &mut key.key {
@@ -165,15 +162,11 @@ impl Config {
         Ok(key)
     }
 
-    pub fn _get_active_chain_id(&mut self) -> anyhow::Result<String> {
-        Ok(self.get_active_chain_info()?.chain_id)
-    }
-
-    pub fn add_chain_from(&mut self, chain_info: ChainConfig) -> Result<ChainConfig, DeployError> {
+    pub fn add_chain_from(&mut self, chain_info: ChainInfo) -> Result<ChainInfo, DeployError> {
         match self
             .chains
             .iter()
-            .any(|x| x.chain_id == chain_info.chain_id)
+            .any(|x| x.cfg.chain_id == chain_info.cfg.chain_id)
         {
             true => Err(DeployError::ChainAlreadyExists),
             false => {
@@ -183,8 +176,64 @@ impl Config {
         }
     }
 
-    pub fn add_chain(&mut self) -> anyhow::Result<ChainConfig> {
-        let chain_info = ChainConfig::parse_to_obj()?;
+    pub async fn add_chain(&mut self) -> anyhow::Result<ChainInfo> {
+        let res = Select::new(
+            "How would you like to input your chain information?",
+            vec!["Add chain manually", "Add chain from cosmos chain registry"],
+        )
+        .prompt()?;
+        let chain_info = match res {
+            "Add chain manually" => ChainInfo::parse_to_obj()?,
+            "Add chain from cosmos chain registry (mainnets only)" => {
+                let chain_name = Select::new("Select chain", ALL_CHAINS.to_vec())
+                    .prompt()?
+                    .to_string();
+                let chain_data = ChainData::fetch(chain_name.clone(), None).await?;
+                let fee_token = if chain_data.fees.fee_tokens.len() == 1 {
+                    chain_data.fees.fee_tokens[0].clone()
+                } else {
+                    let message = "Select fee token";
+                    let options = chain_data
+                        .fees
+                        .fee_tokens
+                        .iter()
+                        .map(|x| x.denom.clone())
+                        .collect();
+                    let token_denom = Select::new(message, options).prompt()?;
+                    chain_data
+                        .fees
+                        .fee_tokens
+                        .iter()
+                        .find(|x| x.denom == token_denom)
+                        .unwrap()
+                        .clone()
+                };
+                let rpc_endpoint = if chain_data.apis.rpc.len() == 1 {
+                    chain_data.apis.rpc[0].clone().address
+                } else {
+                    let message = "Select RPC endpoint";
+                    let options = chain_data
+                        .apis
+                        .rpc
+                        .iter()
+                        .map(|x| x.address.clone())
+                        .collect();
+                    Select::new(message, options).prompt()?
+                };
+                let derivation_path = format!("m/44'/{}'/0'/0/0", chain_data.slip44);
+                let cfg = ChainConfig {
+                    denom: fee_token.denom,
+                    prefix: chain_data.bech32_prefix,
+                    chain_id: chain_data.chain_id.to_string(),
+                    derivation_path,
+                    gas_price: fee_token.average_gas_price,
+                    gas_adjustment: 1.3,
+                };
+                ChainInfo { cfg, rpc_endpoint }
+            }
+            _ => unreachable!(),
+        };
+
         self.add_chain_from(chain_info.clone())?;
         Ok(chain_info)
     }
@@ -212,27 +261,30 @@ impl Config {
         Ok(contract)
     }
 
-    pub fn get_contract_addr_mut(&mut self, name: &String) -> anyhow::Result<&String> {
+    pub fn get_contract_addr(&self, name: &str) -> anyhow::Result<&String> {
         let contract = self.get_contract(name)?;
         match &contract.addr {
             Some(addr) => Ok(addr),
-            None => Err(DeployError::NoAddr.into()),
+            None => Err(DeployError::AddrNotFound {
+                name: name.to_string(),
+            }
+            .into()),
         }
     }
 
-    pub fn get_code_id(&mut self, name: &String) -> anyhow::Result<&u64> {
-        let contract = self.get_contract(name)?;
-        match &mut contract.code_id {
-            Some(code_id) => Ok(code_id),
-            None => Err(DeployError::CodeIdNotFound.into()),
-        }
+    pub fn get_contract(&self, name: &str) -> anyhow::Result<&ContractInfo> {
+        let env = self.get_active_env()?;
+        env.contracts
+            .iter()
+            .find(|x| x.name == name)
+            .ok_or(DeployError::ContractNotFound.into())
     }
 
-    pub fn get_contract(&mut self, name: &String) -> anyhow::Result<&mut ContractInfo> {
+    pub fn get_contract_mut(&mut self, name: &str) -> anyhow::Result<&mut ContractInfo> {
         let env = self.get_active_env_mut()?;
         env.contracts
             .iter_mut()
-            .find(|x| &x.name == name)
+            .find(|x| x.name == name)
             .ok_or(DeployError::ContractNotFound.into())
     }
 
@@ -268,14 +320,7 @@ impl Config {
             _ => panic!("should not happen"),
         };
         let name = Text::new("Key Name?").prompt()?;
-        let derivation_path = Text::new("Derivation Path?")
-            .with_help_message("\"m/44'/118'/0'/0/0\"")
-            .prompt()?;
-        Ok(self.add_key_from(SigningKey {
-            name,
-            key,
-            derivation_path,
-        })?)
+        Ok(self.add_key_from(SigningKey { name, key })?)
     }
 
     pub fn add_env(&mut self) -> anyhow::Result<&mut Env> {
@@ -290,7 +335,7 @@ impl Config {
             "Select which chain to activate",
             self.chains
                 .iter()
-                .map(|x| x.chain_id.clone())
+                .map(|x| x.cfg.chain_id.clone())
                 .collect::<Vec<_>>(),
         )
         .with_help_message("\"dev\", \"prod\", \"other\"")
@@ -321,45 +366,39 @@ impl Config {
         Ok(())
     }
 
-    pub fn get_rpc_client(&mut self) -> anyhow::Result<CosmTome<TendermintRPC>> {
+    pub async fn get_rpc_client(&mut self) -> anyhow::Result<HttpClient> {
         let chain_info = self.get_active_chain_info()?;
-        let client = TendermintRPC::new(
-            &chain_info
-                .rpc_endpoint
-                .clone()
-                .ok_or(DeployError::MissingRpc)?,
-        )?;
-        Ok(CosmTome::new(chain_info, client))
+        let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
+        Ok(client)
     }
-}
 
-// TODO: move this into impl block
-pub fn get_shell_completion_dir(settings: &WorkspaceSettings) -> anyhow::Result<Option<PathBuf>> {
-    let mut config = Config::load(settings)?;
-    match &config.shell_completion_dir {
-        Some(shell_completion_path) => Ok(Some(shell_completion_path.clone())),
-        None => {
-            let ans =
-                Confirm::new("Shell completion directory not found.\nWould you like to add one?")
-                    .with_default(true)
-                    .prompt()?;
-            match ans {
-                true => {
-                    let string =
-                        CustomType::<String>::new("Enter you shell completion script directory.")
-                            .prompt()?;
-                    let path = PathBuf::from(string);
-                    match path.is_dir() {
-                        true => {
-                            config.shell_completion_dir = Some(path.clone());
-                            config.save(settings)?;
-                            Ok(Some(path))
-                        }
-                        false => Err(DeployError::InvalidDir.into()),
+    pub fn get_shell_completion_dir(&self) -> Option<&PathBuf> {
+        self.shell_completion_dir.as_ref()
+    }
+
+    pub fn set_shell_completion_dir(
+        &mut self,
+        settings: &WorkspaceSettings,
+    ) -> anyhow::Result<Option<&PathBuf>> {
+        let ans = Confirm::new("Shell completion directory not found.\nWould you like to add one?")
+            .with_default(true)
+            .prompt()?;
+        match ans {
+            true => {
+                let string =
+                    CustomType::<String>::new("Enter you shell completion script directory.")
+                        .prompt()?;
+                let path = PathBuf::from(string);
+                match path.is_dir() {
+                    true => {
+                        self.shell_completion_dir = Some(path.clone());
+                        self.save(settings)?;
+                        Ok(self.shell_completion_dir.as_ref())
                     }
+                    false => Err(DeployError::InvalidDir.into()),
                 }
-                false => Ok(None),
             }
+            false => Ok(None),
         }
     }
 }
