@@ -6,7 +6,7 @@
 
 ---
 
-https://user-images.githubusercontent.com/8366997/198078221-5fa01e97-a921-4441-b054-f75f4d1ff272.mp4
+![](https://i.imgur.com/AVneDxD.gif)
 
 ---
 
@@ -32,7 +32,7 @@ https://user-images.githubusercontent.com/8366997/198078221-5fa01e97-a921-4441-b
  ## Awesome Proc Macros
  - wasm-deploy is built on top of some verbose trait, and these macros really simplify the setup process.
 
-  ## Automatically handles the tendermint version
+  ## Automatically negotiates the tendermint version
  - automatically queries the node in order to correctly negotiate the tendermint version.
 
 ---
