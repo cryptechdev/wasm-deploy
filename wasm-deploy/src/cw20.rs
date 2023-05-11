@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use crate::client::get_client;
 use crate::{contract::Deploy, file::CONFIG};
 use colored::Colorize;
+use cosm_utils::clients::tendermint_rpc::ClientCompat;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
@@ -14,6 +14,7 @@ use cosm_utils::{
 use cw20::Cw20ExecuteMsg;
 use inquire::{CustomType, Text};
 use interactive_parse::InteractiveParseObj;
+use tendermint_rpc::HttpClient;
 
 pub async fn cw20_send(contract: &impl Deploy) -> anyhow::Result<()> {
     println!("Executing cw20 send");
@@ -34,7 +35,7 @@ pub async fn cw20_send(contract: &impl Deploy) -> anyhow::Result<()> {
         msg: serde_json::to_vec(&hook_msg)?.into(),
     };
     let chain_info = config.get_active_chain_info()?.clone();
-    let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
+    let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
     let funds = Vec::<Coin>::parse_to_obj()?;
     let req = ExecRequest {
         msg,
@@ -65,7 +66,7 @@ pub async fn cw20_execute() -> anyhow::Result<()> {
         .prompt()?;
     let msg = Cw20ExecuteMsg::parse_to_obj()?;
     let chain_info = config.get_active_chain_info()?.clone();
-    let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
+    let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
     let req = ExecRequest {
         msg,
         funds: vec![],
@@ -104,7 +105,7 @@ pub async fn cw20_instantiate() -> anyhow::Result<()> {
 
     let msg = cw20_base::msg::InstantiateMsg::parse_to_obj()?;
     let chain_info = config.get_active_chain_info()?.clone();
-    let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
+    let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
     let req = InstantiateRequest {
         code_id,
         funds: vec![],

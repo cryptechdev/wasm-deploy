@@ -1,5 +1,4 @@
 use crate::{
-    client::get_client,
     contract::Deploy,
     file::{Config, CONFIG},
 };
@@ -12,6 +11,7 @@ use cosm_utils::{
 use interactive_parse::InteractiveParseObj;
 use serde::Serialize;
 use std::str::FromStr;
+use tendermint_rpc::HttpClient;
 
 pub async fn execute_contract(contract: &impl Deploy) -> anyhow::Result<()> {
     println!("Executing");
@@ -31,7 +31,7 @@ pub async fn execute(
 ) -> anyhow::Result<()> {
     let key = config.get_active_key().await?;
     let chain_info = config.get_active_chain_info()?.clone();
-    let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
+    let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
     let req = ExecRequest {
         msg,
         funds,

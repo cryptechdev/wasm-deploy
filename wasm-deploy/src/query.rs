@@ -7,9 +7,9 @@ use inquire::Text;
 use interactive_parse::InteractiveParseObj;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
+use tendermint_rpc::HttpClient;
 
 use crate::{
-    client::get_client,
     contract::Deploy,
     file::{Config, CONFIG},
     utils::replace_strings_any,
@@ -33,7 +33,7 @@ pub async fn query(
 ) -> anyhow::Result<Value> {
     replace_strings_any(&mut addr, &config.get_active_env()?.contracts)?;
     let chain_info = config.get_active_chain_info()?.clone();
-    let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
+    let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
     let response = client
         .wasm_query(Address::from_str(addr.as_ref())?, &msg)
         .await?;

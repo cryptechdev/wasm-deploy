@@ -1,16 +1,7 @@
 #[cfg(feature = "ledger")]
-use std::rc::Rc;
-use std::{
-    fmt::Display,
-    fs::{create_dir_all, OpenOptions},
-    io::prelude::*,
-    path::PathBuf,
-    sync::Arc,
-};
-
-#[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
-use crate::{client::get_client, error::DeployError, settings::WorkspaceSettings};
+use crate::{error::DeployError, settings::WorkspaceSettings};
+use cosm_utils::prelude::*;
 use cosm_utils::{
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, SigningKey},
@@ -24,6 +15,15 @@ use lazy_static::lazy_static;
 use ledger_utility::Connection;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "ledger")]
+use std::rc::Rc;
+use std::{
+    fmt::Display,
+    fs::{create_dir_all, OpenOptions},
+    io::prelude::*,
+    path::PathBuf,
+    sync::Arc,
+};
 use tendermint_rpc::HttpClient;
 use tokio::sync::RwLock;
 
@@ -368,7 +368,7 @@ impl Config {
 
     pub async fn get_rpc_client(&mut self) -> anyhow::Result<HttpClient> {
         let chain_info = self.get_active_chain_info()?;
-        let client = get_client(chain_info.rpc_endpoint.as_str()).await?;
+        let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
         Ok(client)
     }
 
