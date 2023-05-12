@@ -27,8 +27,8 @@ lazy_static! {
     /// Perhaps we want to mint some tokens after the contract is deployed.
     /// We could send this message as part of the set_up_msgs.
     pub static ref CW20_MINT: Vec<cw20_base::msg::ExecuteMsg> = vec![
-        cw20_base::msg::ExecuteMsg::Mint { recipient: ADMIN.into(), amount: 1_000_000_000u64.into() },
-        cw20_base::msg::ExecuteMsg::Mint { recipient: ADMIN.into(), amount: 1_200_000_000u64.into() },
+        // cw20_base::msg::ExecuteMsg::Mint { recipient: ADMIN.into(), amount: 1_000_000_000u64.into() },
+        // cw20_base::msg::ExecuteMsg::Mint { recipient: ADMIN.into(), amount: 1_200_000_000u64.into() },
     ];
 
     /// External instantiate is a niche feature that allows you to instantiate external contracts from a code_id

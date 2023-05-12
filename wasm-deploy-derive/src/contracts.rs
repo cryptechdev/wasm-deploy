@@ -25,7 +25,11 @@ pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
             let name = if let Some(rename) = options.rename {
                 rename
             } else {
-                let string = variant.ident.to_string().to_case(Case::Snake);
+                let string = variant
+                    .ident
+                    .to_string()
+                    .from_case(Case::UpperCamel)
+                    .to_case(Case::Snake);
                 parse_quote!(#string)
             };
 

@@ -179,7 +179,10 @@ impl Config {
     pub async fn add_chain(&mut self) -> anyhow::Result<ChainInfo> {
         let res = Select::new(
             "How would you like to input your chain information?",
-            vec!["Add chain manually", "Add chain from cosmos chain registry"],
+            vec![
+                "Add chain manually",
+                "Add chain from cosmos chain registry (mainnets only)",
+            ],
         )
         .prompt()?;
         let chain_info = match res {

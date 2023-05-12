@@ -1,6 +1,6 @@
 [package]
 name = "wasm-deploy"
-version = "0.5.0-alpha.1"
+version = "0.5.0"
 authors = ["Eric Woolsey<ewoolsey@ualberta.ca>"]
 edition = "2021"
 homepage = "https://cryptech.dev"
@@ -14,18 +14,18 @@ readme = "../README.md"
 wasm_cli = []
 
 [dependencies]
-wasm-deploy-derive = { version = "0.5.0-alpha.1", path = "../wasm-deploy-derive" }
+wasm-deploy-derive = { version = "0.5.0", path = "../wasm-deploy-derive" }
 cosm-utils = { version = "0.1.1", features = ["keyring"] }
 tendermint-rpc = "0.32"
 wasm-opt = { version = "=0.110.2", optional = true }
-serde = { version = "1.0.137", default-features = false, features = ["derive"] }
-ibc-chain-registry = "0.23.1"
+serde = { version = "1", default-features = false, features = ["derive"] }
+serde_json = "1"
+ibc-chain-registry = "0.23.0"
 cw20 = "1"
 cw20-base = "1"
 clap = { version = "4", features = ["derive", "string"] }
 clap_complete = "4"
 schemars = "0.8"
-serde_json = "1"
 lazy_static = "1"
 inquire = "0.6"
 strum = "0.24"
