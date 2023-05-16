@@ -6,7 +6,7 @@ use clap::{CommandFactory, FromArgMatches};
 use contract::Contracts;
 use std::path::PathBuf;
 use subcommand::{execute_custom_args, CustomSubcommand};
-use wasm_deploy::{cli::Cli, commands::execute_args, settings::WorkspaceSettings};
+use wasm_deploy::{cli::Cli, commands::execute_args, config::WorkspaceSettings};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
