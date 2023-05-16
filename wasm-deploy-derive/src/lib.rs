@@ -20,6 +20,7 @@ fn contract_impl(input: DeriveInput) -> DeriveInput {
     match input.data {
         syn::Data::Enum(_) => parse_quote! {
             #[derive(
+                ::wasm_deploy::clap::Subcommand,
                 ::wasm_deploy::derive::Contracts,
                 ::wasm_deploy::strum_macros::Display,
                 ::wasm_deploy::strum_macros::EnumIter,
@@ -28,6 +29,7 @@ fn contract_impl(input: DeriveInput) -> DeriveInput {
                 ::std::fmt::Debug,
             )]
             // TODO: figure out how to reexport this attribute macro
+            #[clap(rename_all = "snake_case", infer_subcommands = true)]
             #[strum(serialize_all = "snake_case")]
             #input
         },

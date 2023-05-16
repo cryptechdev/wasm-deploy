@@ -26,6 +26,7 @@ use tokio::task::spawn_blocking;
 #[cfg(feature = "wasm_opt")]
 use wasm_opt::integration::run_from_command_args;
 
+use crate::config::WorkspaceSettings;
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
@@ -35,9 +36,8 @@ use crate::{
     deployment::{execute_deployment, DeploymentStage},
     error::DeployError,
     execute::execute_contract,
-    file::{Config, CONFIG, WORKSPACE_SETTINGS},
+    config::{Config, CONFIG, WORKSPACE_SETTINGS},
     query::{cw20_query, query_contract},
-    settings::WorkspaceSettings,
     utils::BIN_NAME,
 };
 use flate2::write::GzEncoder;
@@ -116,17 +116,14 @@ pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> a
     if *add {
         config.add_chain().await?;
     } else if *delete {
-        let all_chains = &mut config.chains;
+        let chains = config.chains.clone();
         let chains_to_remove = MultiSelect::new(
             "Select which chains to delete",
-            all_chains
-                .iter()
-                .map(|x| x.cfg.chain_id.clone())
-                .collect::<Vec<_>>(),
+            chains.keys().collect(),
         )
         .prompt()?;
         for chain in chains_to_remove {
-            all_chains.retain(|x| x.cfg.chain_id != chain);
+            config.chains.remove(chain);
         }
     }
     config.save(settings)?;

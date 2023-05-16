@@ -13,8 +13,7 @@ use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 use crate::{
     contract::Deploy,
     error::DeployError,
-    file::{ContractInfo, CONFIG},
-    settings::WorkspaceSettings,
+    config::{ContractInfo, CONFIG, WorkspaceSettings},
     utils::print_res,
 };
 

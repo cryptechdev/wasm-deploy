@@ -1,6 +1,6 @@
 use crate::{
     contract::Deploy,
-    file::{Config, CONFIG},
+    config::{Config, CONFIG},
 };
 use colored::Colorize;
 use cosm_utils::{

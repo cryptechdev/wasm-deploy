@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::error::DeployError;
+use clap::Subcommand;
 use serde::Serialize;
 use strum::{IntoEnumIterator, ParseError};
 
@@ -52,7 +53,7 @@ pub trait Deploy: ContractInteractive {
 }
 
 pub trait ContractInteractive:
-    Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + 'static
+    Send + Sync + Debug + Display + FromStr<Err = ParseError> + IntoEnumIterator + Subcommand + 'static
 {
     /// This is the name of the contract and represents
     /// how it will appear in the cli.

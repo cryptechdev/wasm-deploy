@@ -11,7 +11,7 @@ use tendermint_rpc::HttpClient;
 
 use crate::{
     contract::Deploy,
-    file::{Config, CONFIG},
+    config::{Config, CONFIG},
     utils::replace_strings_any,
 };
 

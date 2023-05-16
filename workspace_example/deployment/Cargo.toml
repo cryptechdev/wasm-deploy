@@ -1,5 +1,3 @@
-[workspace]
-
 [package]
 # This is the name of the generated binary for wasm-deploy.
 # Feel free to change it to suit your project.

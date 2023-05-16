@@ -12,7 +12,7 @@ pub enum DeployError {
     #[error("Unsupported shell, must use bash or zsh")]
     UnsupportedShell,
 
-    #[error("Chain already exists")]
+    #[error("Chain already exists, If you means to do this, delete the existing chain first with `chain -d`")]
     ChainAlreadyExists,
 
     #[error("Contract already exists")]

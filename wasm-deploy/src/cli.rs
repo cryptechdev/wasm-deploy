@@ -81,7 +81,7 @@ where
     #[command(visible_alias = "d")]
     Deploy {
         /// Name of the contract
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>(), value_parser=C::from_str)]
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
 
         /// Deploys but does not recompile first
@@ -155,10 +155,16 @@ where
 
     /// Executes a contract
     #[command(visible_alias = "x")]
-    Execute { contract: C },
+    Execute {
+        #[command(subcommand)]
+        contract: C,
+    },
 
     /// Sends Cw20 tokens to a contract along with a payload
-    Cw20Send { contract: C },
+    Cw20Send {
+        #[command(subcommand)]
+        contract: C,
+    },
 
     /// Executes a Cw20 message
     Cw20Execute {},
@@ -184,7 +190,10 @@ where
 
     /// Sends a query to a contract
     #[command(visible_alias = "q")]
-    Query { contract: C },
+    Query {
+        #[command(subcommand)]
+        contract: C,
+    },
 
     /// Sets up the smart contract env with executes
     SetUp {

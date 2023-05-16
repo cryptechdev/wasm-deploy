@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     error::DeployError,
-    file::{ContractInfo, CONFIG, WORKSPACE_SETTINGS},
-    settings::WorkspaceSettings,
+    config::{ContractInfo, CONFIG, WORKSPACE_SETTINGS, WorkspaceSettings},
 };
 use colored::Colorize;
 use futures::executor::block_on;
