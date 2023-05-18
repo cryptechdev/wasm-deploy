@@ -1,7 +1,12 @@
-use std::{ffi::OsStr, path::PathBuf};
-
+use std::{ffi::OsStr, path::PathBuf, sync::Arc};
+use lazy_static::lazy_static;
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
+
+lazy_static! {
+    pub static ref WORKSPACE_SETTINGS: RwLock<Option<Arc<WorkspaceSettings>>> = RwLock::new(None);
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceSettings {

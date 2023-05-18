@@ -1,4 +1,4 @@
-use crate::config::WorkspaceSettings;
+use crate::config::{WorkspaceSettings, WORKSPACE_SETTINGS};
 use crate::config::chain::{Chains, ChainInfo};
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
@@ -30,7 +30,6 @@ use tokio::sync::RwLock;
 use super::{Env, ContractInfo, UserSettings};
 
 lazy_static! {
-    pub static ref WORKSPACE_SETTINGS: RwLock<Option<Arc<WorkspaceSettings>>> = RwLock::new(None);
     pub static ref CONFIG: Arc<RwLock<Config>> = {
         match block_on(WORKSPACE_SETTINGS.read()).as_ref() {
             Some(settings) => Arc::new(RwLock::new(Config::load(settings).unwrap())),

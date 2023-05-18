@@ -77,12 +77,20 @@ pub async fn execute_deployment(
         DeploymentStage::Instantiate { interactive } => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
-            for contract in contracts {
+            let msgs = contracts.into_iter().map(|x| {
                 let msg = if interactive {
-                    Some(contract.instantiate()?)
+                    Some(x.instantiate()?)
                 } else {
-                    contract.instantiate_msg()
+                    x.instantiate_msg()
                 };
+                anyhow::Result::Ok((x, msg))
+            })
+            .collect::<Result<Vec<_>, anyhow::Error>>()?;
+            let has_msg = msgs.iter().filter_map(|x| match x.1 {
+                Some(_) => Some(x.0),
+                None => None,
+            }).collect::<Vec<_>>();
+            for (contract, msg) in msgs {
                 if let Some(msg) = msg {
                     println!("Instantiating {}", contract.name());
                     let contract_info = config.get_contract(&contract.to_string())?;
@@ -94,25 +102,14 @@ pub async fn execute_deployment(
                         admin: Some(Address::from_str(&contract.admin())?),
                         funds: vec![],
                     });
-                } else if let Some(msg) = contract.instantiate_msg() {
-                    println!("Instantiating {}", contract.name());
-                    let contract_info = config.get_contract(&contract.to_string())?;
-                    let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
-                    reqs.push(InstantiateRequest {
-                        code_id,
-                        msg,
-                        label: contract.name(),
-                        admin: Some(Address::from_str(&contract.admin())?),
-                        funds: vec![],
-                    });
-                }
+                } 
             }
             let response = client
                 .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
             drop(config);
             let mut config = CONFIG.write().await;
-            for (index, contract) in contracts.iter().enumerate() {
+            for (index, contract) in has_msg.into_iter().enumerate() {
                 let contract_info = config.get_contract_mut(&contract.to_string())?;
                 contract_info.addr = Some(response.addresses[index].to_string());
             }

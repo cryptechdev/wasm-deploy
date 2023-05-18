@@ -6,14 +6,14 @@ use serde::{Serialize, Deserialize};
 use shrinkwraprs::Shrinkwrap;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
-struct ChainInfoV0_1 {
-    #[serde(flatten)]
+pub struct ChainInfo {
     pub cfg: ChainConfig,
     pub rpc_endpoint: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
-pub struct ChainInfo {
+struct ChainInfoV0_1 {
+    #[serde(flatten)]
     pub cfg: ChainConfig,
     pub rpc_endpoint: String,
 }
