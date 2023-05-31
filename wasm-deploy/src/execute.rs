@@ -2,6 +2,7 @@ use crate::{
     contract::Deploy,
     config::{Config, CONFIG},
 };
+use std::{fmt::Debug, str::FromStr};
 use colored::Colorize;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
@@ -9,8 +10,8 @@ use cosm_utils::{
     prelude::*,
 };
 use interactive_parse::InteractiveParseObj;
+use log::debug;
 use serde::Serialize;
-use std::str::FromStr;
 use tendermint_rpc::HttpClient;
 
 pub async fn execute_contract(contract: &impl Deploy) -> anyhow::Result<()> {
@@ -26,7 +27,7 @@ pub async fn execute_contract(contract: &impl Deploy) -> anyhow::Result<()> {
 pub async fn execute(
     config: &Config,
     addr: impl AsRef<str>,
-    msg: impl Serialize + Send,
+    msg: impl Serialize + Send + Debug,
     funds: Vec<Coin>,
 ) -> anyhow::Result<()> {
     let key = config.get_active_key().await?;
@@ -37,6 +38,7 @@ pub async fn execute(
         funds,
         address: Address::from_str(addr.as_ref())?,
     };
+    debug!("req: {:?}", req);
     let response = client
         .wasm_execute_commit(&chain_info.cfg, req, &key, &TxOptions::default())
         .await?;

@@ -8,6 +8,7 @@ use cosm_utils::{
     },
     prelude::*,
 };
+use log::debug;
 use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 
 use crate::{
@@ -53,7 +54,6 @@ pub async fn execute_deployment(
                     instantiate_perms: None,
                 });
             }
-
             let response = client
                 .wasm_store_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
@@ -104,6 +104,7 @@ pub async fn execute_deployment(
                     });
                 } 
             }
+            debug!("reqs: {:?}", reqs);
             let response = client
                 .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
@@ -177,6 +178,7 @@ pub async fn execute_deployment(
             if reqs.is_empty() {
                 None
             } else {
+                debug!("reqs: {:?}", reqs);
                 let response = client
                     .wasm_execute_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                     .await?;
@@ -202,6 +204,7 @@ pub async fn execute_deployment(
             if reqs.is_empty() {
                 None
             } else {
+                debug!("reqs: {:?}", reqs);
                 let response = client
                     .wasm_execute_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                     .await?;
@@ -235,6 +238,7 @@ pub async fn execute_deployment(
                     });
                 }
             }
+            debug!("reqs: {:?}", reqs);
             let response = client
                 .wasm_migrate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
                 .await?;
@@ -242,6 +246,7 @@ pub async fn execute_deployment(
         }
     };
     if let Some(res) = response {
+        debug!("response: {:?}", res);
         print_res(res);
     }
 
