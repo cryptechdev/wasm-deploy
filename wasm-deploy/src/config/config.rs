@@ -202,7 +202,7 @@ impl Config {
                 .prompt()?;
 
         self.add_chain_from(label.clone(), chain_info.clone())?;
-        Ok((label.clone(), chain_info))
+        Ok((label, chain_info))
     }
 
     /// Adds or replaces a contract

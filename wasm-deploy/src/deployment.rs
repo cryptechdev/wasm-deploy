@@ -77,7 +77,7 @@ pub async fn execute_deployment(
         DeploymentStage::Instantiate { interactive } => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
-            let msgs = contracts.into_iter().map(|x| {
+            let msgs = contracts.iter().map(|x| {
                 let msg = if interactive {
                     Some(x.instantiate()?)
                 } else {
@@ -86,10 +86,7 @@ pub async fn execute_deployment(
                 anyhow::Result::Ok((x, msg))
             })
             .collect::<Result<Vec<_>, anyhow::Error>>()?;
-            let has_msg = msgs.iter().filter_map(|x| match x.1 {
-                Some(_) => Some(x.0),
-                None => None,
-            }).collect::<Vec<_>>();
+            let has_msg = msgs.iter().filter_map(|x| x.1.as_ref().map(|_| x.0)).collect::<Vec<_>>();
             for (contract, msg) in msgs {
                 if let Some(msg) = msg {
                     println!("Instantiating {}", contract.name());
