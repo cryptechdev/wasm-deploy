@@ -1,12 +1,12 @@
-use std::sync::Arc;
 use anyhow::anyhow;
+use std::sync::Arc;
 
 use crate::{
+    config::{ContractInfo, WorkspaceSettings, CONFIG, WORKSPACE_SETTINGS},
     error::DeployError,
-    config::{ContractInfo, CONFIG, WORKSPACE_SETTINGS, WorkspaceSettings},
 };
 use colored::Colorize;
-use futures::{executor::block_on};
+use futures::executor::block_on;
 use lazy_static::lazy_static;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
@@ -97,7 +97,10 @@ pub fn get_wallet_addr() -> anyhow::Result<String> {
         let key = config.get_active_key().await?;
         let chain_info = config.get_active_chain_info()?;
         let pub_key = key.public_key(&chain_info.cfg.derivation_path).await?;
-        Ok(pub_key.account_id(chain_info.cfg.prefix.as_str()).map_err(|e| anyhow!("{}", e.to_string()))?.to_string())
+        Ok(pub_key
+            .account_id(chain_info.cfg.prefix.as_str())
+            .map_err(|e| anyhow!("{}", e.to_string()))?
+            .to_string())
     })
 }
 

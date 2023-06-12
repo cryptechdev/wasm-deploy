@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use cosm_utils::config::cfg::ChainConfig;
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use shrinkwraprs::Shrinkwrap;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
@@ -40,16 +40,21 @@ impl From<ChainVersions> for Chains {
     fn from(value: ChainVersions) -> Self {
         match value {
             ChainVersions::V0_6(v) => Chains(v),
-            ChainVersions::V0_1(v) =>  {
+            ChainVersions::V0_1(v) => {
                 let map = v
-                .into_iter()
-                .map(|x| (x.cfg.chain_id.clone(), ChainInfo {
-                    cfg: x.cfg,
-                    rpc_endpoint: x.rpc_endpoint,
-                }))
-                .collect::<HashMap<String, ChainInfo>>();
+                    .into_iter()
+                    .map(|x| {
+                        (
+                            x.cfg.chain_id.clone(),
+                            ChainInfo {
+                                cfg: x.cfg,
+                                rpc_endpoint: x.rpc_endpoint,
+                            },
+                        )
+                    })
+                    .collect::<HashMap<String, ChainInfo>>();
                 Chains(map)
-            },
+            }
         }
     }
 }

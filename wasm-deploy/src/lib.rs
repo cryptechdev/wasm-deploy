@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod commands;
+pub mod config;
 pub mod contract;
 pub mod cw20;
 pub mod deployment;
@@ -7,7 +8,6 @@ pub mod error;
 pub mod execute;
 pub mod query;
 pub mod utils;
-pub mod config;
 
 pub use cosm_utils;
 

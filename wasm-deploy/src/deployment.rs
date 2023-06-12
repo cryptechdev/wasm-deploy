@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use colored::Colorize;
 use cosm_utils::{
     chain::request::TxOptions,
     modules::{
@@ -12,9 +13,9 @@ use log::debug;
 use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
 
 use crate::{
+    config::{ContractInfo, WorkspaceSettings, CONFIG},
     contract::Deploy,
     error::DeployError,
-    config::{ContractInfo, CONFIG, WorkspaceSettings},
     utils::print_res,
 };
 
@@ -44,7 +45,11 @@ pub async fn execute_deployment(
         DeploymentStage::StoreCode => {
             let mut reqs = vec![];
             for contract in contracts {
-                println!("Storing code for {}", contract.name());
+                println!(
+                    "{} code for {}",
+                    "     Storing".bright_green().bold(),
+                    contract.name()
+                );
                 let path = settings
                     .artifacts_dir
                     .join(format!("{}.wasm.gz", contract.bin_name()));
@@ -77,19 +82,28 @@ pub async fn execute_deployment(
         DeploymentStage::Instantiate { interactive } => {
             let mut reqs = vec![];
             let config = CONFIG.read().await;
-            let msgs = contracts.iter().map(|x| {
-                let msg = if interactive {
-                    Some(x.instantiate()?)
-                } else {
-                    x.instantiate_msg()
-                };
-                anyhow::Result::Ok((x, msg))
-            })
-            .collect::<Result<Vec<_>, anyhow::Error>>()?;
-            let has_msg = msgs.iter().filter_map(|x| x.1.as_ref().map(|_| x.0)).collect::<Vec<_>>();
+            let msgs = contracts
+                .iter()
+                .map(|x| {
+                    let msg = if interactive {
+                        Some(x.instantiate()?)
+                    } else {
+                        x.instantiate_msg()
+                    };
+                    anyhow::Result::Ok((x, msg))
+                })
+                .collect::<Result<Vec<_>, anyhow::Error>>()?;
+            let has_msg = msgs
+                .iter()
+                .filter_map(|x| x.1.as_ref().map(|_| x.0))
+                .collect::<Vec<_>>();
             for (contract, msg) in msgs {
                 if let Some(msg) = msg {
-                    println!("Instantiating {}", contract.name());
+                    println!(
+                        "{} {}",
+                        "Instantiating".bright_green().bold(),
+                        contract.name()
+                    );
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
                     reqs.push(InstantiateRequest {
@@ -99,7 +113,7 @@ pub async fn execute_deployment(
                         admin: Some(Address::from_str(&contract.admin())?),
                         funds: vec![],
                     });
-                } 
+                }
             }
             debug!("reqs: {:?}", reqs);
             let response = client
@@ -119,7 +133,11 @@ pub async fn execute_deployment(
             let config = CONFIG.read().await;
             for contract in contracts {
                 for external in contract.external_instantiate_msgs() {
-                    println!("Instantiating {}", external.name);
+                    println!(
+                        "{} {}",
+                        "Instantiating".bright_green().bold(),
+                        external.name
+                    );
                     reqs.push(InstantiateRequest {
                         code_id: external.code_id,
                         msg: external.msg,
@@ -163,7 +181,11 @@ pub async fn execute_deployment(
             let config = CONFIG.read().await;
             for contract in contracts {
                 if let Some(msg) = contract.set_config_msg() {
-                    println!("Setting config for {}", contract.name());
+                    println!(
+                        "{} set_config for {}",
+                        "   Executing".bright_green().bold(),
+                        contract.name()
+                    );
                     let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
                         msg,
@@ -188,7 +210,11 @@ pub async fn execute_deployment(
             for contract in contracts {
                 for (i, msg) in contract.set_up_msgs().into_iter().enumerate() {
                     if i == 0 {
-                        println!("Executing Set Up for {}", contract.name());
+                        println!(
+                            "{} Set Up for {}",
+                            "   Executing".bright_green().bold(),
+                            contract.name()
+                        );
                     }
                     let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
                     reqs.push(ExecRequest {
@@ -218,7 +244,11 @@ pub async fn execute_deployment(
                     contract.migrate_msg()
                 };
                 if let Some(msg) = msg {
-                    println!("Migrating {}", contract.name());
+                    println!(
+                        "{} {}",
+                        "   Migrating".bright_green().bold(),
+                        contract.name()
+                    );
                     let contract_info = config.get_contract(&contract.to_string())?;
                     let contract_addr =
                         contract_info

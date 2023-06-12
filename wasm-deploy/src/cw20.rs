@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{contract::Deploy, config::CONFIG};
+use crate::{config::CONFIG, contract::Deploy};
 use colored::Colorize;
 use cosm_utils::clients::tendermint_rpc::ClientCompat;
 use cosm_utils::prelude::*;

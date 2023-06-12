@@ -1,7 +1,7 @@
-use std::{ffi::OsStr, path::PathBuf, sync::Arc};
-use lazy_static::lazy_static;
 use anyhow::bail;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::{ffi::OsStr, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 
 lazy_static! {

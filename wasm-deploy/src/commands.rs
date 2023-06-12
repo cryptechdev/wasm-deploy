@@ -31,12 +31,12 @@ use crate::config::WorkspaceSettings;
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
+    config::{Config, CONFIG, WORKSPACE_SETTINGS},
     contract::Deploy,
     cw20::{cw20_execute, cw20_instantiate, cw20_send},
     deployment::{execute_deployment, DeploymentStage},
     error::DeployError,
     execute::execute_contract,
-    config::{Config, CONFIG, WORKSPACE_SETTINGS},
     query::{cw20_query, query_contract},
     utils::BIN_NAME,
 };
@@ -117,11 +117,8 @@ pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> a
         config.add_chain().await?;
     } else if *delete {
         let chains = config.chains.clone();
-        let chains_to_remove = MultiSelect::new(
-            "Select which chains to delete",
-            chains.keys().collect(),
-        )
-        .prompt()?;
+        let chains_to_remove =
+            MultiSelect::new("Select which chains to delete", chains.keys().collect()).prompt()?;
         for chain in chains_to_remove {
             config.chains.remove(chain);
         }
@@ -264,7 +261,10 @@ where
 
     match last_word {
         "zsh" => {
-            println!("Generating shell completion scripts for zsh");
+            println!(
+                "{} shell completion scripts for zsh",
+                "  Generating".bright_green().bold()
+            );
             println!("Run source ~/.zshrc to update your completion scripts");
 
             let generated_file = generate_to(
@@ -326,11 +326,26 @@ pub async fn build(
     contracts: &[impl Deploy],
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
+    // Make sure the toolchain is installed
+    Command::new("rustup")
+        .arg("install")
+        .arg("1.69.0")
+        .spawn()?
+        .wait_with_output()?;
+
+    Command::new("rustup")
+        .arg("+1.69.0")
+        .arg("target")
+        .arg("add")
+        .arg("wasm32-unknown-unknown")
+        .spawn()?
+        .wait_with_output()?;
+
     // Build contracts
     for contract in contracts {
         Command::new("cargo")
             .env("RUSTFLAGS", "-C link-arg=-s")
-            .arg("+stable")
+            .env("RUSTUP_TOOLCHAIN", "1.69.0")
             .arg("build")
             .arg("--release")
             .arg("--lib")
@@ -380,7 +395,7 @@ pub async fn optimize(
     for contract in contracts {
         let name = contract.name();
         let bin_name = contract.bin_name();
-        println!("Optimizing {name} contract");
+        println!("{} {name} contract", "  Optimizing".bold().bright_green());
         #[cfg(feature = "wasm_opt")]
         {
             let mut command = wasm_opt::integration::Command::new("wasm-opt");

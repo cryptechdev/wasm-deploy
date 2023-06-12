@@ -1,8 +1,7 @@
 use crate::{
-    contract::Deploy,
     config::{Config, CONFIG},
+    contract::Deploy,
 };
-use std::{fmt::Debug, str::FromStr};
 use colored::Colorize;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
@@ -12,6 +11,7 @@ use cosm_utils::{
 use interactive_parse::InteractiveParseObj;
 use log::debug;
 use serde::Serialize;
+use std::{fmt::Debug, str::FromStr};
 use tendermint_rpc::HttpClient;
 
 pub async fn execute_contract(contract: &impl Deploy) -> anyhow::Result<()> {

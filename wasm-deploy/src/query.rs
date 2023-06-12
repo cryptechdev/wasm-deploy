@@ -1,4 +1,4 @@
-use std::{str::FromStr, fmt::Debug};
+use std::{fmt::Debug, str::FromStr};
 
 use colored_json::to_colored_json_auto;
 use cosm_utils::{modules::auth::model::Address, prelude::*};
@@ -11,8 +11,8 @@ use serde_json::Value;
 use tendermint_rpc::HttpClient;
 
 use crate::{
-    contract::Deploy,
     config::{Config, CONFIG},
+    contract::Deploy,
     utils::replace_strings_any,
 };
 

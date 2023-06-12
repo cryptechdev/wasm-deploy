@@ -1,8 +1,8 @@
+use crate::config::chain::{ChainInfo, Chains};
 use crate::config::{WorkspaceSettings, WORKSPACE_SETTINGS};
-use crate::config::chain::{Chains, ChainInfo};
+use crate::error::DeployError;
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
-use crate::{error::DeployError};
 use cosm_utils::prelude::*;
 use cosm_utils::{
     config::cfg::ChainConfig,
@@ -27,7 +27,7 @@ use std::{
 use tendermint_rpc::HttpClient;
 use tokio::sync::RwLock;
 
-use super::{Env, ContractInfo, UserSettings};
+use super::{ContractInfo, Env, UserSettings};
 
 lazy_static! {
     pub static ref CONFIG: Arc<RwLock<Config>> = {
@@ -91,10 +91,7 @@ impl Config {
 
     pub fn get_active_chain_info(&self) -> anyhow::Result<&ChainInfo> {
         let env = self.get_active_env()?;
-        match self
-            .chains
-            .get(&env.chain_label)
-        {
+        match self.chains.get(&env.chain_label) {
             Some(chain_info) => Ok(chain_info),
             None => Err(DeployError::ChainConfigNotFound.into()),
         }
@@ -118,11 +115,12 @@ impl Config {
         Ok(key)
     }
 
-    pub fn add_chain_from(&mut self, label: String, chain_info: ChainInfo) -> Result<ChainInfo, DeployError> {
-        match self
-            .chains
-            .contains_key(&label)
-        {
+    pub fn add_chain_from(
+        &mut self,
+        label: String,
+        chain_info: ChainInfo,
+    ) -> Result<ChainInfo, DeployError> {
+        match self.chains.contains_key(&label) {
             true => Err(DeployError::ChainAlreadyExists),
             false => {
                 self.chains.insert(label, chain_info.clone());
@@ -188,18 +186,14 @@ impl Config {
                     gas_adjustment: 1.3,
                 };
 
-                ChainInfo {
-                    cfg,
-                    rpc_endpoint,
-                }
+                ChainInfo { cfg, rpc_endpoint }
             }
             _ => unreachable!(),
         };
 
-        let label =
-            Text::new("Enter a label for this chain")
-                .with_default(&chain_info.cfg.chain_id)
-                .prompt()?;
+        let label = Text::new("Enter a label for this chain")
+            .with_default(&chain_info.cfg.chain_id)
+            .prompt()?;
 
         self.add_chain_from(label.clone(), chain_info.clone())?;
         Ok((label, chain_info))
@@ -300,7 +294,7 @@ impl Config {
         }
         let chain_label = inquire::Select::new(
             "Select which chain to activate",
-            self.chains.keys().collect()
+            self.chains.keys().collect(),
         )
         .with_help_message("\"dev\", \"prod\", \"other\"")
         .prompt()?
