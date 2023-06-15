@@ -63,6 +63,10 @@ where
         /// Triggers dialogue to delete a key
         #[arg(short, long, exclusive = true)]
         delete: bool,
+
+        /// Triggers dialogue to display as address
+        #[arg(short, long, exclusive = true)]
+        show: bool,
     },
 
     /// Modify contracts

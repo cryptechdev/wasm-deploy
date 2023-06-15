@@ -19,6 +19,7 @@ use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::InteractiveParseObj;
 use log::info;
+use anyhow::anyhow;
 use tendermint_rpc::client::CompatMode;
 use tendermint_rpc::{HttpClient, HttpClientUrl};
 #[cfg(feature = "wasm_opt")]
@@ -61,7 +62,7 @@ where
         Commands::Init {} => init(settings).await?,
         Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args).await?,
         Commands::Chain { add, delete } => chain(settings, add, delete).await?,
-        Commands::Key { add, delete } => key(settings, add, delete).await?,
+        Commands::Key { add, delete, show } => key(settings, add, delete, show).await?,
         Commands::Contract { add, delete } => contract(settings, add, delete).await?,
         Commands::Deploy {
             contracts,
@@ -127,7 +128,7 @@ pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> a
     Ok(())
 }
 
-pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> anyhow::Result<()> {
+pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool, show: &bool) -> anyhow::Result<()> {
     let mut config = CONFIG.write().await;
     if *add {
         config.add_key().await?;
@@ -140,6 +141,18 @@ pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> any
         .prompt()?;
         for key in keys_to_remove {
             all_keys.retain(|x| x.name != key);
+        }
+    } else if *show {
+        for key in &config.keys {
+            let chain_info = config.get_active_chain_info()?;
+            let pub_key = key.public_key(&chain_info.cfg.derivation_path).await?;
+            let account = pub_key
+                .account_id(chain_info.cfg.prefix.as_str())
+                .map_err(|e| anyhow!("{}", e.to_string()))?
+                .to_string();
+            println!("name: {}", key.name);
+            println!("key: {:?}", key.key);
+            println!("address: {}\n", account);
         }
     }
     config.save(settings)?;
