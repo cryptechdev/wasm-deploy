@@ -28,7 +28,12 @@ where
 {
     /// Rebuilds deploy
     #[command(visible_alias = "u")]
-    Update,
+    Update {
+        /// Select which features to enable on wasm-deploy
+        /// Defaults to the currently enabled features
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        features: Option<Vec<String>>,
+    },
 
     /// Initializes deploy, adding keys, chains, and envs
     Init,

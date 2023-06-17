@@ -238,7 +238,7 @@ impl Config {
         env.contracts
             .iter()
             .find(|x| x.name == name)
-            .ok_or(DeployError::ContractNotFound.into())
+            .ok_or(DeployError::ContractNotFound { contract_name: name.to_string() }.into())
     }
 
     pub fn get_contract_mut(&mut self, name: &str) -> anyhow::Result<&mut ContractInfo> {
@@ -246,7 +246,7 @@ impl Config {
         env.contracts
             .iter_mut()
             .find(|x| x.name == name)
-            .ok_or(DeployError::ContractNotFound.into())
+            .ok_or(DeployError::ContractNotFound { contract_name: name.to_string() }.into())
     }
 
     pub fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {

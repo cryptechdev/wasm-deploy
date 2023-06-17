@@ -58,7 +58,7 @@ where
     std::env::set_current_dir(settings.workspace_root.clone())?;
     *WORKSPACE_SETTINGS.write().await = Some(Arc::new(settings.clone()));
     match &cli.command {
-        Commands::Update {} => update::<C, S>(settings).await?,
+        Commands::Update { features } => update::<C, S>(settings, features).await?,
         Commands::Init {} => init(settings).await?,
         Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args).await?,
         Commands::Chain { add, delete } => chain(settings, add, delete).await?,
@@ -230,14 +230,20 @@ pub async fn deploy(
     Ok(())
 }
 
-pub async fn update<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
+pub async fn update<C, S>(settings: &WorkspaceSettings, features: &Option<Vec<String>>) -> anyhow::Result<()>
 where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
-    Command::new("cargo")
-        .arg("install")
-        // .arg("--debug")
+    let mut command = Command::new("cargo");
+    command.arg("install");
+    if let Some(features) = features {
+        command
+            .arg("--no-default-features")
+            .arg("--features")
+            .arg(features.join(","));
+    }
+    command
         .arg("--path")
         .arg(settings.deployment_dir.clone())
         .spawn()?
