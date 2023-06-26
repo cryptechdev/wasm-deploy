@@ -40,7 +40,7 @@ pub async fn query(
         .wasm_query(Address::from_str(addr.as_ref())?, &msg)
         .await?;
     debug!("response: {:?}", response);
-    let string = String::from_utf8(response.data)?;
+    let string = String::from_utf8(response.value.data)?;
     Ok(serde_json::from_str::<Value>(string.as_str())?)
 }
 
