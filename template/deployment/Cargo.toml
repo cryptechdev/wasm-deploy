@@ -25,8 +25,8 @@ log = "0.4"
 serde_json = "1"
 clap = { version = "4", features = ["derive"] }
 lazy_static = "1.4"
-strum = "0.24"
-strum_macros = "0.24"
+strum = "0.25"
+strum_macros = "0.25"
 wasm-deploy = { version = "6.0", features = ["wasm-opt"]}
 tokio = "1"
 interactive-parse = "0.1"
