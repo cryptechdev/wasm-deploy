@@ -37,7 +37,7 @@ pub async fn query(
     let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
     debug!("msg: {:?}", msg);
     let response = client
-        .wasm_query(Address::from_str(addr.as_ref())?, &msg)
+        .wasm_query(Address::from_str(addr.as_ref())?, &msg, None)
         .await?;
     debug!("response: {:?}", response);
     let string = String::from_utf8(response.value.data)?;
