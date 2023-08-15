@@ -16,15 +16,23 @@ use crate::{
     utils::replace_strings_any,
 };
 
-pub async fn query_contract(contract: &impl Deploy) -> anyhow::Result<Value> {
+pub async fn query_contract(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<Value> {
     println!("Querying");
     let config = CONFIG.read().await;
     let msg = contract.query()?;
-    let addr = config.get_contract_addr(&contract.to_string())?.clone();
-    let value = query(&config, addr, msg).await?;
-    let color = to_colored_json_auto(&value)?;
-    println!("{color}");
-    Ok(value)
+    if dry_run {
+        println!(
+            "{}",
+            to_colored_json_auto(&serde_json::to_value(msg)?)?
+        );
+        Ok(Value::default())
+    } else {
+        let addr = config.get_contract_addr(&contract.to_string())?.clone();
+        let value = query(&config, addr, msg).await?;
+        let color = to_colored_json_auto(&value)?;
+        println!("{color}");
+        Ok(value)
+    }
 }
 
 pub async fn query(
@@ -44,15 +52,23 @@ pub async fn query(
     Ok(serde_json::from_str::<Value>(string.as_str())?)
 }
 
-pub async fn cw20_query() -> anyhow::Result<Value> {
+pub async fn cw20_query(dry_run: bool) -> anyhow::Result<Value> {
     println!("Querying cw20");
     let config = CONFIG.read().await;
     let addr = Text::new("Cw20 Contract Address?")
         .with_help_message("string")
         .prompt()?;
     let msg = Cw20QueryMsg::parse_to_obj()?;
-    let value = query(&config, addr, msg).await?;
-    let color = to_colored_json_auto(&value)?;
-    println!("{color}");
-    Ok(value)
+    if dry_run {
+        println!(
+            "{}",
+            to_colored_json_auto(&serde_json::to_value(msg)?)?
+        );
+        Ok(Value::default())
+    } else {
+        let value = query(&config, addr, msg).await?;
+        let color = to_colored_json_auto(&value)?;
+        println!("{color}");
+        Ok(value)
+    }
 }

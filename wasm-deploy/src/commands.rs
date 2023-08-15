@@ -67,7 +67,8 @@ where
         Commands::Deploy {
             contracts,
             no_build,
-        } => deploy(settings, contracts, no_build, &cli.cargo_args).await?,
+            dry_run
+        } => deploy(settings, contracts, *no_build, *dry_run, &cli.cargo_args).await?,
         Commands::Env {
             add,
             delete,
@@ -75,28 +76,30 @@ where
             id,
         } => execute_env(settings, add, delete, select, id).await?,
         Commands::Schema { contracts } => schemas(contracts)?,
-        Commands::StoreCode { contracts } => store_code(settings, contracts).await?,
+        Commands::StoreCode { contracts, dry_run } => store_code(settings, contracts, *dry_run).await?,
         Commands::Instantiate {
             contracts,
             interactive,
-        } => instantiate(settings, contracts, *interactive).await?,
+            dry_run,
+        } => instantiate(settings, contracts, *interactive, *dry_run).await?,
         Commands::Migrate {
             contracts,
             interactive,
-        } => migrate(settings, contracts, *interactive, &cli.cargo_args).await?,
-        Commands::Execute { contract } => execute_contract(contract).await?,
-        Commands::Cw20Send { contract } => cw20_send(contract).await?,
-        Commands::Cw20Execute {} => cw20_execute().await?,
-        Commands::Cw20Query {} => {
-            cw20_query().await?;
+            dry_run
+        } => migrate(settings, contracts, *interactive, *dry_run, &cli.cargo_args).await?,
+        Commands::Execute { contract, dry_run } => execute_contract(contract, *dry_run).await?,
+        Commands::Cw20Send { contract, dry_run } => cw20_send(contract, *dry_run).await?,
+        Commands::Cw20Execute { dry_run } => cw20_execute(*dry_run).await?,
+        Commands::Cw20Query { dry_run } => {
+            cw20_query(*dry_run).await?;
         }
-        Commands::Cw20Instantiate {} => cw20_instantiate().await?,
+        Commands::Cw20Instantiate { dry_run } => cw20_instantiate(*dry_run).await?,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await?,
-        Commands::SetConfig { contracts } => set_config(settings, contracts).await?,
-        Commands::Query { contract } => {
-            query_contract(contract).await?;
+        Commands::SetConfig { contracts, dry_run } => set_config(settings, contracts, *dry_run).await?,
+        Commands::Query { contract, dry_run } => {
+            query_contract(contract, *dry_run).await?;
         }
-        Commands::SetUp { contracts } => set_up(settings, contracts).await?,
+        Commands::SetUp { contracts, dry_run } => set_up(settings, contracts, *dry_run).await?,
         Commands::Custom(..) => {}
     };
     Ok(())
@@ -217,16 +220,17 @@ pub async fn execute_env(
 pub async fn deploy(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
-    no_build: &bool,
+    no_build: bool,
+    dry_run: bool,
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     if !no_build {
         build(settings, contracts, cargo_args).await?;
     }
-    store_code(settings, contracts).await?;
-    instantiate(settings, contracts, false).await?;
-    set_config(settings, contracts).await?;
-    set_up(settings, contracts).await?;
+    store_code(settings, contracts, dry_run).await?;
+    instantiate(settings, contracts, dry_run, false).await?;
+    set_config(settings, contracts, dry_run).await?;
+    set_up(settings, contracts, dry_run).await?;
     Ok(())
 }
 
@@ -506,11 +510,12 @@ pub fn set_execute_permissions(
 pub async fn store_code(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
+    dry_run: bool,
 ) -> anyhow::Result<()> {
     let chunk_size = CONFIG.read().await.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
-        execute_deployment(settings, chunk, DeploymentStage::StoreCode).await?;
+        execute_deployment(settings, chunk, dry_run, DeploymentStage::StoreCode).await?;
     }
     Ok(())
 }
@@ -519,14 +524,16 @@ pub async fn instantiate(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
     interactive: bool,
+    dry_run: bool,
 ) -> anyhow::Result<()> {
     execute_deployment(
         settings,
         contracts,
+        dry_run,
         DeploymentStage::Instantiate { interactive },
     )
     .await?;
-    execute_deployment(settings, contracts, DeploymentStage::ExternalInstantiate).await?;
+    execute_deployment(settings, contracts, dry_run, DeploymentStage::ExternalInstantiate).await?;
 
     Ok(())
 }
@@ -535,14 +542,16 @@ pub async fn migrate(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
     interactive: bool,
+    dry_run: bool,
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     build(settings, contracts, cargo_args).await?;
-    store_code(settings, contracts).await?;
+    store_code(settings, contracts, dry_run).await?;
 
     execute_deployment(
         settings,
         contracts,
+        dry_run,
         DeploymentStage::Migrate { interactive },
     )
     .await?;
@@ -553,13 +562,14 @@ pub async fn migrate(
 pub async fn set_config(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
+    dry_run: bool,
 ) -> anyhow::Result<()> {
-    execute_deployment(settings, contracts, DeploymentStage::SetConfig).await?;
+    execute_deployment(settings, contracts, dry_run, DeploymentStage::SetConfig).await?;
     Ok(())
 }
 
-pub async fn set_up(settings: &WorkspaceSettings, contracts: &[impl Deploy]) -> anyhow::Result<()> {
-    execute_deployment(settings, contracts, DeploymentStage::SetUp).await?;
+pub async fn set_up(settings: &WorkspaceSettings, contracts: &[impl Deploy], dry_run: bool) -> anyhow::Result<()> {
+    execute_deployment(settings, contracts, dry_run, DeploymentStage::SetUp).await?;
     Ok(())
 }
 

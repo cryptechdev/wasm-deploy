@@ -3,6 +3,7 @@ use crate::{
     contract::Deploy,
 };
 use colored::Colorize;
+use colored_json::to_colored_json_auto;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
@@ -14,13 +15,20 @@ use serde::Serialize;
 use std::{fmt::Debug, str::FromStr};
 use tendermint_rpc::HttpClient;
 
-pub async fn execute_contract(contract: &impl Deploy) -> anyhow::Result<()> {
+pub async fn execute_contract(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<()> {
     println!("Executing");
     let config = CONFIG.read().await;
     let msg = contract.execute()?;
-    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
-    let funds = Vec::<Coin>::parse_to_obj()?;
-    execute(&config, contract_addr, msg, funds).await?;
+    if dry_run {
+        println!(
+            "{}",
+            to_colored_json_auto(&serde_json::to_value(msg)?)?
+        );
+    } else {
+        let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
+        let funds = Vec::<Coin>::parse_to_obj()?;
+        execute(&config, contract_addr, msg, funds).await?;
+    }
     Ok(())
 }
 

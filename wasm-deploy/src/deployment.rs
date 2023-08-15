@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use colored::Colorize;
+use colored_json::to_colored_json_auto;
 use cosm_utils::{
     chain::request::TxOptions,
     modules::{
@@ -31,7 +32,7 @@ pub enum DeploymentStage {
 pub async fn execute_deployment(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
-    // TODO: perhaps accept &[DeploymentStage]
+    dry_run: bool,
     deployment_stage: DeploymentStage,
 ) -> anyhow::Result<()> {
     let config = CONFIG.read().await;
@@ -59,25 +60,33 @@ pub async fn execute_deployment(
                     instantiate_perms: None,
                 });
             }
-            let response = client
-                .wasm_store_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
-                .await?;
+            if dry_run {
+                println!(
+                    "{}",
+                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.wasm_data).collect::<Vec<_>>())?)?
+                );
+                None
+            } else {
+                let response = client
+                    .wasm_store_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
+                    .await?;
 
-            let mut config = CONFIG.write().await;
-            for (i, contract) in contracts.iter().enumerate() {
-                match config.get_contract_mut(&contract.to_string()) {
-                    Ok(contract_info) => contract_info.code_id = Some(response.code_ids[i]),
-                    Err(_) => {
-                        config.add_contract_from(ContractInfo {
-                            name: contract.name(),
-                            addr: None,
-                            code_id: Some(response.code_ids[i]),
-                        })?;
+                let mut config = CONFIG.write().await;
+                for (i, contract) in contracts.iter().enumerate() {
+                    match config.get_contract_mut(&contract.to_string()) {
+                        Ok(contract_info) => contract_info.code_id = Some(response.code_ids[i]),
+                        Err(_) => {
+                            config.add_contract_from(ContractInfo {
+                                name: contract.name(),
+                                addr: None,
+                                code_id: Some(response.code_ids[i]),
+                            })?;
+                        }
                     }
                 }
+                config.save(settings)?;
+                Some(response.res)
             }
-            config.save(settings)?;
-            Some(response.res)
         }
         DeploymentStage::Instantiate { interactive } => {
             let mut reqs = vec![];
@@ -115,18 +124,26 @@ pub async fn execute_deployment(
                     });
                 }
             }
-            debug!("reqs: {:?}", reqs);
-            let response = client
-                .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
-                .await?;
-            drop(config);
-            let mut config = CONFIG.write().await;
-            for (index, contract) in has_msg.into_iter().enumerate() {
-                let contract_info = config.get_contract_mut(&contract.to_string())?;
-                contract_info.addr = Some(response.addresses[index].to_string());
+            if dry_run {
+                println!(
+                    "{}",
+                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                );
+                None
+            } else {
+                debug!("reqs: {:?}", reqs);
+                let response = client
+                    .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
+                    .await?;
+                drop(config);
+                let mut config = CONFIG.write().await;
+                for (index, contract) in has_msg.into_iter().enumerate() {
+                    let contract_info = config.get_contract_mut(&contract.to_string())?;
+                    contract_info.addr = Some(response.addresses[index].to_string());
+                }
+                config.save(settings)?;
+                Some(response.res)
             }
-            config.save(settings)?;
-            Some(response.res)
         }
         DeploymentStage::ExternalInstantiate => {
             let mut reqs = vec![];
@@ -149,6 +166,12 @@ pub async fn execute_deployment(
             }
             drop(config);
             if reqs.is_empty() {
+                None
+            } else if dry_run {
+                println!(
+                    "{}",
+                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                );
                 None
             } else {
                 let response = client
@@ -196,6 +219,12 @@ pub async fn execute_deployment(
             }
             if reqs.is_empty() {
                 None
+            } else if dry_run {
+                println!(
+                    "{}",
+                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                );
+                None
             } else {
                 debug!("reqs: {:?}", reqs);
                 let response = client
@@ -225,6 +254,12 @@ pub async fn execute_deployment(
                 }
             }
             if reqs.is_empty() {
+                None
+            } else if dry_run {
+                println!(
+                    "{}",
+                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                );
                 None
             } else {
                 debug!("reqs: {:?}", reqs);
@@ -265,13 +300,23 @@ pub async fn execute_deployment(
                     });
                 }
             }
-            debug!("reqs: {:?}", reqs);
-            let response = client
-                .wasm_migrate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
-                .await?;
-            Some(response)
+            
+            if dry_run {
+                println!(
+                    "{}",
+                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                );
+                None
+            } else {
+                debug!("reqs: {:?}", reqs);
+                let response = client
+                    .wasm_migrate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
+                    .await?;
+                Some(response)
+            }
         }
     };
+
     if let Some(res) = response {
         debug!("response: {:?}", res);
         print_res(res);

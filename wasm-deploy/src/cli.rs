@@ -96,6 +96,10 @@ where
         /// Deploys but does not recompile first
         #[arg(short, long, required = false)]
         no_build: bool,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Modify deployment environments
@@ -129,6 +133,10 @@ where
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Instantiates a contract using the preprogrammed messages
@@ -141,6 +149,10 @@ where
         /// Interactive mode
         #[arg(short, long, required = false)]
         interactive: bool,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Migrates contracts
@@ -153,6 +165,10 @@ where
         /// Interactive mode
         #[arg(short, long, required = false)]
         interactive: bool,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Sets the config of a contract
@@ -160,6 +176,10 @@ where
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Executes a contract
@@ -167,22 +187,42 @@ where
     Execute {
         #[command(subcommand)]
         contract: C,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Sends Cw20 tokens to a contract along with a payload
     Cw20Send {
         #[command(subcommand)]
         contract: C,
+        
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Executes a Cw20 message
-    Cw20Execute {},
+    Cw20Execute {
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
+    },
 
     /// Queries a Cw20 contract
-    Cw20Query {},
+    Cw20Query {
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
+    },
 
     /// Instantiate a Cw20 contract
-    Cw20Instantiate {},
+    Cw20Instantiate {
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
+    },
 
     /// Executes a contract with a custom payload
     ExecutePayload {
@@ -202,6 +242,10 @@ where
     Query {
         #[command(subcommand)]
         contract: C,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 
     /// Sets up the smart contract env with executes
@@ -209,6 +253,10 @@ where
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
     },
 }
 
