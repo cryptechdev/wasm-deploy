@@ -11,14 +11,13 @@ repository = "https://github.com/cryptechdev/wasm-deploy"
 readme = "../README.md"
 
 [features]
-default = ["wasm-opt", "generic"]
-generic = ["cosm-utils/generic"]
+default = ["wasm-opt"]
 injective = ["cosm-utils/injective"]
 wasm_cli = []
 
 [dependencies]
 wasm-deploy-derive = { version = "0.6.0", path = "../wasm-deploy-derive" }
-cosm-utils = { version = "0.1.1", git = "https://github.com/cryptechdev/cosm-utils.git", branch = "injective", default-features = false, features = ["keyring"] }
+cosm-utils = { version = "0.1.1", git = "https://github.com/cryptechdev/cosm-utils.git", branch = "develop", features = ["keyring"] }
 tendermint-rpc = "0.32"
 wasm-opt = { version = "=0.110.2", optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
