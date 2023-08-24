@@ -6,6 +6,7 @@ use crate::contract::Deploy;
 
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about, long_about = None)]
+#[clap(rename_all = "kebab_case", infer_subcommands = true)]
 pub struct Cli<C, S = EmptySubcommand>
 where
     C: Deploy + Clone,
@@ -20,7 +21,7 @@ where
 }
 
 #[derive(Parser, Clone, Debug)]
-#[clap(rename_all = "snake_case", infer_subcommands = true)]
+#[clap(rename_all = "kebab_case", infer_subcommands = true)]
 pub enum Commands<C, S>
 where
     C: Deploy + Clone,
@@ -31,7 +32,7 @@ where
     Update {
         /// Select which features to enable on wasm-deploy
         /// Defaults to the currently enabled features
-        #[arg(short, long, use_value_delimiter=true, value_delimiter=',')]
+        #[arg(short, long, use_value_delimiter = true, value_delimiter = ',')]
         features: Option<Vec<String>>,
     },
 
@@ -197,7 +198,7 @@ where
     Cw20Send {
         #[command(subcommand)]
         contract: C,
-        
+
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,

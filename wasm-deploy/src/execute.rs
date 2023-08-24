@@ -17,18 +17,16 @@ use tendermint_rpc::HttpClient;
 
 pub async fn execute_contract(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<()> {
     println!("Executing");
-    let config = CONFIG.read().await;
     let msg = contract.execute()?;
     if dry_run {
-        println!(
-            "{}",
-            to_colored_json_auto(&serde_json::to_value(msg)?)?
-        );
-    } else {
-        let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
-        let funds = Vec::<Coin>::parse_to_obj()?;
-        execute(&config, contract_addr, msg, funds).await?;
+        println!("{}", to_colored_json_auto(&serde_json::to_value(msg)?)?);
+        return Ok(());
     }
+    let config = CONFIG.read().await;
+    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
+    let funds = Vec::<Coin>::parse_to_obj()?;
+    execute(&config, contract_addr, msg, funds).await?;
+
     Ok(())
 }
 
