@@ -1,6 +1,7 @@
 use std::ffi::OsString;
 use std::{env, process::Command, str::FromStr, sync::Arc};
 
+use anyhow::{anyhow, Context};
 use async_recursion::async_recursion;
 use clap::{CommandFactory, Subcommand};
 use clap_complete::{
@@ -19,7 +20,6 @@ use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::InteractiveParseObj;
 use log::info;
-use anyhow::anyhow;
 use tendermint_rpc::client::CompatMode;
 use tendermint_rpc::{HttpClient, HttpClientUrl};
 #[cfg(feature = "wasm_opt")]
@@ -67,7 +67,7 @@ where
         Commands::Deploy {
             contracts,
             no_build,
-            dry_run
+            dry_run,
         } => deploy(settings, contracts, *no_build, *dry_run, &cli.cargo_args).await?,
         Commands::Env {
             add,
@@ -76,7 +76,9 @@ where
             id,
         } => execute_env(settings, add, delete, select, id).await?,
         Commands::Schema { contracts } => schemas(contracts)?,
-        Commands::StoreCode { contracts, dry_run } => store_code(settings, contracts, *dry_run).await?,
+        Commands::StoreCode { contracts, dry_run } => {
+            store_code(settings, contracts, *dry_run).await?
+        }
         Commands::Instantiate {
             contracts,
             interactive,
@@ -85,7 +87,7 @@ where
         Commands::Migrate {
             contracts,
             interactive,
-            dry_run
+            dry_run,
         } => migrate(settings, contracts, *interactive, *dry_run, &cli.cargo_args).await?,
         Commands::Execute { contract, dry_run } => execute_contract(contract, *dry_run).await?,
         Commands::Cw20Send { contract, dry_run } => cw20_send(contract, *dry_run).await?,
@@ -95,7 +97,9 @@ where
         }
         Commands::Cw20Instantiate { dry_run } => cw20_instantiate(*dry_run).await?,
         Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await?,
-        Commands::SetConfig { contracts, dry_run } => set_config(settings, contracts, *dry_run).await?,
+        Commands::SetConfig { contracts, dry_run } => {
+            set_config(settings, contracts, *dry_run).await?
+        }
         Commands::Query { contract, dry_run } => {
             query_contract(contract, *dry_run).await?;
         }
@@ -131,7 +135,12 @@ pub async fn chain(settings: &WorkspaceSettings, add: &bool, delete: &bool) -> a
     Ok(())
 }
 
-pub async fn key(settings: &WorkspaceSettings, add: &bool, delete: &bool, show: &bool) -> anyhow::Result<()> {
+pub async fn key(
+    settings: &WorkspaceSettings,
+    add: &bool,
+    delete: &bool,
+    show: &bool,
+) -> anyhow::Result<()> {
     let mut config = CONFIG.write().await;
     if *add {
         config.add_key().await?;
@@ -234,7 +243,10 @@ pub async fn deploy(
     Ok(())
 }
 
-pub async fn update<C, S>(settings: &WorkspaceSettings, features: &Option<Vec<String>>) -> anyhow::Result<()>
+pub async fn update<C, S>(
+    settings: &WorkspaceSettings,
+    features: &Option<Vec<String>>,
+) -> anyhow::Result<()>
 where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
@@ -450,7 +462,12 @@ pub async fn optimize(
                             .target_dir
                             .join(format!("wasm32-unknown-unknown/release/{bin_name}.wasm")),
                     )
-                    .spawn()?,
+                    .spawn()
+                    .context(
+                        "Failed optimizing with user installed wasm-opt. \
+                        Check that wasm-opt is installed and in your PATH, \
+                        or compile wasm-deploy with the `wasm-opt` feature.",
+                    )?,
             );
         }
     }
@@ -533,7 +550,13 @@ pub async fn instantiate(
         DeploymentStage::Instantiate { interactive },
     )
     .await?;
-    execute_deployment(settings, contracts, dry_run, DeploymentStage::ExternalInstantiate).await?;
+    execute_deployment(
+        settings,
+        contracts,
+        dry_run,
+        DeploymentStage::ExternalInstantiate,
+    )
+    .await?;
 
     Ok(())
 }
@@ -568,7 +591,11 @@ pub async fn set_config(
     Ok(())
 }
 
-pub async fn set_up(settings: &WorkspaceSettings, contracts: &[impl Deploy], dry_run: bool) -> anyhow::Result<()> {
+pub async fn set_up(
+    settings: &WorkspaceSettings,
+    contracts: &[impl Deploy],
+    dry_run: bool,
+) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, dry_run, DeploymentStage::SetUp).await?;
     Ok(())
 }

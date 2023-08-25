@@ -36,10 +36,7 @@ pub async fn cw20_send(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<
         msg: serde_json::to_vec(&hook_msg)?.into(),
     };
     if dry_run {
-        println!(
-            "{}",
-            to_colored_json_auto(&serde_json::to_value(msg)?)?
-        );
+        println!("{}", to_colored_json_auto(&serde_json::to_value(msg)?)?);
     } else {
         let chain_info = config.get_active_chain_info()?.clone();
         let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
@@ -49,7 +46,7 @@ pub async fn cw20_send(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<
             funds,
             address: Address::from_str(&cw20_contract_addr)?,
         };
-    
+
         let response = client
             .wasm_execute_commit(&chain_info.cfg, req, &key, &TxOptions::default())
             .await?;
@@ -80,10 +77,7 @@ pub async fn cw20_execute(dry_run: bool) -> anyhow::Result<()> {
         address: Address::from_str(&cw20_contract_addr)?,
     };
     if dry_run {
-        println!(
-            "{}",
-            to_colored_json_auto(&serde_json::to_value(req.msg)?)?
-        );
+        println!("{}", to_colored_json_auto(&serde_json::to_value(req.msg)?)?);
     } else {
         let response = client
             .wasm_execute_commit(&chain_info.cfg, req, &key, &TxOptions::default())
@@ -108,12 +102,8 @@ pub async fn cw20_instantiate(dry_run: bool) -> anyhow::Result<()> {
     let msg = cw20_base::msg::InstantiateMsg::parse_to_obj()?;
 
     if dry_run {
-        println!(
-            "{}",
-            to_colored_json_auto(&serde_json::to_value(msg)?)?
-        );
-    } else { 
-
+        println!("{}", to_colored_json_auto(&serde_json::to_value(msg)?)?);
+    } else {
         let code_id: u64 = Text::new("Cw20 Code Id?")
             .with_help_message("int")
             .prompt()?

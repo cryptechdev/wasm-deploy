@@ -19,7 +19,7 @@ pub enum DeployError {
     ContractAlreadyExists,
 
     #[error("Contract {contract_name} not found, consider running \"store_code\"")]
-    ContractNotFound{ contract_name: String},
+    ContractNotFound { contract_name: String },
 
     #[error("Env already exists")]
     EnvAlreadyExists,

@@ -63,7 +63,9 @@ pub async fn execute_deployment(
             if dry_run {
                 println!(
                     "{}",
-                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.wasm_data).collect::<Vec<_>>())?)?
+                    to_colored_json_auto(&serde_json::to_value(
+                        reqs.into_iter().map(|m| m.wasm_data).collect::<Vec<_>>()
+                    )?)?
                 );
                 None
             } else {
@@ -127,13 +129,20 @@ pub async fn execute_deployment(
             if dry_run {
                 println!(
                     "{}",
-                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                    to_colored_json_auto(&serde_json::to_value(
+                        reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>()
+                    )?)?
                 );
                 None
             } else {
                 debug!("reqs: {:?}", reqs);
                 let response = client
-                    .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, &key, &TxOptions::default())
+                    .wasm_instantiate_batch_commit(
+                        &chain_info.cfg,
+                        reqs,
+                        &key,
+                        &TxOptions::default(),
+                    )
                     .await?;
                 drop(config);
                 let mut config = CONFIG.write().await;
@@ -170,7 +179,9 @@ pub async fn execute_deployment(
             } else if dry_run {
                 println!(
                     "{}",
-                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                    to_colored_json_auto(&serde_json::to_value(
+                        reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>()
+                    )?)?
                 );
                 None
             } else {
@@ -222,7 +233,9 @@ pub async fn execute_deployment(
             } else if dry_run {
                 println!(
                     "{}",
-                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                    to_colored_json_auto(&serde_json::to_value(
+                        reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>()
+                    )?)?
                 );
                 None
             } else {
@@ -258,7 +271,9 @@ pub async fn execute_deployment(
             } else if dry_run {
                 println!(
                     "{}",
-                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                    to_colored_json_auto(&serde_json::to_value(
+                        reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>()
+                    )?)?
                 );
                 None
             } else {
@@ -300,11 +315,13 @@ pub async fn execute_deployment(
                     });
                 }
             }
-            
+
             if dry_run {
                 println!(
                     "{}",
-                    to_colored_json_auto(&serde_json::to_value(reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>())?)?
+                    to_colored_json_auto(&serde_json::to_value(
+                        reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>()
+                    )?)?
                 );
                 None
             } else {

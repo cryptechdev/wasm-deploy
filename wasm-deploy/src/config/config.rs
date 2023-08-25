@@ -235,18 +235,22 @@ impl Config {
 
     pub fn get_contract(&self, name: &str) -> anyhow::Result<&ContractInfo> {
         let env = self.get_active_env()?;
-        env.contracts
-            .iter()
-            .find(|x| x.name == name)
-            .ok_or(DeployError::ContractNotFound { contract_name: name.to_string() }.into())
+        env.contracts.iter().find(|x| x.name == name).ok_or(
+            DeployError::ContractNotFound {
+                contract_name: name.to_string(),
+            }
+            .into(),
+        )
     }
 
     pub fn get_contract_mut(&mut self, name: &str) -> anyhow::Result<&mut ContractInfo> {
         let env = self.get_active_env_mut()?;
-        env.contracts
-            .iter_mut()
-            .find(|x| x.name == name)
-            .ok_or(DeployError::ContractNotFound { contract_name: name.to_string() }.into())
+        env.contracts.iter_mut().find(|x| x.name == name).ok_or(
+            DeployError::ContractNotFound {
+                contract_name: name.to_string(),
+            }
+            .into(),
+        )
     }
 
     pub fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {
