@@ -279,6 +279,7 @@ where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
+    println!("bin_name: {bin_name}");
     let mut config = CONFIG.write().await;
 
     let shell_completion_dir = match config.get_shell_completion_dir() {
