@@ -251,6 +251,7 @@ where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
+    let bin_name = BIN_NAME.clone();
     let mut command = Command::new("cargo");
     command.arg("install");
     if let Some(features) = features {
@@ -265,12 +266,15 @@ where
         .spawn()?
         .wait()?;
 
-    generate_completions::<C, S>(settings).await?;
+    generate_completions::<C, S>(settings, bin_name).await?;
 
     Ok(())
 }
 
-pub async fn generate_completions<C, S>(settings: &WorkspaceSettings) -> anyhow::Result<()>
+pub async fn generate_completions<C, S>(
+    settings: &WorkspaceSettings,
+    bin_name: String,
+) -> anyhow::Result<()>
 where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
@@ -305,7 +309,7 @@ where
             let generated_file = generate_to(
                 Zsh,
                 &mut cmd,                    // We need to specify what generator to use
-                BIN_NAME.to_string(),        // We need to specify the bin name manually
+                bin_name,                    // We need to specify the bin name manually
                 settings.target_dir.clone(), // We need to specify where to write to
             )?;
 
@@ -329,7 +333,7 @@ where
             let generated_file = generate_to(
                 Bash,
                 &mut cmd,                    // We need to specify what generator to use
-                BIN_NAME.to_string(),        // We need to specify the bin name manually
+                bin_name,                    // We need to specify the bin name manually
                 settings.target_dir.clone(), // We need to specify where to write to
             )?;
 
