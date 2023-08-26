@@ -17,7 +17,9 @@ wasm_cli = []
 
 [dependencies]
 wasm-deploy-derive = { version = "0.6.0", path = "../wasm-deploy-derive" }
-cosm-utils = { version = "0.1.1", git = "https://github.com/cryptechdev/cosm-utils.git", branch = "develop", features = ["keyring"] }
+cosm-utils = { version = "0.1.1", git = "https://github.com/cryptechdev/cosm-utils.git", branch = "develop", features = [
+    "keyring",
+] }
 tendermint-rpc = "0.32"
 wasm-opt = { version = "=0.110.2", optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
@@ -27,6 +29,7 @@ cw20 = "1"
 cw20-base = "1"
 clap = { version = "4", features = ["derive", "string"] }
 clap_complete = "4"
+convert_case = "0.6"
 schemars = "0.8"
 lazy_static = "1"
 inquire = "0.6"

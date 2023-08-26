@@ -29,8 +29,8 @@ fn contract_impl(input: DeriveInput) -> DeriveInput {
                 ::std::fmt::Debug,
             )]
             // TODO: figure out how to reexport this attribute macro
-            #[clap(rename_all = "snake_case", infer_subcommands = true)]
-            #[strum(serialize_all = "snake_case")]
+            #[clap(rename_all = "kebab_case", infer_subcommands = true)]
+            #[strum(serialize_all = "kebab_case")]
             #input
         },
         _ => panic!("wasm deploy only supports enums"),

@@ -29,7 +29,7 @@ pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
                     .ident
                     .to_string()
                     .from_case(Case::UpperCamel)
-                    .to_case(Case::Snake);
+                    .to_case(Case::Kebab);
                 parse_quote!(#string)
             };
 

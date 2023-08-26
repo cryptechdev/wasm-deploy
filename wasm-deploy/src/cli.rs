@@ -6,7 +6,7 @@ use crate::contract::Deploy;
 
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about, long_about = None)]
-#[clap(rename_all = "snake_case", infer_subcommands = true)]
+#[clap(rename_all = "kebab_case", infer_subcommands = true)]
 pub struct Cli<C, S = EmptySubcommand>
 where
     C: Deploy + Clone,
@@ -21,7 +21,7 @@ where
 }
 
 #[derive(Parser, Clone, Debug)]
-#[clap(rename_all = "snake_case", infer_subcommands = true)]
+#[clap(rename_all = "kebab_case", infer_subcommands = true)]
 pub enum Commands<C, S>
 where
     C: Deploy + Clone,

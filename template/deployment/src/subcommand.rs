@@ -22,7 +22,7 @@ where
 
 // A custom subcommand for user defined functionality.
 #[derive(Clone, Debug, Subcommand)]
-#[clap(rename_all = "snake_case")]
+#[clap(rename_all = "kebab_case")]
 pub enum CustomSubcommand {
     /// This is a command that you can define yourself.
     MyCommand,

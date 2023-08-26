@@ -251,6 +251,8 @@ where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
+    // This must be called BEFORE install
+    // so that the bin_name is valid on linux
     let bin_name = BIN_NAME.clone();
     let mut command = Command::new("cargo");
     command.arg("install");
@@ -279,7 +281,6 @@ where
     C: Deploy + Clone,
     S: Subcommand + Clone + Debug,
 {
-    println!("bin_name: {bin_name}");
     let mut config = CONFIG.write().await;
 
     let shell_completion_dir = match config.get_shell_completion_dir() {
@@ -381,20 +382,23 @@ pub async fn build(
         .spawn()?
         .wait_with_output()?;
 
+    let mut command = Command::new("cargo");
+    command
+        .env("RUSTFLAGS", "-C link-arg=-s")
+        .env("RUSTUP_TOOLCHAIN", "1.69.0")
+        .arg("build")
+        .arg("--release")
+        .arg("--lib")
+        .arg("--target=wasm32-unknown-unknown")
+        .args(cargo_args);
+
     // Build contracts
     for contract in contracts {
-        Command::new("cargo")
-            .env("RUSTFLAGS", "-C link-arg=-s")
-            .env("RUSTUP_TOOLCHAIN", "1.69.0")
-            .arg("build")
-            .arg("--release")
-            .arg("--lib")
-            .arg("--target=wasm32-unknown-unknown")
-            .args(cargo_args)
-            .current_dir(contract.path())
-            .spawn()?
-            .wait()?;
+        command.arg("-p");
+        command.arg(contract.package_id());
     }
+
+    command.spawn()?.wait()?;
 
     if !Path::exists(Path::new(settings.artifacts_dir.as_path())) {
         create_dir(settings.artifacts_dir.as_path())?;

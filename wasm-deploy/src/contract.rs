@@ -6,6 +6,7 @@ use std::{
 
 use crate::error::DeployError;
 use clap::Subcommand;
+use convert_case::{Case, Casing};
 use serde::Serialize;
 use strum::{IntoEnumIterator, ParseError};
 
@@ -61,12 +62,20 @@ pub trait ContractInteractive:
         self.to_string()
     }
 
-    /// This is the name of the generated binary.
+    /// This is the name of the cargo package id.
     /// It defaults to the contract name.
     /// If you have multiple contracts that share the same code
     /// then you can use this, in conjunction with the path method.
-    fn bin_name(&self) -> String {
+    fn package_id(&self) -> String {
         self.name()
+    }
+
+    /// This is the name of the generated binary.
+    /// It defaults to the contract package_id converted to snake case.
+    /// You likely shouldn't need to override this method,
+    /// instead you should change the package_id method.
+    fn bin_name(&self) -> String {
+        self.package_id().to_case(Case::Snake)
     }
 
     /// This method allows for customizing the path to the contract.
