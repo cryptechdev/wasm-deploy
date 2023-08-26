@@ -382,23 +382,39 @@ pub async fn build(
         .spawn()?
         .wait_with_output()?;
 
-    let mut command = Command::new("cargo");
-    command
-        .env("RUSTFLAGS", "-C link-arg=-s")
-        .env("RUSTUP_TOOLCHAIN", "1.69.0")
-        .arg("build")
-        .arg("--release")
-        .arg("--lib")
-        .arg("--target=wasm32-unknown-unknown")
-        .args(cargo_args);
+    // TODO: this is a better method
+    // let mut command = Command::new("cargo");
+    // command
+    //     .env("RUSTFLAGS", "-C link-arg=-s")
+    //     .env("RUSTUP_TOOLCHAIN", "1.69.0")
+    //     .arg("build")
+    //     .arg("--release")
+    //     .arg("--lib")
+    //     .arg("--target=wasm32-unknown-unknown")
+    //     .args(cargo_args);
+
+    // // Build contracts
+    // for contract in contracts {
+    //     command.arg("-p");
+    //     command.arg(contract.package_id());
+    // }
+
+    // command.spawn()?.wait()?;
 
     // Build contracts
     for contract in contracts {
-        command.arg("-p");
-        command.arg(contract.package_id());
+        Command::new("cargo")
+            .env("RUSTFLAGS", "-C link-arg=-s")
+            .env("RUSTUP_TOOLCHAIN", "1.69.0")
+            .arg("build")
+            .arg("--release")
+            .arg("--lib")
+            .arg("--target=wasm32-unknown-unknown")
+            .args(cargo_args)
+            .current_dir(contract.path())
+            .spawn()?
+            .wait()?;
     }
-
-    command.spawn()?.wait()?;
 
     if !Path::exists(Path::new(settings.artifacts_dir.as_path())) {
         create_dir(settings.artifacts_dir.as_path())?;

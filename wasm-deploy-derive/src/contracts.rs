@@ -35,6 +35,7 @@ pub fn get_contracts(item_enum: ItemEnum) -> Vec<Contract> {
 
             Contract {
                 name,
+                package_id: options.package_id,
                 bin_name: options.bin_name,
                 variant_name: variant.ident,
                 path: options.path,
@@ -84,10 +85,20 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
         parse_quote!(#path.to_string())
     });
 
+    let package_id_match = generate_match(enum_ident, contracts, |contract| {
+        match &contract.package_id {
+            Some(package_id) => parse_quote!(#package_id.to_string()),
+            None => parse_quote!(self.name()),
+        }
+    });
+
     let bin_name_match =
         generate_match(enum_ident, contracts, |contract| match &contract.bin_name {
             Some(bin_name) => parse_quote!(#bin_name.to_string()),
-            None => parse_quote!(self.name()),
+            None => parse_quote! {{
+                use wasm_deploy::convert_case::{Case, Casing};
+                self.package_id().to_case(Case::Snake)
+            }},
         });
 
     let path_match = generate_match(enum_ident, contracts, |contract| match &contract.path {
@@ -157,6 +168,9 @@ pub fn generate_impl(enum_ident: &Ident, contracts: &[Contract]) -> ItemImpl {
             fn name(&self) -> String {
                 #name_match
             }
+            fn package_id(&self) -> String {
+                #package_id_match
+            }
             fn bin_name(&self) -> String {
                 #bin_name_match
             }
@@ -216,7 +230,9 @@ impl Parse for Pair {
         input.parse::<Token![=]>()?;
         let v = match k.to_string().as_str() {
             // "rename" => Value::Str(input.parse::<LitStr>()?),
-            "admin" | "rename" | "bin_name" | "path" => Value::Expr(input.parse::<Expr>()?),
+            "admin" | "rename" | "bin_name" | "package_id" | "path" => {
+                Value::Expr(input.parse::<Expr>()?)
+            }
             "instantiate" | "execute" | "query" | "migrate" | "cw20_send" => {
                 Value::Path(input.parse::<Path>()?)
             }
@@ -232,6 +248,7 @@ impl Parse for Pair {
 
 pub struct Contract {
     name: Expr,
+    package_id: Option<Expr>,
     bin_name: Option<Expr>,
     path: Option<Expr>,
     variant_name: Ident,
@@ -245,6 +262,7 @@ pub struct Contract {
 
 pub struct Options {
     rename: Option<Expr>,
+    package_id: Option<Expr>,
     bin_name: Option<Expr>,
     path: Option<Expr>,
     admin: Expr,
@@ -262,6 +280,10 @@ impl Parse for Options {
         let mut map: BTreeMap<_, _> = pairs.into_iter().map(|p| p.0).collect();
 
         let rename = map.remove(&parse_quote!(rename)).map(|x| x.unwrap_expr());
+
+        let package_id = map
+            .remove(&parse_quote!(package_id))
+            .map(|x| x.unwrap_expr());
 
         let bin_name = map.remove(&parse_quote!(bin_name)).map(|x| x.unwrap_expr());
 
@@ -294,6 +316,7 @@ impl Parse for Options {
 
         Ok(Self {
             rename,
+            package_id,
             bin_name,
             path,
             admin,

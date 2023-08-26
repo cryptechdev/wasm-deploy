@@ -9,6 +9,7 @@ pub mod execute;
 pub mod query;
 pub mod utils;
 
+pub use convert_case;
 pub use cosm_utils;
 
 #[cfg(wasm_cli)]
