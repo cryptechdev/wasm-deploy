@@ -6,7 +6,7 @@ use crate::ledger::get_ledger_info;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     config::cfg::ChainConfig,
-    signing_key::key::{Key, KeyringParams, SigningKey},
+    signing_key::key::{Key, KeyringParams, UserKey},
 };
 use futures::executor::block_on;
 use ibc_chain_registry::{chain::ChainData, constants::ALL_CHAINS, fetchable::Fetchable};
@@ -45,7 +45,7 @@ pub struct Config {
     pub shell_completion_dir: Option<PathBuf>,
     pub chains: Chains,
     pub envs: Vec<Env>,
-    pub keys: Vec<SigningKey>,
+    pub keys: Vec<UserKey>,
 }
 
 impl Config {
@@ -98,7 +98,7 @@ impl Config {
     }
 
     #[allow(unused_mut)]
-    pub async fn get_active_key(&self) -> anyhow::Result<SigningKey> {
+    pub async fn get_active_key(&self) -> anyhow::Result<UserKey> {
         let active_key_name = self.get_active_env()?.key_name.clone();
         let key = self.keys.iter().find(|x| x.name == active_key_name).ok_or(
             DeployError::KeyNotFound {
@@ -253,7 +253,7 @@ impl Config {
         )
     }
 
-    pub fn add_key_from(&mut self, key: SigningKey) -> Result<SigningKey, DeployError> {
+    pub fn add_key_from(&mut self, key: UserKey) -> Result<UserKey, DeployError> {
         if self.keys.iter().any(|x| x.name == key.name) {
             return Err(DeployError::KeyAlreadyExists);
         }
@@ -261,12 +261,16 @@ impl Config {
         Ok(key)
     }
 
-    pub async fn add_key(&mut self) -> anyhow::Result<SigningKey> {
+    pub async fn add_key(&mut self) -> anyhow::Result<UserKey> {
         let key_type = Select::new("Select Key Type", vec!["Keyring", "Mnemonic"]).prompt()?;
         let key = match key_type {
             "Keyring" => {
                 let params = KeyringParams::parse_to_obj()?;
-                let entry = keyring::Entry::new(&params.service, &params.key_name)?;
+                let service = Text::new("service?")
+                    .with_help_message("Describe this key")
+                    .prompt()
+                    .unwrap();
+                let entry = keyring::Entry::new(&service, &params.user)?;
                 let password = inquire::Text::new("Mnemonic?").prompt()?;
                 entry.set_password(password.as_str())?;
                 Key::Keyring(params)
@@ -285,7 +289,7 @@ impl Config {
             _ => panic!("should not happen"),
         };
         let name = Text::new("Key Name?").prompt()?;
-        Ok(self.add_key_from(SigningKey { name, key })?)
+        Ok(self.add_key_from(UserKey { name, key })?)
     }
 
     pub fn add_env(&mut self) -> anyhow::Result<&mut Env> {
