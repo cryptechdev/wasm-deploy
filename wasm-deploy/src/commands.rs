@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::{env, process::Command, str::FromStr, sync::Arc};
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use async_recursion::async_recursion;
 use clap::{CommandFactory, Subcommand};
 use clap_complete::{
@@ -157,14 +157,12 @@ pub async fn key(
     } else if *show {
         for key in &config.keys {
             let chain_info = config.get_active_chain_info()?;
-            let pub_key = key.public_key(&chain_info.cfg.derivation_path).await?;
-            let account = pub_key
-                .account_id(chain_info.cfg.prefix.as_str())
-                .map_err(|e| anyhow!("{}", e.to_string()))?
-                .to_string();
+            let addr = key
+                .to_addr(&chain_info.cfg.prefix, &chain_info.cfg.derivation_path)
+                .await?;
             println!("name: {}", key.name);
             println!("key: {:?}", key.key);
-            println!("address: {}\n", account);
+            println!("address: {}\n", addr);
         }
     }
     config.save(settings)?;

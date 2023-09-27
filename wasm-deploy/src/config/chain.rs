@@ -33,7 +33,8 @@ enum ChainVersions {
 #[derive(Shrinkwrap)]
 #[shrinkwrap(mutable)]
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq)]
-#[serde(from = "ChainVersions")]
+// TODO: why did this suddenly break?
+// #[serde(from = "ChainVersions")]
 pub struct Chains(pub ChainsV0_6);
 
 impl From<ChainVersions> for Chains {
