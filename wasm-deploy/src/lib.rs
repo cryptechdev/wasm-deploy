@@ -21,5 +21,6 @@ pub extern crate strum_macros;
 
 pub use clap::*;
 pub use strum::*;
+#[allow(unused_imports)]
 pub use strum_macros::*;
 pub use wasm_deploy_derive as derive;
