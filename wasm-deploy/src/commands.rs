@@ -409,7 +409,8 @@ pub async fn build(
             .arg("--lib")
             .arg("--target=wasm32-unknown-unknown")
             .args(cargo_args)
-            .current_dir(contract.path())
+            .arg("-p")
+            .arg(contract.package_id())
             .spawn()?
             .wait()?;
     }
