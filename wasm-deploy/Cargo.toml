@@ -24,7 +24,7 @@ tendermint-rpc = "0.32"
 wasm-opt = { version = "=0.110.2", optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = "1"
-ibc-chain-registry = "0.26"
+ibc-chain-registry = "0.25"
 cw20 = "1"
 cw20-base = "1"
 clap = { version = "4", features = ["derive", "string"] }
