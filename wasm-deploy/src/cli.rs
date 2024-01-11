@@ -253,15 +253,15 @@ where
     /// Sends a token amount to a given address
     Send {
         /// Address to receive the tokens
-        #[arg(short, long)]
+        #[arg(long)]
         address: String,
 
         /// The amount and denom to send
-        #[arg(short, long)]
+        #[arg(long)]
         denom: Denom,
 
         /// The amount and denom to send
-        #[arg(short, long)]
+        #[arg(long)]
         amount: u128,
     },
 
