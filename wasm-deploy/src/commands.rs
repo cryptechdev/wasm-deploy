@@ -10,6 +10,8 @@ use clap_complete::{
 };
 use colored::{self, Colorize};
 use colored_json::to_colored_json_auto;
+use cosm_utils::chain::coin::Denom;
+use cosm_utils::modules::bank::model::SendRequest;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
@@ -28,6 +30,7 @@ use tokio::task::spawn_blocking;
 use wasm_opt::integration::run_from_command_args;
 
 use crate::config::WorkspaceSettings;
+use crate::utils::print_res;
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
@@ -104,6 +107,11 @@ where
             query_contract(contract, *dry_run).await?;
         }
         Commands::SetUp { contracts, dry_run } => set_up(settings, contracts, *dry_run).await?,
+        Commands::Send {
+            address,
+            denom,
+            amount,
+        } => send(address, denom, amount).await?,
         Commands::Custom(..) => {}
     };
     Ok(())
@@ -621,6 +629,38 @@ pub async fn set_up(
     dry_run: bool,
 ) -> anyhow::Result<()> {
     execute_deployment(settings, contracts, dry_run, DeploymentStage::SetUp).await?;
+    Ok(())
+}
+
+pub async fn send(address: &str, denom: &Denom, amount: &u128) -> anyhow::Result<()> {
+    let config = CONFIG.read().await;
+    let key = config.get_active_key().await?;
+    let chain_info = config.get_active_chain_info()?.clone();
+    let from = key
+        .to_addr(&chain_info.cfg.prefix, &chain_info.cfg.derivation_path)
+        .await?;
+    let client =
+        HttpClient::builder(HttpClientUrl::from_str(chain_info.rpc_endpoint.as_str()).unwrap())
+            .compat_mode(CompatMode::V0_34)
+            .build()?;
+    let to = Address::from_str(address)?;
+    let coin = Coin {
+        denom: denom.clone(),
+        amount: *amount,
+    };
+
+    let req = SendRequest {
+        from,
+        to,
+        amounts: vec![coin],
+    };
+
+    let res = client
+        .bank_send_commit(&chain_info.cfg, req, &key, &TxOptions::default())
+        .await?;
+
+    print_res(res);
+
     Ok(())
 }
 

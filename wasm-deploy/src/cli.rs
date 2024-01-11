@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use cosm_utils::chain::coin::Denom;
 use std::fmt::Debug;
 use strum::IntoEnumIterator;
 
@@ -247,6 +248,21 @@ where
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,
+    },
+
+    /// Sends a token amount to a given address
+    Send {
+        /// Address to receive the tokens
+        #[arg(short, long)]
+        address: String,
+
+        /// The amount and denom to send
+        #[arg(short, long)]
+        denom: Denom,
+
+        /// The amount and denom to send
+        #[arg(short, long)]
+        amount: u128,
     },
 
     /// Sets up the smart contract env with executes
