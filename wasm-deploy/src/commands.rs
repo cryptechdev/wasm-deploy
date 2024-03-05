@@ -30,6 +30,7 @@ use tokio::task::spawn_blocking;
 use wasm_opt::integration::run_from_command_args;
 
 use crate::config::WorkspaceSettings;
+use crate::query::query;
 use crate::utils::print_res;
 #[cfg(wasm_cli)]
 use crate::wasm_cli::wasm_cli_import_schemas;
@@ -99,7 +100,8 @@ where
             cw20_query(*dry_run).await?;
         }
         Commands::Cw20Instantiate { dry_run } => cw20_instantiate(*dry_run).await?,
-        Commands::ExecutePayload { contract, payload } => custom_execute(contract, payload).await?,
+        Commands::ExecutePayload { address, payload } => custom_execute(address, payload).await?,
+        Commands::QueryPayload { address, payload } => custom_query(address, payload).await?,
         Commands::SetConfig { contracts, dry_run } => {
             set_config(settings, contracts, *dry_run).await?
         }
@@ -664,10 +666,10 @@ pub async fn send(address: &str, denom: &Denom, amount: &u128) -> anyhow::Result
     Ok(())
 }
 
-pub async fn custom_execute<C: Deploy>(contract: &C, string: &str) -> anyhow::Result<()> {
-    println!("Executing {}", contract.name());
+pub async fn custom_execute(address: &str, payload: &str) -> anyhow::Result<()> {
+    println!("Executing {}", address);
     let config = CONFIG.read().await;
-    let value: serde_json::Value = serde_json::from_str(string)?;
+    let value: serde_json::Value = serde_json::from_str(payload)?;
     let color = to_colored_json_auto(&value)?;
     println!("{color}");
     let msg = serde_json::to_vec(&value)?;
@@ -678,12 +680,11 @@ pub async fn custom_execute<C: Deploy>(contract: &C, string: &str) -> anyhow::Re
         HttpClient::builder(HttpClientUrl::from_str(chain_info.rpc_endpoint.as_str()).unwrap())
             .compat_mode(CompatMode::V0_34)
             .build()?; //::new(chain_info.rpc_endpoint.as_str())?.set_compat_mode(CompatMode::V0_34);
-    let contract_addr = config.get_contract_addr(&contract.to_string())?.clone();
     let funds = Vec::<Coin>::parse_to_obj()?;
     let req = ExecRequest {
         msg,
         funds,
-        address: Address::from_str(&contract_addr)?,
+        address: Address::from_str(address)?,
     };
 
     let response = client
@@ -696,6 +697,19 @@ pub async fn custom_execute<C: Deploy>(contract: &C, string: &str) -> anyhow::Re
         response.deliver_tx.gas_used.to_string().green()
     );
     println!("tx hash: {}", response.hash.to_string().purple());
+
+    Ok(())
+}
+
+pub async fn custom_query(address: &str, payload: &str) -> anyhow::Result<()> {
+    println!("Querying {}", address);
+    let config = CONFIG.read().await;
+    let value: serde_json::Value = serde_json::from_str(payload)?;
+    let color_value = to_colored_json_auto(&value)?;
+    println!("{color_value}");
+    let res = query(&config, address.to_string(), value).await?;
+    let color_res = to_colored_json_auto(&res)?;
+    println!("{color_res}");
 
     Ok(())
 }

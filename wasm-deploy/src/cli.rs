@@ -229,7 +229,16 @@ where
     /// Executes a contract with a custom payload
     ExecutePayload {
         #[arg(short, long)]
-        contract: C,
+        address: String,
+
+        #[arg(short, long)]
+        payload: String,
+    },
+
+    /// Queries a contract with a custom payload
+    QueryPayload {
+        #[arg(short, long)]
+        address: String,
 
         #[arg(short, long)]
         payload: String,
