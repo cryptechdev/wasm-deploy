@@ -669,10 +669,9 @@ pub async fn send(address: &str, denom: &Denom, amount: &u128) -> anyhow::Result
 pub async fn custom_execute(address: &str, payload: &str) -> anyhow::Result<()> {
     println!("Executing {}", address);
     let config = CONFIG.read().await;
-    let value: serde_json::Value = serde_json::from_str(payload)?;
-    let color = to_colored_json_auto(&value)?;
+    let msg: serde_json::Value = serde_json::from_str(payload)?;
+    let color = to_colored_json_auto(&msg)?;
     println!("{color}");
-    let msg = serde_json::to_vec(&value)?;
     let key = config.get_active_key().await?;
 
     let chain_info = config.get_active_chain_info()?.clone();
