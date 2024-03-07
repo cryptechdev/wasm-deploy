@@ -168,6 +168,10 @@ where
         #[arg(short, long, required = false)]
         interactive: bool,
 
+        /// Deploys but does not recompile first
+        #[arg(short, long, required = false)]
+        no_build: bool,
+
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,

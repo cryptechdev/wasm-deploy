@@ -91,8 +91,19 @@ where
         Commands::Migrate {
             contracts,
             interactive,
+            no_build,
             dry_run,
-        } => migrate(settings, contracts, *interactive, *dry_run, &cli.cargo_args).await?,
+        } => {
+            migrate(
+                settings,
+                contracts,
+                *interactive,
+                *no_build,
+                *dry_run,
+                &cli.cargo_args,
+            )
+            .await?
+        }
         Commands::Execute { contract, dry_run } => execute_contract(contract, *dry_run).await?,
         Commands::Cw20Send { contract, dry_run } => cw20_send(contract, *dry_run).await?,
         Commands::Cw20Execute { dry_run } => cw20_execute(*dry_run).await?,
@@ -599,11 +610,14 @@ pub async fn migrate(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
     interactive: bool,
+    no_build: bool,
     dry_run: bool,
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
-    build(settings, contracts, cargo_args).await?;
-    store_code(settings, contracts, dry_run).await?;
+    if !no_build {
+        build(settings, contracts, cargo_args).await?;
+        store_code(settings, contracts, dry_run).await?;
+    }
 
     execute_deployment(
         settings,
