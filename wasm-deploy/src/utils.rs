@@ -1,5 +1,5 @@
 use crate::{
-    config::{ContractInfo, WorkspaceSettings, CONFIG, WORKSPACE_SETTINGS},
+    config::{ContractInfo, Env, WorkspaceSettings, CONFIG, WORKSPACE_SETTINGS},
     error::DeployError,
 };
 use colored::Colorize;
@@ -89,9 +89,9 @@ pub fn get_addr(contract_name: &str) -> anyhow::Result<String> {
         })?)
 }
 
-pub fn get_env() -> anyhow::Result<String> {
+pub fn get_env() -> anyhow::Result<Env> {
     let config = block_on(CONFIG.read());
-    Ok(config.get_active_env()?.to_string())
+    Ok(config.get_active_env()?.clone())
 }
 
 pub fn get_wallet_addr() -> anyhow::Result<String> {
