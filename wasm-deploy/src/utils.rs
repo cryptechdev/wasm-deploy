@@ -89,6 +89,11 @@ pub fn get_addr(contract_name: &str) -> anyhow::Result<String> {
         })?)
 }
 
+pub fn get_env() -> anyhow::Result<String> {
+    let config = block_on(CONFIG.read());
+    Ok(config.get_active_env()?.to_string())
+}
+
 pub fn get_wallet_addr() -> anyhow::Result<String> {
     block_on(async {
         let config = CONFIG.read().await;
