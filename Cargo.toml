@@ -1,4 +1,3 @@
 [workspace]
 members = ["wasm-deploy", "wasm-deploy-derive"]
-exclude = ["template", "template/deployment"]
 resolver = "2"
