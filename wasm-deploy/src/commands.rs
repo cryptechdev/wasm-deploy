@@ -8,7 +8,7 @@ use clap_complete::{
     generate_to,
     shells::{Bash, Zsh},
 };
-use colored::{self, Colorize};
+use colored::Colorize;
 use colored_json::to_colored_json_auto;
 use cosm_utils::chain::coin::Denom;
 use cosm_utils::modules::bank::model::SendRequest;

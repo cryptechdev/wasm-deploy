@@ -3,7 +3,6 @@ use std::str::FromStr;
 use crate::{config::CONFIG, contract::Deploy};
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
-use cosm_utils::clients::tendermint_rpc::ClientCompat;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
