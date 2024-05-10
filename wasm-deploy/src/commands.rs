@@ -64,7 +64,10 @@ where
     match &cli.command {
         Commands::Update { features } => update::<C, S>(settings, features).await?,
         Commands::Init {} => init(settings).await?,
-        Commands::Build { contracts } => build(settings, contracts, &cli.cargo_args).await?,
+        Commands::Build {
+            contracts,
+            cargo_args,
+        } => build(settings, contracts, cargo_args).await?,
         Commands::Chain { add, delete } => chain(settings, add, delete).await?,
         Commands::Key { add, delete, show } => key(settings, add, delete, show).await?,
         Commands::Contract { add, delete } => contract(settings, add, delete).await?,
@@ -72,7 +75,8 @@ where
             contracts,
             no_build,
             dry_run,
-        } => deploy(settings, contracts, *no_build, *dry_run, &cli.cargo_args).await?,
+            cargo_args,
+        } => deploy(settings, contracts, *no_build, *dry_run, cargo_args).await?,
         Commands::Env {
             add,
             delete,
@@ -93,6 +97,7 @@ where
             interactive,
             no_build,
             dry_run,
+            cargo_args,
         } => {
             migrate(
                 settings,
@@ -100,7 +105,7 @@ where
                 *interactive,
                 *no_build,
                 *dry_run,
-                &cli.cargo_args,
+                cargo_args,
             )
             .await?
         }

@@ -15,10 +15,9 @@ where
 {
     #[command(subcommand)]
     pub command: Commands<C, S>,
-
-    /// Add additional args to cargo build
-    #[arg(long, required = false)]
-    pub cargo_args: Vec<String>,
+    // /// Add additional args to cargo build
+    // #[arg(long, required = false)]
+    // pub cargo_args: Vec<String>,
 }
 
 #[derive(Parser, Clone, Debug)]
@@ -46,6 +45,10 @@ where
         /// Name of the contract
         #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
         contracts: Vec<C>,
+
+        /// Pass arguments to cargo
+        #[arg(short, long, use_value_delimiter = true, value_delimiter = ' ')]
+        cargo_args: Vec<String>,
     },
 
     /// Modify chains
@@ -102,6 +105,10 @@ where
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,
+
+        /// Pass arguments to cargo
+        #[arg(short, long, use_value_delimiter = true, value_delimiter = ' ')]
+        cargo_args: Vec<String>,
     },
 
     /// Modify deployment environments
@@ -175,6 +182,10 @@ where
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,
+
+        /// Pass arguments to cargo
+        #[arg(short, long, use_value_delimiter = true, value_delimiter = ' ')]
+        cargo_args: Vec<String>,
     },
 
     /// Sets the config of a contract
