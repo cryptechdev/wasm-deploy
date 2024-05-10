@@ -15,9 +15,6 @@ where
 {
     #[command(subcommand)]
     pub command: Commands<C, S>,
-    // /// Add additional args to cargo build
-    // #[arg(long, required = false)]
-    // pub cargo_args: Vec<String>,
 }
 
 #[derive(Parser, Clone, Debug)]
@@ -47,7 +44,7 @@ where
         contracts: Vec<C>,
 
         /// Pass arguments to cargo
-        #[arg(short, long, use_value_delimiter = true, value_delimiter = ' ')]
+        #[arg(long, use_value_delimiter = true, value_delimiter = ' ')]
         cargo_args: Vec<String>,
     },
 
@@ -107,7 +104,7 @@ where
         dry_run: bool,
 
         /// Pass arguments to cargo
-        #[arg(short, long, use_value_delimiter = true, value_delimiter = ' ')]
+        #[arg(long, use_value_delimiter = true, value_delimiter = ' ')]
         cargo_args: Vec<String>,
     },
 
@@ -184,7 +181,7 @@ where
         dry_run: bool,
 
         /// Pass arguments to cargo
-        #[arg(short, long, use_value_delimiter = true, value_delimiter = ' ')]
+        #[arg(long, use_value_delimiter = true, value_delimiter = ' ')]
         cargo_args: Vec<String>,
     },
 
