@@ -51,8 +51,8 @@ pub async fn cw20_send(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<
             .await?;
         println!(
             "gas wanted: {}, gas used: {}",
-            response.deliver_tx.gas_wanted.to_string().green(),
-            response.deliver_tx.gas_used.to_string().green()
+            response.tx_result.gas_wanted.to_string().green(),
+            response.tx_result.gas_used.to_string().green()
         );
         println!("tx hash: {}", response.hash.to_string().purple());
     }
@@ -84,8 +84,8 @@ pub async fn cw20_execute(dry_run: bool) -> anyhow::Result<()> {
 
         println!(
             "gas wanted: {}, gas used: {}",
-            response.deliver_tx.gas_wanted.to_string().green(),
-            response.deliver_tx.gas_used.to_string().green()
+            response.tx_result.gas_wanted.to_string().green(),
+            response.tx_result.gas_used.to_string().green()
         );
         println!("tx hash: {}", response.hash.to_string().purple());
     }
@@ -131,8 +131,8 @@ pub async fn cw20_instantiate(dry_run: bool) -> anyhow::Result<()> {
 
         println!(
             "gas wanted: {}, gas used: {}",
-            response.res.deliver_tx.gas_wanted.to_string().green(),
-            response.res.deliver_tx.gas_used.to_string().green()
+            response.res.tx_result.gas_wanted.to_string().green(),
+            response.res.tx_result.gas_used.to_string().green()
         );
         println!("tx hash: {}", response.res.hash.to_string().purple());
     }

@@ -711,8 +711,8 @@ pub async fn custom_execute(address: &str, payload: &str) -> anyhow::Result<()> 
 
     println!(
         "gas wanted: {}, gas used: {}",
-        response.deliver_tx.gas_wanted.to_string().green(),
-        response.deliver_tx.gas_used.to_string().green()
+        response.tx_result.gas_wanted.to_string().green(),
+        response.tx_result.gas_used.to_string().green()
     );
     println!("tx hash: {}", response.hash.to_string().purple());
 

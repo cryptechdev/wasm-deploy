@@ -114,8 +114,8 @@ pub fn get_wallet_addr() -> anyhow::Result<String> {
 pub fn print_res(tx_commit: tx_commit::Response) {
     println!(
         "gas wanted: {}, gas used: {}",
-        tx_commit.deliver_tx.gas_wanted.to_string().green(),
-        tx_commit.deliver_tx.gas_used.to_string().green()
+        tx_commit.tx_result.gas_wanted.to_string().green(),
+        tx_commit.tx_result.gas_used.to_string().green()
     );
     println!("tx hash: {}", tx_commit.hash.to_string().purple());
 }
