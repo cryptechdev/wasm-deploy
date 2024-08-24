@@ -3,12 +3,13 @@ use crate::{
     error::DeployError,
 };
 use colored::Colorize;
+use cosm_utils::cosmrs;
+use cosmrs::rpc::endpoint::broadcast::tx_commit;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-use tendermint_rpc::endpoint::broadcast::tx_commit;
 
 lazy_static! {
     pub static ref BIN_NAME: String = std::env::current_exe()

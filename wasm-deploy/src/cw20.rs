@@ -3,6 +3,7 @@ use std::str::FromStr;
 use crate::{config::CONFIG, contract::Deploy};
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
+use cosm_utils::cosmrs;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
@@ -11,10 +12,10 @@ use cosm_utils::{
         cosmwasm::model::{ExecRequest, InstantiateRequest},
     },
 };
+use cosmrs::rpc::HttpClient;
 use cw20::Cw20ExecuteMsg;
 use inquire::{CustomType, Text};
 use interactive_parse::InteractiveParseObj;
-use tendermint_rpc::HttpClient;
 
 pub async fn cw20_send(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<()> {
     println!("Executing cw20 send");
@@ -136,5 +137,38 @@ pub async fn cw20_instantiate(dry_run: bool) -> anyhow::Result<()> {
         );
         println!("tx hash: {}", response.res.hash.to_string().purple());
     }
+    Ok(())
+}
+
+pub async fn cw20_transfer(
+    recipient: String,
+    contract_addr: String,
+    amount: u128,
+) -> anyhow::Result<()> {
+    println!("Executing cw20 transfer");
+    let config = CONFIG.read().await;
+    let key = config.get_active_key().await?;
+    let msg = Cw20ExecuteMsg::Transfer {
+        recipient,
+        amount: amount.into(),
+    };
+    let chain_info = config.get_active_chain_info()?.clone();
+    let client = HttpClient::get_persistent_compat(chain_info.rpc_endpoint.as_str()).await?;
+    let funds = Vec::<Coin>::parse_to_obj()?;
+    let req = ExecRequest {
+        msg,
+        funds,
+        address: Address::from_str(&contract_addr)?,
+    };
+
+    let response = client
+        .wasm_execute_commit(&chain_info.cfg, req, &key, &TxOptions::default())
+        .await?;
+    println!(
+        "gas wanted: {}, gas used: {}",
+        response.tx_result.gas_wanted.to_string().green(),
+        response.tx_result.gas_used.to_string().green()
+    );
+    println!("tx hash: {}", response.hash.to_string().purple());
     Ok(())
 }

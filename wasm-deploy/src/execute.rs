@@ -4,16 +4,17 @@ use crate::{
 };
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
+use cosm_utils::cosmrs;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
     prelude::*,
 };
+use cosmrs::rpc::HttpClient;
 use interactive_parse::InteractiveParseObj;
 use log::debug;
 use serde::Serialize;
 use std::{fmt::Debug, str::FromStr};
-use tendermint_rpc::HttpClient;
 
 pub async fn execute_contract(contract: &impl Deploy, dry_run: bool) -> anyhow::Result<()> {
     println!("Executing");

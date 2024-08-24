@@ -1,14 +1,15 @@
 use std::{fmt::Debug, str::FromStr};
 
 use colored_json::to_colored_json_auto;
+use cosm_utils::cosmrs;
 use cosm_utils::{modules::auth::model::Address, prelude::*};
+use cosmrs::rpc::HttpClient;
 use cw20::Cw20QueryMsg;
 use inquire::Text;
 use interactive_parse::InteractiveParseObj;
 use log::debug;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
-use tendermint_rpc::HttpClient;
 
 use crate::{
     config::{Config, CONFIG},

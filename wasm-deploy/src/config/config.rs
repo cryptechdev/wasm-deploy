@@ -3,11 +3,13 @@ use crate::config::{WorkspaceSettings, WORKSPACE_SETTINGS};
 use crate::error::DeployError;
 #[cfg(feature = "ledger")]
 use crate::ledger::get_ledger_info;
+use cosm_utils::cosmrs;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     config::cfg::ChainConfig,
     signing_key::key::{Key, KeyringParams, UserKey},
 };
+use cosmrs::rpc::HttpClient;
 use futures::executor::block_on;
 use ibc_chain_registry::{chain::ChainData, constants::ALL_CHAINS, fetchable::Fetchable};
 use inquire::{Confirm, CustomType, Select, Text};
@@ -24,7 +26,6 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
-use tendermint_rpc::HttpClient;
 use tokio::sync::RwLock;
 
 use super::{ContractInfo, Env, UserSettings};

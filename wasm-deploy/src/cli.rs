@@ -156,6 +156,10 @@ where
         #[arg(short, long, required = false)]
         interactive: bool,
 
+        /// Will prompt for coins for each message
+        #[arg(long, required = false)]
+        coins: bool,
+
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,
@@ -236,6 +240,21 @@ where
         /// Does not execute transactions, prints txs to console
         #[arg(short, long, required = false)]
         dry_run: bool,
+    },
+
+    /// Sends a token amount to a given address
+    Cw20Transfer {
+        /// Address to receive the tokens
+        #[arg(long)]
+        recipient: String,
+
+        /// The amount and denom to send
+        #[arg(short, long)]
+        contract_addr: String,
+
+        /// The amount and denom to send
+        #[arg(long)]
+        amount: u128,
     },
 
     /// Executes a contract with a custom payload

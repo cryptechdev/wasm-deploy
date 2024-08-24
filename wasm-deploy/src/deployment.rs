@@ -1,7 +1,7 @@
-use std::str::FromStr;
-
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
+use cosm_utils::chain::coin::Coin;
+use cosm_utils::cosmrs;
 use cosm_utils::{
     chain::request::TxOptions,
     modules::{
@@ -11,8 +11,10 @@ use cosm_utils::{
     prelude::*,
     signing_key::key::UserKey,
 };
+use cosmrs::rpc::{endpoint::broadcast::tx_commit, HttpClient};
+use interactive_parse::InteractiveParseObj;
 use log::debug;
-use tendermint_rpc::{endpoint::broadcast::tx_commit, HttpClient};
+use std::str::FromStr;
 
 use crate::{
     config::{ChainInfo, ContractInfo, WorkspaceSettings, CONFIG},
@@ -33,6 +35,7 @@ pub enum DeploymentStage {
 pub async fn execute_deployment(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
+    coins: bool,
     dry_run: bool,
     deployment_stage: DeploymentStage,
 ) -> anyhow::Result<()> {
@@ -51,6 +54,7 @@ pub async fn execute_deployment(
             execute_instantiate(
                 contracts,
                 interactive,
+                coins,
                 dry_run,
                 &client,
                 &chain_info,
@@ -286,6 +290,7 @@ async fn execute_external_instantiate(
 async fn execute_instantiate(
     contracts: &[impl Deploy],
     interactive: bool,
+    coins: bool,
     dry_run: bool,
     client: &HttpClient,
     chain_info: &ChainInfo,
@@ -318,6 +323,9 @@ async fn execute_instantiate(
             );
             let contract_info = config.get_contract(&contract.to_string())?;
             let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
+            if coins {
+                Coin::parse_to_obj()?;
+            }
             reqs.push(InstantiateRequest {
                 code_id,
                 msg,

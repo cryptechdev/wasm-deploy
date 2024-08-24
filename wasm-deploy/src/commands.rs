@@ -11,25 +11,27 @@ use clap_complete::{
 use colored::Colorize;
 use colored_json::to_colored_json_auto;
 use cosm_utils::chain::coin::Denom;
+use cosm_utils::cosmrs;
 use cosm_utils::modules::bank::model::SendRequest;
 use cosm_utils::prelude::*;
 use cosm_utils::{
     chain::{coin::Coin, request::TxOptions},
     modules::{auth::model::Address, cosmwasm::model::ExecRequest},
 };
+use cosmrs::rpc::client::CompatMode;
+use cosmrs::rpc::{HttpClient, HttpClientUrl};
 #[cfg(feature = "wasm_opt")]
 use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::InteractiveParseObj;
 use log::info;
-use tendermint_rpc::client::CompatMode;
-use tendermint_rpc::{HttpClient, HttpClientUrl};
 #[cfg(feature = "wasm_opt")]
 use tokio::task::spawn_blocking;
 #[cfg(feature = "wasm_opt")]
 use wasm_opt::integration::run_from_command_args;
 
 use crate::config::WorkspaceSettings;
+use crate::cw20::cw20_transfer;
 use crate::query::query;
 use crate::utils::print_res;
 #[cfg(wasm_cli)]
@@ -90,8 +92,9 @@ where
         Commands::Instantiate {
             contracts,
             interactive,
+            coins,
             dry_run,
-        } => instantiate(settings, contracts, *interactive, *dry_run).await?,
+        } => instantiate(settings, contracts, *interactive, *coins, *dry_run).await?,
         Commands::Migrate {
             contracts,
             interactive,
@@ -116,6 +119,11 @@ where
             cw20_query(*dry_run).await?;
         }
         Commands::Cw20Instantiate { dry_run } => cw20_instantiate(*dry_run).await?,
+        Commands::Cw20Transfer {
+            recipient,
+            contract_addr,
+            amount,
+        } => cw20_transfer(recipient.clone(), contract_addr.clone(), *amount).await?,
         Commands::ExecutePayload { address, payload } => custom_execute(address, payload).await?,
         Commands::QueryPayload { address, payload } => custom_query(address, payload).await?,
         Commands::SetConfig { contracts, dry_run } => {
@@ -261,7 +269,7 @@ pub async fn deploy(
         build(settings, contracts, cargo_args).await?;
     }
     store_code(settings, contracts, dry_run).await?;
-    instantiate(settings, contracts, dry_run, false).await?;
+    instantiate(settings, contracts, false, false, dry_run).await?;
     set_config(settings, contracts, dry_run).await?;
     set_up(settings, contracts, dry_run).await?;
     Ok(())
@@ -582,7 +590,7 @@ pub async fn store_code(
     let chunk_size = CONFIG.read().await.settings.store_code_chunk_size;
     let chunks = contracts.chunks(chunk_size);
     for chunk in chunks {
-        execute_deployment(settings, chunk, dry_run, DeploymentStage::StoreCode).await?;
+        execute_deployment(settings, chunk, false, dry_run, DeploymentStage::StoreCode).await?;
     }
     Ok(())
 }
@@ -591,11 +599,13 @@ pub async fn instantiate(
     settings: &WorkspaceSettings,
     contracts: &[impl Deploy],
     interactive: bool,
+    coins: bool,
     dry_run: bool,
 ) -> anyhow::Result<()> {
     execute_deployment(
         settings,
         contracts,
+        coins,
         dry_run,
         DeploymentStage::Instantiate { interactive },
     )
@@ -603,6 +613,7 @@ pub async fn instantiate(
     execute_deployment(
         settings,
         contracts,
+        coins,
         dry_run,
         DeploymentStage::ExternalInstantiate,
     )
@@ -627,6 +638,7 @@ pub async fn migrate(
     execute_deployment(
         settings,
         contracts,
+        false,
         dry_run,
         DeploymentStage::Migrate { interactive },
     )
@@ -640,7 +652,14 @@ pub async fn set_config(
     contracts: &[impl Deploy],
     dry_run: bool,
 ) -> anyhow::Result<()> {
-    execute_deployment(settings, contracts, dry_run, DeploymentStage::SetConfig).await?;
+    execute_deployment(
+        settings,
+        contracts,
+        false,
+        dry_run,
+        DeploymentStage::SetConfig,
+    )
+    .await?;
     Ok(())
 }
 
@@ -649,7 +668,7 @@ pub async fn set_up(
     contracts: &[impl Deploy],
     dry_run: bool,
 ) -> anyhow::Result<()> {
-    execute_deployment(settings, contracts, dry_run, DeploymentStage::SetUp).await?;
+    execute_deployment(settings, contracts, false, dry_run, DeploymentStage::SetUp).await?;
     Ok(())
 }
 
