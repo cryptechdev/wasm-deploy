@@ -165,6 +165,26 @@ where
         dry_run: bool,
     },
 
+    /// Instantiates a contract using the preprogrammed messages
+    #[command(visible_alias = "e")]
+    ExternalInstantiate {
+        /// Name of the contract
+        #[arg(short, long, use_value_delimiter=true, value_delimiter=',', default_values=get_all::<C>())]
+        contracts: Vec<C>,
+
+        /// Interactive mode
+        #[arg(short, long, required = false)]
+        interactive: bool,
+
+        /// Will prompt for coins for each message
+        #[arg(long, required = false)]
+        coins: bool,
+
+        /// Does not execute transactions, prints txs to console
+        #[arg(short, long, required = false)]
+        dry_run: bool,
+    },
+
     /// Migrates contracts
     #[command(visible_alias = "m")]
     Migrate {

@@ -236,8 +236,7 @@ async fn execute_external_instantiate(
     key: &UserKey,
     settings: &WorkspaceSettings,
 ) -> Result<Option<tx_commit::Response>, anyhow::Error> {
-    let mut reqs = vec![];
-    let config = CONFIG.read().await;
+    // let config = CONFIG.read().await;
     for contract in contracts {
         for external in contract.external_instantiate_msgs() {
             println!(
@@ -245,46 +244,31 @@ async fn execute_external_instantiate(
                 "Instantiating".bright_green().bold(),
                 external.name
             );
-            reqs.push(InstantiateRequest {
+            let req = InstantiateRequest {
                 code_id: external.code_id,
                 msg: external.msg,
                 label: external.name.clone(),
                 admin: Some(Address::from_str(&contract.admin())?),
                 funds: vec![],
-            });
-        }
-    }
-    drop(config);
-    Ok(if reqs.is_empty() {
-        None
-    } else if dry_run {
-        println!(
-            "{}",
-            to_colored_json_auto(&serde_json::to_value(
-                reqs.into_iter().map(|m| m.msg).collect::<Vec<_>>()
-            )?)?
-        );
-        None
-    } else {
-        let response = client
-            .wasm_instantiate_batch_commit(&chain_info.cfg, reqs, key, &TxOptions::default())
-            .await?;
-        let mut index = 0;
-        for contract in contracts {
-            for external in contract.external_instantiate_msgs() {
+            };
+            if dry_run {
+                println!("{}", to_colored_json_auto(&serde_json::to_value(req.msg)?)?);
+            } else {
+                let response = client
+                    .wasm_instantiate_commit(&chain_info.cfg, req, key, &TxOptions::default())
+                    .await?;
                 let mut config = CONFIG.write().await;
                 config.add_contract_from(ContractInfo {
                     name: external.name,
-                    addr: Some(response.addresses[index].to_string()),
+                    addr: Some(response.address.to_string()),
                     code_id: Some(external.code_id),
                 })?;
-                index += 1;
+                config.save(settings)?;
+                print_res(response.res);
             }
         }
-        let config = CONFIG.read().await;
-        config.save(settings)?;
-        Some(response.res)
-    })
+    }
+    Ok(None)
 }
 
 async fn execute_instantiate(
@@ -323,15 +307,17 @@ async fn execute_instantiate(
             );
             let contract_info = config.get_contract(&contract.to_string())?;
             let code_id = contract_info.code_id.ok_or(DeployError::CodeIdNotFound)?;
-            if coins {
-                Coin::parse_to_obj()?;
-            }
+            let funds = if coins {
+                Vec::<Coin>::parse_to_obj()?
+            } else {
+                vec![]
+            };
             reqs.push(InstantiateRequest {
                 code_id,
                 msg,
                 label: contract.name(),
                 admin: Some(Address::from_str(&contract.admin())?),
-                funds: vec![],
+                funds,
             });
         }
     }

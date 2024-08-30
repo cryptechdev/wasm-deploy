@@ -95,6 +95,12 @@ where
             coins,
             dry_run,
         } => instantiate(settings, contracts, *interactive, *coins, *dry_run).await?,
+        Commands::ExternalInstantiate {
+            contracts,
+            interactive,
+            coins,
+            dry_run,
+        } => external_instantiate(settings, contracts, *interactive, *coins, *dry_run).await?,
         Commands::Migrate {
             contracts,
             interactive,
@@ -610,6 +616,25 @@ pub async fn instantiate(
         DeploymentStage::Instantiate { interactive },
     )
     .await?;
+    execute_deployment(
+        settings,
+        contracts,
+        coins,
+        dry_run,
+        DeploymentStage::ExternalInstantiate,
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn external_instantiate(
+    settings: &WorkspaceSettings,
+    contracts: &[impl Deploy],
+    interactive: bool,
+    coins: bool,
+    dry_run: bool,
+) -> anyhow::Result<()> {
     execute_deployment(
         settings,
         contracts,
