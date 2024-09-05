@@ -20,6 +20,8 @@ pub struct WorkspaceSettings {
     pub(crate) deployment_dir: PathBuf,
     /// absolute or relative to workspace root
     pub(crate) artifacts_dir: PathBuf,
+    /// absolute or relative to workspace root
+    pub(crate) build_profile: String,
 }
 
 impl WorkspaceSettings {
@@ -36,6 +38,7 @@ impl WorkspaceSettings {
             target_dir: workspace_root.join("target"),
             deployment_dir: workspace_root.join("deployment"),
             artifacts_dir: workspace_root.join("artifacts"),
+            build_profile: "release".to_string(),
         })
     }
 
@@ -88,6 +91,15 @@ impl WorkspaceSettings {
             bail!("artifacts dir must be a directory")
         }
         self.artifacts_dir = artifacts_dir;
+        Ok(self)
+    }
+
+    /// Default path is `artifacts`
+    pub fn set_build_profile<T: ?Sized + AsRef<str>>(
+        mut self,
+        build_profile: &T,
+    ) -> anyhow::Result<Self> {
+        self.build_profile = build_profile;
         Ok(self)
     }
 }
