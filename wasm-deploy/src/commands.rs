@@ -20,21 +20,21 @@ use cosm_utils::{
 };
 use cosmrs::rpc::client::CompatMode;
 use cosmrs::rpc::{HttpClient, HttpClientUrl};
-#[cfg(feature = "wasm_opt")]
+#[cfg(feature = "wasm-opt")]
 use futures::future::join_all;
 use inquire::{MultiSelect, Select};
 use interactive_parse::InteractiveParseObj;
 use log::info;
-#[cfg(feature = "wasm_opt")]
+#[cfg(feature = "wasm-opt")]
 use tokio::task::spawn_blocking;
-#[cfg(feature = "wasm_opt")]
+#[cfg(feature = "wasm-opt")]
 use wasm_opt::integration::run_from_command_args;
 
 use crate::config::WorkspaceSettings;
 use crate::cw20::cw20_transfer;
 use crate::query::query;
 use crate::utils::print_res;
-#[cfg(wasm_cli)]
+#[cfg(feature = "wasm_cli")]
 use crate::wasm_cli::wasm_cli_import_schemas;
 use crate::{
     cli::{Cli, Commands},
@@ -476,7 +476,7 @@ pub fn schemas(contracts: &[impl Deploy]) -> anyhow::Result<()> {
             .wait()?;
     }
 
-    #[cfg(wasm_cli)]
+    #[cfg(feature = "wasm_cli")]
     // Import schemas
     for contract in contracts {
         wasm_cli_import_schemas(&contract.name())?;
@@ -496,25 +496,24 @@ pub async fn optimize(
         let name = contract.name();
         let bin_name = contract.bin_name();
         println!("{} {name} contract", "  Optimizing".bold().bright_green());
-        #[cfg(feature = "wasm_opt")]
+        #[cfg(feature = "wasm-opt")]
         {
             let mut command = wasm_opt::integration::Command::new("wasm-opt");
             command
                 .arg("-Oz")
                 .arg("-o")
                 .arg(settings.artifacts_dir.join(format!("{}.wasm", bin_name)))
-                .arg(
-                    settings
-                        .target_dir
-                        .join(format!("wasm32-unknown-unknown/release/{bin_name}.wasm")),
-                );
+                .arg(settings.target_dir.join(format!(
+                    "wasm32-unknown-unknown/{}/{bin_name}.wasm",
+                    settings.build_profile
+                )));
             handles.push({
                 spawn_blocking(move || {
                     run_from_command_args(command).unwrap();
                 })
             })
         }
-        #[cfg(not(feature = "wasm_opt"))]
+        #[cfg(not(feature = "wasm-opt"))]
         {
             let mut command = Command::new("wasm-opt");
             handles.push(
@@ -535,9 +534,9 @@ pub async fn optimize(
             );
         }
     }
-    #[cfg(feature = "wasm_opt")]
+    #[cfg(feature = "wasm-opt")]
     join_all(handles).await;
-    #[cfg(not(feature = "wasm_opt"))]
+    #[cfg(not(feature = "wasm-opt"))]
     handles.iter_mut().for_each(|x| {
         x.wait().unwrap();
     });
