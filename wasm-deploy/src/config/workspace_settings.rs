@@ -99,7 +99,7 @@ impl WorkspaceSettings {
         mut self,
         build_profile: &T,
     ) -> anyhow::Result<Self> {
-        self.build_profile = build_profile;
+        self.build_profile = build_profile.to_string();
         Ok(self)
     }
 }
