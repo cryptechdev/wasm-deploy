@@ -406,19 +406,19 @@ pub async fn build(
     cargo_args: &[String],
 ) -> anyhow::Result<()> {
     // Make sure the toolchain is installed
-    Command::new("rustup")
-        .arg("install")
-        .arg("1.69.0")
-        .spawn()?
-        .wait_with_output()?;
-
-    Command::new("rustup")
-        .arg("+1.69.0")
-        .arg("target")
-        .arg("add")
-        .arg("wasm32-unknown-unknown")
-        .spawn()?
-        .wait_with_output()?;
+    // Command::new("rustup")
+    //     .arg("install")
+    //     .arg("1.69.0")
+    //     .spawn()?
+    //     .wait_with_output()?;
+    //
+    // Command::new("rustup")
+    //     .arg("+1.69.0")
+    //     .arg("target")
+    //     .arg("add")
+    //     .arg("wasm32-unknown-unknown")
+    //     .spawn()?
+    //     .wait_with_output()?;
 
     // TODO: this is a better method
     // let mut command = Command::new("cargo");
@@ -443,7 +443,7 @@ pub async fn build(
     for contract in contracts {
         Command::new("cargo")
             .env("RUSTFLAGS", "-C link-arg=-s")
-            .env("RUSTUP_TOOLCHAIN", "1.69.0")
+            // .env("RUSTUP_TOOLCHAIN", "1.69.0")
             .arg("build")
             .arg("--profile")
             .arg(settings.build_profile.as_str())
