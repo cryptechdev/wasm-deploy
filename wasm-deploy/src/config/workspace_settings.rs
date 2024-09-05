@@ -95,7 +95,7 @@ impl WorkspaceSettings {
     }
 
     /// Default path is `artifacts`
-    pub fn set_build_profile<T: ?Sized + AsRef<str>>(
+    pub fn set_build_profile<T: ?Sized + ToString>(
         mut self,
         build_profile: &T,
     ) -> anyhow::Result<Self> {
