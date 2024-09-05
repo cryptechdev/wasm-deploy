@@ -522,11 +522,10 @@ pub async fn optimize(
                     .arg("-Oz")
                     .arg("-o")
                     .arg(settings.artifacts_dir.join(format!("{}.wasm", bin_name)))
-                    .arg(
-                        settings
-                            .target_dir
-                            .join(format!("wasm32-unknown-unknown/release/{bin_name}.wasm")),
-                    )
+                    .arg(settings.target_dir.join(format!(
+                        "wasm32-unknown-unknown/{}/{bin_name}.wasm",
+                        settings.build_profile
+                    )))
                     .spawn()
                     .context(
                         "Failed optimizing with user installed wasm-opt. \
