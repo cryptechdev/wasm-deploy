@@ -20,7 +20,7 @@ wasm-deploy-derive = { version = "0.6.0", path = "../wasm-deploy-derive" }
 cosm-utils = { git = "https://github.com/cryptechdev/cosm-utils.git", features = [
     "keyring",
 ] }
-wasm-opt = { version = "=0.110.2", optional = true }
+wasm-opt = { version = "0.116", optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = "1"
 ibc-chain-registry = "0.29"
