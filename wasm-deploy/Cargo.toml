@@ -17,7 +17,11 @@ wasm_cli = []
 
 [dependencies]
 wasm-deploy-derive = { version = "0.6.0", path = "../wasm-deploy-derive" }
-cosm-utils = { git = "https://github.com/cryptechdev/cosm-utils.git", features = [
+
+# cosm-utils = { git = "https://github.com/cryptechdev/cosm-utils.git", features = [
+#    "keyring",
+# ] }
+cosm-utils = { git = "https://github.com/cryptechdev/cosm-utils.git", rev = "3b520dd584adeb6b962c6bf87057b0f2b70f27af", features = [
     "keyring",
 ] }
 wasm-opt = { version = "0.116", optional = true }
